@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}BIND - {{ event.name }}{% endblock %}
+{% block page_title %}{{ event.name }}{% endblock %}
+
+{% block topbar_action %}
+<div class="flex items-center gap-2">
+  <a href="{% url 'events:event_edit' event.pk %}" class="glass px-4 py-2 rounded-xl text-sm font-medium hover:bg-white/80 dark:hover:bg-gray-700 transition-all text-gray-700 dark:text-gray-200 flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+    Editar
+  </a>
+  <a href="{% url 'events:event_delete' event.pk %}" class="glass px-4 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+    Eliminar
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="p-8 md:p-10 animate-fade-in">
+
+  <!-- Header del evento -->
+  <div class="bg-gradient-to-r from-teal-500 to-cyan-600 rounded-3xl p-8 text-white shadow-lg mb-8 relative overflow-hidden">
+    <div class="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+    <div class="relative z-10">
+      <!-- Badges -->
+      <div class="flex items-center gap-3 mb-4">
+        {% if event.template %}
+        <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+          {{ event.template.get_category_display }}
+        </span>
+        {% endif %}
+        <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+          {{ event.get_status_display }}
+        </span>
+      </div>
+
+      <h1 class="text-4xl font-bold mb-2">{{ event.name }}</h1>
+
+      {% if event.location %}
+      <p class="opacity-90 flex items-center gap-2 mb-4">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        {{ event.location }}
+      </p>
+      {% endif %}
+
+      <div class="flex items-center gap-6 mt-4 flex-wrap">
+        {% if event.start_date %}
+        <div>
+          <p class="text-sm opacity-70">Fecha de inicio</p>
+          <p class="font-semibold text-lg">{{ event.start_date|date:"d M Y" }}</p>
+        </div>
+        {% endif %}
+        {% if event.end_date %}
+        <div>
+          <p class="text-sm opacity-70">Fecha de fin</p>
+          <p class="font-semibold text-lg">{{ event.end_date|date:"d M Y" }}</p>
+        </div>
+        {% endif %}
+        {% if event.days_until is not None %}
+        <div>
+          <p class="text-sm opacity-70">Tiempo restante</p>
+          <p class="font-semibold text-lg bg-white/20 px-3 rounded-lg">
+            {% if event.days_until == 0 %}Hoy
+            {% elif event.days_until < 0 %}Finalizado
+            {% else %}{{ event.days_until }} día{{ event.days_until|pluralize }}{% endif %}
+          </p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Barra de progreso -->
+      {% if task_progress is not None %}
+      <div class="mt-6">
+        <div class="flex justify-between text-sm mb-2">
+          <span class="opacity-80">Progreso de tareas</span>
+          <span class="font-bold">{{ task_progress }}%</span>
+        </div>
+        <div class="w-full bg-white/20 rounded-full h-2.5">
+          <div class="bg-white h-2.5 rounded-full transition-all" style="width: {{ task_progress }}%"></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+    <!-- Columna izquierda: módulos -->
+    <div class="lg:col-span-2 space-y-6">
+
+      <!-- Descripción -->
+      {% if event.description %}
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <h3 class="font-bold text-lg mb-3 text-gray-800 dark:text-white">Descripción</h3>
+        <p class="text-gray-600 dark:text-gray-300 leading-relaxed">{{ event.description }}</p>
+      </div>
+      {% endif %}
+
+      <!-- Módulo: Tareas -->
+      {% if 'tasks' in active_modules %}
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-lg text-gray-800 dark:text-white">
+            <svg class="w-5 h-5 inline mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            Tareas
+          </h3>
+          <a href="{% url 'modules:task_list' event.pk %}" class="text-sm text-teal-500 font-medium hover:underline">Gestionar todas →</a>
+        </div>
+        <div class="space-y-3">
+          {% for task in tasks_preview %}
+          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border-l-4
+            {% if task.priority == 'high' %}border-red-500{% elif task.priority == 'medium' %}border-yellow-500{% else %}border-green-500{% endif %}">
+            <span class="text-sm {% if task.status == 'done' %}text-gray-400 line-through{% else %}text-gray-800 dark:text-white{% endif %}">{{ task.title }}</span>
+            <span class="ml-auto text-xs px-2 py-0.5 rounded
+              {% if task.status == 'done' %}bg-green-100 text-green-700{% elif task.status == 'in_progress' %}bg-blue-100 text-blue-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+              {{ task.get_status_display }}
+            </span>
+          </div>
+          {% empty %}
+          <p class="text-gray-400 text-sm text-center py-4">Sin tareas aún.
+            <a href="{% url 'modules:task_create' event.pk %}" class="text-teal-500 hover:underline">Crear primera</a>
+          </p>
+          {% endfor %}
+        </div>
+        <a href="{% url 'modules:task_create' event.pk %}" class="mt-4 flex items-center gap-2 text-sm text-teal-600 dark:text-teal-400 hover:text-teal-700 font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Nueva tarea
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- Módulo: Checklist -->
+      {% if 'checklist' in active_modules %}
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-lg text-gray-800 dark:text-white">
+            <svg class="w-5 h-5 inline mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            Checklists
+          </h3>
+          <a href="{% url 'modules:checklist_list' event.pk %}" class="text-sm text-teal-500 font-medium hover:underline">Ver todas →</a>
+        </div>
+        <div class="space-y-3">
+          {% for checklist in checklists_preview %}
+          <div class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm font-medium text-gray-800 dark:text-white">{{ checklist.title }}</span>
+              <span class="text-xs text-gray-500">{{ checklist.progress }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+              <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ checklist.progress }}%"></div>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-gray-400 text-sm text-center py-4">Sin checklists.
+            <a href="{% url 'modules:checklist_create' event.pk %}" class="text-teal-500 hover:underline">Crear una</a>
+          </p>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Módulo: Archivos -->
+      {% if 'files' in active_modules %}
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-lg text-gray-800 dark:text-white">
+            <svg class="w-5 h-5 inline mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Archivos
+          </h3>
+          <a href="{% url 'modules:file_list' event.pk %}" class="text-sm text-teal-500 font-medium hover:underline">Ver todos →</a>
+        </div>
+        {% if files_preview %}
+        <div class="space-y-2">
+          {% for file in files_preview %}
+          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+            <div class="w-8 h-8 rounded bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+              <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            </div>
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{ file.name }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm text-center py-4">Sin archivos.
+          <a href="{% url 'modules:file_create' event.pk %}" class="text-teal-500 hover:underline">Agregar uno</a>
+        </p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Columna derecha -->
+    <div class="space-y-6">
+
+      <!-- Asistentes -->
+      {% if 'attendees' in active_modules %}
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-sm text-gray-500 uppercase">Asistentes</h3>
+          <a href="{% url 'modules:attendee_list' event.pk %}" class="text-xs text-teal-500 hover:underline">Ver todos →</a>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          {% for attendee in attendees_preview %}
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-xs font-bold" title="{{ attendee.name }}">
+            {{ attendee.name|first|upper }}
+          </div>
+          {% empty %}
+          <p class="text-gray-400 text-sm">Sin asistentes.
+            <a href="{% url 'modules:attendee_create' event.pk %}" class="text-teal-500 hover:underline">Agregar</a>
+          </p>
+          {% endfor %}
+        </div>
+        {% if attendees_preview %}
+        <a href="{% url 'modules:attendee_create' event.pk %}" class="mt-4 flex items-center gap-2 text-sm text-teal-600 dark:text-teal-400 hover:text-teal-700 font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Agregar asistente
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Propietario -->
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <h3 class="font-bold text-sm text-gray-500 uppercase mb-4">Responsable</h3>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">
+            {{ event.owner.username|first|upper }}
+          </div>
+          <div>
+            <p class="font-medium text-gray-800 dark:text-white text-sm">{{ event.owner.get_full_name|default:event.owner.username }}</p>
+            <p class="text-xs text-gray-500">Organizador</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones rápidas -->
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <h3 class="font-bold text-sm text-gray-500 uppercase mb-4">Acciones</h3>
+        <div class="space-y-2">
+          {% if 'tasks' in active_modules %}
+          <a href="{% url 'modules:task_list' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
+            <svg class="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            Ver tareas
+          </a>
+          {% endif %}
+          {% if 'attendees' in active_modules %}
+          <a href="{% url 'modules:attendee_list' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
+            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Ver asistentes
+          </a>
+          {% endif %}
+          {% if 'checklist' in active_modules %}
+          <a href="{% url 'modules:checklist_list' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
+            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            Ver checklists
+          </a>
+          {% endif %}
+          <a href="{% url 'events:event_edit' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Editar evento
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
