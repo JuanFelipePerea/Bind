@@ -7,7 +7,8 @@ from django.db.models import Count, Q
 from .models import Event, EventTemplate, EventModule, TemplateModule
 from modules.models import Task, File, Checklist
 from datetime import timedelta
-
+import calendar as cal_module
+from datetime import date as date_cls
 
 def compute_user_stats(user):
     """Compute report statistics for a given user. Returns a dict usable by report_view and dashboard."""
@@ -177,11 +178,15 @@ def dashboard(request):
 
 
 # ─────────────────────────────────────────────
-#  LISTA DE EVENTOS
+#  LISTA DE PROYECTOS (todos los eventos)
 # ─────────────────────────────────────────────
 
 @login_required
 def event_list(request):
+    """
+    Lista TODOS los proyectos/eventos del usuario.
+    Vista tipo gestor: muestra todo con filtros y búsqueda.
+    """
     events = Event.objects.filter(owner=request.user).order_by('-updated_at')
 
     # Filtro por status (desde query param ?status=active)
@@ -201,6 +206,57 @@ def event_list(request):
         'status_choices': Event.STATUS_CHOICES,
     }
     return render(request, 'events/event_list.html', context)
+
+
+# ─────────────────────────────────────────────
+#  EVENTOS EN CURSO (vista de eventos activos)
+# ─────────────────────────────────────────────
+
+@login_required
+def eventos_en_curso(request):
+    """
+    Muestra solo los eventos activos/en progreso actualmente.
+    Vista tipo timeline/calendario: enfocado en lo que está pasando ahora.
+    """
+    today = timezone.now().date()
+
+    # Eventos activos (en progreso)
+    active_events = Event.objects.filter(
+        owner=request.user,
+        status='active'
+    ).order_by('start_date')
+
+    # Eventos en revisión (borrador)
+    draft_events = Event.objects.filter(
+        owner=request.user,
+        status='draft'
+    ).order_by('-updated_at')
+
+    # Eventos completados recientemente
+    completed_events = Event.objects.filter(
+        owner=request.user,
+        status='completed'
+    ).order_by('-updated_at')[:5]
+
+    # Calcular días restantes y progreso para cada evento activo
+    for event in active_events:
+        if event.start_date:
+            delta = event.start_date.date() - today
+            event.days_until = max(delta.days, 0)
+        else:
+            event.days_until = None
+        # Calcular progreso de tareas
+        total = event.tasks.count()
+        done = event.tasks.filter(status='done').count()
+        event.task_progress = int((done / total * 100)) if total > 0 else 0
+
+    context = {
+        'active_events': active_events,
+        'draft_events': draft_events,
+        'completed_events': completed_events,
+        'today': today,
+    }
+    return render(request, 'events/eventos_en_curso.html', context)
 
 
 # ─────────────────────────────────────────────
@@ -226,17 +282,74 @@ def event_detail(request, pk):
         delta = event.start_date.date() - today
         days_until = max(delta.days, 0)
 
+    # Preparar datos de módulos con progreso
+    tasks_preview = event.tasks.all().order_by('-created_at')[:5]
+    checklists_preview = []
+    for cl in event.checklists.all()[:3]:
+        cl_data = cl
+        cl_data.progress = cl.progress()
+        checklists_preview.append(cl_data)
+    files_preview = event.files.all().order_by('-uploaded_at')[:5]
+    attendees_preview = event.attendees.all()[:5]
+
     context = {
-        'event':          event,
-        'active_modules': list(active_modules),
-        'task_progress':  task_progress,
-        'days_until':     days_until,
-        'tasks':          event.tasks.all().order_by('-created_at')[:5],
-        'attendees':      event.attendees.all()[:5],
-        'checklists':     event.checklists.all()[:3],
-        'files':          event.files.all()[:5],
+        'event':               event,
+        'active_modules':      list(active_modules),
+        'task_progress':       task_progress,
+        'days_until':          days_until,
+        'tasks_preview':       tasks_preview,
+        'checklists_preview':  checklists_preview,
+        'files_preview':       files_preview,
+        'attendees_preview':   attendees_preview,
     }
     return render(request, 'events/event_detail.html', context)
+
+
+# ─────────────────────────────────────────────
+#  GESTIÓN DE MÓDULOS DEL EVENTO
+# ─────────────────────────────────────────────
+
+@login_required
+def event_modules_manage(request, pk):
+    """
+    Vista para activar/desactivar módulos de un evento.
+    Solo muestra módulos disponibles, el usuario decide cuáles activar.
+    """
+    event = get_object_or_404(Event, pk=pk, owner=request.user)
+
+    # Módulos actualmente activos
+    active_modules = list(event.modules.filter(is_active=True).values_list('module_type', flat=True))
+
+    # Todos los módulos disponibles
+    all_module_choices = EventModule.MODULE_CHOICES
+
+    if request.method == 'POST':
+        # Módulos seleccionados en el POST
+        selected_modules = request.POST.getlist('modules')
+
+        # Desactivar todos primero
+        event.modules.update(is_active=False)
+
+        # Activar seleccionados
+        for module_type in selected_modules:
+            module, created = EventModule.objects.get_or_create(
+                event=event,
+                module_type=module_type,
+                defaults={'is_active': True}
+            )
+            if not created:
+                module.is_active = True
+                module.save()
+
+        messages.success(request, 'Módulos actualizados correctamente.')
+        return redirect('events:event_detail', pk=event.pk)
+
+    context = {
+        'event': event,
+        'active_modules': active_modules,
+        'all_module_choices': all_module_choices,
+    }
+    return render(request, 'events/event_modules_manage.html', context)
 
 
 # ─────────────────────────────────────────────
@@ -356,3 +469,42 @@ def template_list(request):
 def report_view(request):
     stats = compute_user_stats(request.user)
     return render(request, 'events/report.html', stats)
+
+
+@login_required
+def calendar_view(request):
+    """
+    Calendario estilo Google Calendar.
+    Entrega TODOS los eventos y tareas del usuario al template;
+    el JS se encarga de renderizar mes / semana / día.
+    """
+    from datetime import date as date_cls
+    today = timezone.now().date()
+ 
+    # Todos los eventos del usuario (sin rango, el JS filtra)
+    all_events = Event.objects.filter(
+        owner=request.user
+    ).select_related('template').order_by('start_date')
+ 
+    # Todas las tareas pendientes / en progreso con fecha límite
+    all_tasks = Task.objects.filter(
+        event__owner=request.user,
+        due_date__isnull=False,
+    ).select_related('event').order_by('due_date')
+ 
+    # Próximos 5 eventos para el panel lateral
+    upcoming_events = Event.objects.filter(
+        owner=request.user,
+        start_date__date__gte=today,
+        status__in=['active', 'draft'],
+    ).order_by('start_date')[:5]
+ 
+    context = {
+        'all_events':      all_events,
+        'all_tasks':       all_tasks,
+        'upcoming_events': upcoming_events,
+        'status_choices':  Event.STATUS_CHOICES,
+        'today':           today,
+    }
+    return render(request, 'events/calendar.html', context)
+ 

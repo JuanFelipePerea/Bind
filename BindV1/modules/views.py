@@ -154,6 +154,39 @@ def attendee_create(request, event_pk):
     return render(request, 'modules/attendee_form.html', {'event': event})
 
 
+@login_required
+def attendee_edit(request, event_pk, pk):
+    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    attendee = get_object_or_404(Attendee, pk=pk, event=event)
+
+    if request.method == 'POST':
+        attendee.name = request.POST.get('name', attendee.name).strip()
+        attendee.email = request.POST.get('email', '').strip()
+        attendee.status = request.POST.get('status', attendee.status)
+        attendee.save()
+        messages.success(request, 'Asistente actualizado.')
+        return redirect('modules:attendee_list', event_pk=event.pk)
+
+    return render(request, 'modules/attendee_form.html', {'event': event, 'attendee': attendee})
+
+
+@login_required
+def attendee_delete(request, event_pk, pk):
+    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    attendee = get_object_or_404(Attendee, pk=pk, event=event)
+
+    if request.method == 'POST':
+        name = attendee.name
+        attendee.delete()
+        messages.success(request, f'{name} eliminado.')
+        return redirect('modules:attendee_list', event_pk=event.pk)
+
+    return render(request, 'modules/confirm_delete.html', {
+        'object': attendee, 'object_name': attendee.name, 'event': event,
+        'cancel_url': f'/modules/events/{event.pk}/attendees/',
+    })
+
+
 # ─────────────────────────────────────────────
 #  CHECKLISTS
 # ─────────────────────────────────────────────
@@ -206,6 +239,23 @@ def checklist_item_toggle(request, pk):
     return redirect('modules:checklist_list', event_pk=item.checklist.event.pk)
 
 
+@login_required
+def checklist_delete(request, pk):
+    checklist = get_object_or_404(Checklist, pk=pk, event__owner=request.user)
+    event_pk = checklist.event.pk
+
+    if request.method == 'POST':
+        title = checklist.title
+        checklist.delete()
+        messages.success(request, f'Checklist "{title}" eliminada.')
+        return redirect('modules:checklist_list', event_pk=event_pk)
+
+    return render(request, 'modules/confirm_delete.html', {
+        'object': checklist, 'object_name': checklist.title,
+        'event': checklist.event, 'cancel_url': f'/modules/events/{event_pk}/checklists/',
+    })
+
+
 # ─────────────────────────────────────────────
 #  ARCHIVOS
 # ─────────────────────────────────────────────
@@ -241,6 +291,23 @@ def file_create(request, event_pk):
             return redirect('modules:file_list', event_pk=event.pk)
 
     return render(request, 'modules/file_form.html', {'event': event})
+
+
+@login_required
+def file_delete(request, event_pk, pk):
+    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    file = get_object_or_404(File, pk=pk, event=event)
+
+    if request.method == 'POST':
+        name = file.name
+        file.delete()
+        messages.success(request, f'Archivo "{name}" eliminado.')
+        return redirect('modules:file_list', event_pk=event.pk)
+
+    return render(request, 'modules/confirm_delete.html', {
+        'object': file, 'object_name': file.name, 'event': event,
+        'cancel_url': f'/modules/events/{event.pk}/files/',
+    })
 
 
 @login_required
