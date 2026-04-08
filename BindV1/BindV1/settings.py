@@ -112,6 +112,9 @@ TIME_ZONE = 'America/Bogota'
 USE_I18N = True
 USE_TZ = True
 
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
@@ -124,7 +127,20 @@ STATICFILES_DIRS = [
 # Folder used by `collectstatic` for production deployments
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Media files (avatars, etc.)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Redirigir al dashboard después de login
 LOGIN_REDIRECT_URL = '/'
 # When @login_required redirects unauthenticated users, send them to the public landing page
 LOGIN_URL = '/accounts/'
+
+# Email configuration (para 2FA)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = ''  # Configura tu email
+EMAIL_HOST_PASSWORD = ''  # Configura tu contraseña
+DEFAULT_FROM_EMAIL = 'BIND <noreply@bind.local>'

@@ -112,9 +112,9 @@
           Plantillas
         </a>
 
-        <a href="{% url 'events:event_list' %}"
+        <a href="{% url 'events:eventos_en_curso' %}"
            class="flex items-center gap-3 px-4 py-3 hover:bg-white/10 hover:text-white rounded-xl transition-colors">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           Eventos
         </a>
 
@@ -129,6 +129,18 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
           Reporte
         </a>
+
+
+        <a href="{% url 'events:calendar' %}"
+   class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors
+          {% if request.resolver_match.url_name == 'calendar' %}bg-white/10 text-white border border-white/10{% else %}hover:bg-white/10 hover:text-white{% endif %}">
+  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+  </svg>
+  Calendario
+</a>
+
+        
 
       </nav>
     </div>

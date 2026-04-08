@@ -60,7 +60,16 @@
           <p class="text-teal-100/70 text-sm">Crea tu cuenta y comienza tu experiencia</p>
         </div>
 
-        <!-- Errores Django -->
+        <!-- Mensajes Django -->
+        {% if messages %}
+        {% for message in messages %}
+        <div class="bg-red-500/20 border border-red-500/30 text-red-200 text-sm px-4 py-3 rounded-xl mb-6">
+          {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- Errores del formulario -->
         {% if form.errors %}
         <div class="bg-red-500/20 border border-red-500/30 text-red-200 text-sm px-4 py-3 rounded-xl mb-6 space-y-1">
           {% for field, errors in form.errors.items %}
