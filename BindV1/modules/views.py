@@ -6,8 +6,9 @@ from events.models import Event
 from .models import Task, Attendee, Checklist, ChecklistItem, File
 from types import SimpleNamespace
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, HttpResponseForbidden
+from django.contrib import messages
 import csv
 
 

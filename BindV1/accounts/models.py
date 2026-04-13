@@ -21,8 +21,18 @@ class UserProfile(models.Model):
     # Rol del usuario dentro de BIND
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='organizer')
 
-    # Foto de perfil (guardamos solo la ruta como string en MVP)
-    avatar = models.CharField(max_length=255, blank=True, null=True)
+    # Foto de perfil
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+
+    # Teléfono/celular
+    phone = models.CharField(max_length=20, blank=True, null=True)
+
+    # Descripción/bio
+    bio = models.TextField(max_length=500, blank=True, null=True)
+
+    # Verificación en 2 pasos
+    two_factor_enabled = models.BooleanField(default=False)
+    two_factor_secret = models.CharField(max_length=32, blank=True, null=True)
 
     # Fecha de creación del perfil
     created_at = models.DateTimeField(auto_now_add=True)
