@@ -37,6 +37,15 @@ def dashboard(request):
 
     stats = compute_user_stats(request.user)
 
+    # Eventos activos con presupuesto definido (para widget de salud presupuestaria)
+    from modules.models import Budget
+    budget_events = (
+        Event.objects.filter(owner=request.user, status__in=['active', 'draft'])
+        .select_related('budget')
+        .filter(budget__isnull=False)
+        .order_by('-updated_at')[:5]
+    )
+
     # AlertsDB — usadas para el panel de decisiones con botón dismiss
     alerts = EventAlert.objects.filter(
         event__owner=request.user,
@@ -71,8 +80,21 @@ def dashboard(request):
         'engine_output':       engine_output,
         'engine_summary':      engine_output['dashboard_summary'],
         'engine_decisions':    engine_output['all_decisions'],
+        'budget_events':       budget_events,
     }
     return render(request, 'events/dashboard.html', context)
+
+
+def _get_event_score(event):
+    """Retorna (health_score, risk_level) actuales del evento. Silencia errores."""
+    try:
+        from events.engine.context import build_event_context
+        from events.engine.scorer import score_event
+        ctx = build_event_context(event)
+        s = score_event(ctx)
+        return s.health_score, s.risk_level
+    except Exception:
+        return 0, 0
 
 
 @login_required
@@ -83,21 +105,26 @@ def alert_dismiss(request, pk):
         alert.is_dismissed = True
         alert.save()
         try:
+            health, risk = _get_event_score(alert.event)
             EngineMetrics.objects.get_or_create(
                 decision_key=alert.alert_key,
                 defaults={
                     'decision_type': alert.alert_type,
                     'event': alert.event,
                     'user': request.user,
-                    'health_score_at_decision': 0,
-                    'risk_level_at_decision': 0,
+                    'health_score_at_decision': health,
+                    'risk_level_at_decision': risk,
                     'user_acted': False,
                     'action_taken': 'dismissed',
                 }
             )
         except Exception:
             pass
-        return redirect(request.POST.get('next', 'events:dashboard'))
+        # Validar next: solo rutas relativas del mismo sitio
+        next_url = request.POST.get('next', '')
+        if next_url and next_url.startswith('/'):
+            return redirect(next_url)
+        return redirect('events:dashboard')
     return redirect('events:dashboard')
 
 
@@ -111,13 +138,14 @@ def alert_action(request, pk):
     alert.is_read = True
     alert.save()
     try:
+        health, risk = _get_event_score(alert.event)
         EngineMetrics.objects.create(
             decision_key=alert.alert_key,
             decision_type=alert.alert_type,
             event=alert.event,
             user=request.user,
-            health_score_at_decision=0,
-            risk_level_at_decision=0,
+            health_score_at_decision=health,
+            risk_level_at_decision=risk,
             user_acted=True,
             action_taken='followed_action',
         )
@@ -142,7 +170,7 @@ def event_list(request):
     from events.engine.context import build_event_context
     from events.engine.scorer import score_event
 
-    events_qs = Event.objects.filter(owner=request.user).order_by('-updated_at')
+    events_qs = Event.objects.filter(owner=request.user).order_by('-updated_at').prefetch_related('tasks', 'attendees')
 
     status_filter = request.GET.get('status', '')
     if status_filter:
@@ -153,10 +181,13 @@ def event_list(request):
         events_qs = events_qs.filter(name__icontains=q)
 
     # Anotar health score y calcular task_progress en Python
+    # Se pasan las listas pre-cargadas para evitar N+1 queries por evento
     events_list = list(events_qs)
     for event in events_list:
         try:
-            ctx = build_event_context(event)
+            prefetched_tasks = list(event.tasks.all())
+            prefetched_attendees = list(event.attendees.all())
+            ctx = build_event_context(event, tasks=prefetched_tasks, attendees=prefetched_attendees)
             escore = score_event(ctx)
             event.health_score = escore.health_score
             event.health_label = escore.health_label
@@ -240,7 +271,10 @@ def eventos_en_curso(request):
 
 @login_required
 def event_detail(request, pk):
-    event = get_object_or_404(Event, pk=pk, owner=request.user)
+    event = get_object_or_404(
+        Event.objects.select_related('budget', 'template', 'owner'),
+        pk=pk, owner=request.user,
+    )
 
     # Módulos activos de este evento
     active_modules = event.modules.filter(is_active=True).values_list('module_type', flat=True)
@@ -250,12 +284,11 @@ def event_detail(request, pk):
     done_tasks  = event.tasks.filter(status='done').count()
     task_progress = int((done_tasks / total_tasks) * 100) if total_tasks > 0 else 0
 
-    # Días restantes
+    # Días restantes — sin clampear a 0 para poder mostrar "Finalizado" en template
     today = timezone.now().date()
     days_until = None
     if event.start_date:
-        delta = event.start_date.date() - today
-        days_until = max(delta.days, 0)
+        days_until = (event.start_date.date() - today).days
 
     # Preparar datos de módulos con progreso
     tasks_preview = event.tasks.all().order_by('-created_at')[:5]
@@ -396,6 +429,7 @@ def event_edit(request, pk):
     event = get_object_or_404(Event, pk=pk, owner=request.user)
 
     if request.method == 'POST':
+        previous_status = event.status
         event.name        = request.POST.get('name', event.name).strip()
         event.description = request.POST.get('description', '').strip()
         event.location    = request.POST.get('location', '').strip()
@@ -404,6 +438,17 @@ def event_edit(request, pk):
         event.end_date    = request.POST.get('end_date') or None
         event.save()
 
+        # Flujo de cierre: si el evento acaba de marcarse como completado
+        if previous_status != 'completed' and event.status == 'completed':
+            completion_summary = _handle_event_completion(event, request.user)
+            messages.success(
+                request,
+                f'Evento "{event.name}" completado. '
+                f'{completion_summary["tasks_done"]}/{completion_summary["tasks_total"]} tareas, '
+                f'{completion_summary["attendees_confirmed"]} asistentes confirmados.'
+            )
+            return redirect('events:event_detail', pk=event.pk)
+
         messages.success(request, f'Evento "{event.name}" actualizado.')
         return redirect('events:event_detail', pk=event.pk)
 
@@ -411,6 +456,64 @@ def event_edit(request, pk):
         'event':     event,
         'templates': EventTemplate.objects.all(),
     })
+
+
+def _handle_event_completion(event, user):
+    """
+    Ejecuta el flujo de cierre cuando un evento pasa a status='completed':
+    1. Auto-dismiss todas las alertas activas (idempotente).
+    2. Registra EngineMetrics con action_taken='event_completed'.
+    3. Retorna resumen de cierre para mostrar en el mensaje.
+    """
+    # 1. Descartar todas las alertas activas del evento
+    EventAlert.objects.filter(event=event, is_dismissed=False).update(is_dismissed=True)
+
+    # 2. Registrar métricas de cierre
+    try:
+        from events.engine.context import build_event_context
+        from events.engine.scorer import score_event
+        ctx = build_event_context(event)
+        score = score_event(ctx)
+        health, risk = score.health_score, score.risk_level
+    except Exception:
+        ctx = None
+        health, risk = 0, 0
+
+    try:
+        EngineMetrics.objects.create(
+            decision_key=f"event_completed-{event.pk}",
+            decision_type='event_completed',
+            event=event,
+            user=user,
+            health_score_at_decision=health,
+            risk_level_at_decision=risk,
+            user_acted=True,
+            action_taken='event_completed',
+            issue_resolved=True,
+        )
+    except Exception:
+        pass
+
+    # 3. Construir resumen
+    tasks_total = event.tasks.count()
+    tasks_done = event.tasks.filter(status='done').count()
+    budget_info = None
+    try:
+        b = event.budget
+        budget_info = {'total_budget': b.total_budget, 'total_spent': b.total_spent,
+                       'usage_pct': b.usage_percentage, 'currency': b.currency}
+    except Exception:
+        pass
+
+    from modules.models import Attendee
+    attendees_confirmed = event.attendees.filter(status='confirmed').count()
+
+    return {
+        'tasks_total': tasks_total,
+        'tasks_done': tasks_done,
+        'budget': budget_info,
+        'attendees_confirmed': attendees_confirmed,
+    }
 
 
 # ─────────────────────────────────────────────
@@ -484,7 +587,9 @@ def global_search(request):
 def template_list(request):
     # Filtro por categoría
     category = request.GET.get('category', '')
-    templates = EventTemplate.objects.all()
+    templates = EventTemplate.objects.prefetch_related(
+        'modules', 'default_tasks', 'default_checklist_items'
+    ).all()
     if category:
         templates = templates.filter(category=category)
 

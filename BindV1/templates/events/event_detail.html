@@ -59,13 +59,13 @@
           <p class="font-semibold text-lg">{{ event.end_date|date:"d M Y" }}</p>
         </div>
         {% endif %}
-        {% if event.days_until is not None %}
+        {% if days_until is not None %}
         <div>
           <p class="text-sm opacity-70">Tiempo restante</p>
           <p class="font-semibold text-lg bg-white/20 px-3 rounded-lg">
-            {% if event.days_until == 0 %}Hoy
-            {% elif event.days_until < 0 %}Finalizado
-            {% else %}{{ event.days_until }} día{{ event.days_until|pluralize }}{% endif %}
+            {% if days_until == 0 %}Hoy
+            {% elif days_until < 0 %}Finalizado
+            {% else %}{{ days_until }} día{{ days_until|pluralize }}{% endif %}
           </p>
         </div>
         {% endif %}

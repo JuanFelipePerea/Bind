@@ -43,17 +43,15 @@
       <span class="text-xs text-gray-400">· Basado en prioridad y fechas límite</span>
     </div>
     <div class="hidden space-y-2" id="suggested-order-list">
-      {% for task in priority_suggestions %}
+      {% for suggestion in priority_suggestions %}
       <div class="flex items-center gap-3 p-2.5 bg-white/40 dark:bg-gray-700/30 rounded-lg border-l-2
-        {% if task.priority == 'high' %}border-red-400{% elif task.priority == 'medium' %}border-yellow-400{% else %}border-green-400{% endif %}">
+        {% if suggestion.task.priority == 'high' %}border-red-400{% elif suggestion.task.priority == 'medium' %}border-yellow-400{% else %}border-green-400{% endif %}">
         <span class="text-xs font-bold text-gray-400 w-5 text-center flex-shrink-0">{{ forloop.counter }}</span>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-gray-800 dark:text-white truncate">{{ task.title }}</p>
-          <p class="text-xs text-gray-400 mt-0.5">
-            {{ task.get_priority_display }} · {{ task.get_status_display }}{% if task.due_date %} · Vence: {{ task.due_date|date:"d M" }}{% endif %}
-          </p>
+          <p class="text-sm font-medium text-gray-800 dark:text-white truncate">{{ suggestion.task.title }}</p>
+          <p class="text-xs text-gray-400 mt-0.5">{{ suggestion.reason }}</p>
         </div>
-        <a href="{% url 'modules:task_edit' event.pk task.pk %}"
+        <a href="{% url 'modules:task_edit' event.pk suggestion.task.pk %}"
            class="text-xs text-teal-500 hover:underline flex-shrink-0">Editar</a>
       </div>
       {% endfor %}
@@ -82,7 +80,13 @@
             {{ task.title }}
           </span>
           {% if task.due_date %}
-          <p class="text-xs text-gray-400 mt-0.5">Vence: {{ task.due_date|date:"d M" }}</p>
+          <p class="text-xs mt-0.5 {% if task.status != 'done' and task.due_date < today %}text-red-500 font-semibold{% else %}text-gray-400{% endif %}">
+            {% if task.status != 'done' and task.due_date < today %}
+              Vencida: {{ task.due_date|date:"d M" }}
+            {% else %}
+              Vence: {{ task.due_date|date:"d M" }}
+            {% endif %}
+          </p>
           {% endif %}
         </div>
       </div>

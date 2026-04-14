@@ -152,6 +152,27 @@
     const radio = document.querySelector(`input[name="template_id"][value="${templateParam}"]`);
     if (radio) { radio.checked = true; document.getElementById('selectedTemplate').value = templateParam; }
   }
+
+  // Preset start_date al momento actual si está vacío (nuevo evento)
+  const startInput = document.querySelector('input[name="start_date"]');
+  const endInput   = document.querySelector('input[name="end_date"]');
+  if (startInput && !startInput.value) {
+    const now = new Date();
+    // Adelantar 1 hora para que sea una sugerencia útil
+    now.setHours(now.getHours() + 1, 0, 0, 0);
+    const pad = n => String(n).padStart(2, '0');
+    const localISO = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    startInput.value = localISO;
+    // min: no se puede seleccionar pasado
+    startInput.min = localISO;
+  }
+  // Cuando cambia start_date, actualizar min de end_date
+  if (startInput && endInput) {
+    startInput.addEventListener('change', () => {
+      endInput.min = startInput.value;
+      if (endInput.value && endInput.value < startInput.value) endInput.value = startInput.value;
+    });
+  }
 </script>
 {% endif %}
 {% endblock %}

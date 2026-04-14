@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse, HttpResponseForbidden
+from django.urls import reverse
 from types import SimpleNamespace
 import csv
 
@@ -32,12 +33,14 @@ def task_list(request, event_pk):
     except Exception:
         priority_suggestions = []
 
+    from django.utils import timezone as tz
     context = {
         'event':               event,
         'tasks':               tasks,
         'status_filter':       status_filter,
         'status_choices':      Task.STATUS_CHOICES,
         'priority_suggestions': priority_suggestions,
+        'today':               tz.now().date(),
     }
     return render(request, 'modules/task_list.html', context)
 
@@ -144,7 +147,7 @@ def task_delete(request, event_pk, pk):
 
     return render(request, 'modules/confirm_delete.html', {
         'object': task, 'object_name': task.title, 'event': event,
-        'cancel_url': f'/modules/events/{event.pk}/tasks/',
+        'cancel_url': reverse('modules:task_list', kwargs={'event_pk': event.pk}),
     })
 
 
@@ -208,7 +211,7 @@ def attendee_delete(request, event_pk, pk):
 
     return render(request, 'modules/confirm_delete.html', {
         'object': attendee, 'object_name': attendee.name, 'event': event,
-        'cancel_url': f'/modules/events/{event.pk}/attendees/',
+        'cancel_url': reverse('modules:attendee_list', kwargs={'event_pk': event.pk}),
     })
 
 
@@ -277,7 +280,8 @@ def checklist_delete(request, pk):
 
     return render(request, 'modules/confirm_delete.html', {
         'object': checklist, 'object_name': checklist.title,
-        'event': checklist.event, 'cancel_url': f'/modules/events/{event_pk}/checklists/',
+        'event': checklist.event,
+        'cancel_url': reverse('modules:checklist_list', kwargs={'event_pk': event_pk}),
     })
 
 
@@ -331,7 +335,7 @@ def file_delete(request, event_pk, pk):
 
     return render(request, 'modules/confirm_delete.html', {
         'object': file, 'object_name': file.name, 'event': event,
-        'cancel_url': f'/modules/events/{event.pk}/files/',
+        'cancel_url': reverse('modules:file_list', kwargs={'event_pk': event.pk}),
     })
 
 
@@ -352,8 +356,8 @@ def task_toggle_done(request, pk):
     if request.method != 'POST':
         return HttpResponseForbidden('POST required')
     task = get_object_or_404(Task, pk=pk, event__owner=request.user)
-    # Toggle between done and pending
-    task.status = 'done' if task.status != 'done' else 'pending'
+    # done → pending; cualquier otro estado → done
+    task.status = 'pending' if task.status == 'done' else 'done'
     task.save()
     return redirect(request.POST.get('next') or 'modules:task_overview')
 

@@ -27,6 +27,13 @@ def run_engine_for_user(user) -> dict:
     from events.engine.context import build_event_context
     from events.engine.scorer import score_event
     from events.engine.decisions import derive_decisions
+    from events.engine.learning import get_personalized_thresholds
+
+    # Cargar thresholds personalizados (usa EngineMetrics históricas del usuario)
+    try:
+        _thresholds = get_personalized_thresholds(user)
+    except Exception:
+        _thresholds = {}
 
     events = Event.objects.filter(
         owner=user,
@@ -38,7 +45,9 @@ def run_engine_for_user(user) -> dict:
     all_decisions = []
 
     for event in events:
-        ctx = build_event_context(event)
+        prefetched_tasks = list(event.tasks.all())
+        prefetched_attendees = list(event.attendees.all())
+        ctx = build_event_context(event, tasks=prefetched_tasks, attendees=prefetched_attendees)
         score = score_event(ctx)
         decisions = derive_decisions(ctx, score)
 

@@ -37,13 +37,23 @@
         {% elif cat == 'marketing' %}bg-gradient-to-br from-orange-400 to-red-500
         {% elif cat == 'social' %}bg-gradient-to-br from-teal-400 to-cyan-600
         {% else %}bg-gradient-to-br from-teal-400 to-emerald-600{% endif %}">
-        <!-- Módulos decorativos -->
-        <div class="absolute inset-3 flex flex-wrap gap-1.5 items-start">
-          {% for module in template.templatemodule_set.all %}
+        <!-- Módulos y conteos -->
+        <div class="absolute inset-3 flex flex-wrap gap-1.5 items-start content-start">
+          {% for module in template.modules.all %}
           <span class="bg-white/20 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
             {{ module.get_module_type_display }}
           </span>
           {% endfor %}
+        </div>
+        <!-- Conteos en esquina inferior -->
+        <div class="absolute bottom-2 right-3 flex gap-2">
+          {% with ntasks=template.default_tasks.count %}
+          {% if ntasks > 0 %}
+          <span class="bg-black/30 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            {{ ntasks }} tarea{{ ntasks|pluralize }}
+          </span>
+          {% endif %}
+          {% endwith %}
         </div>
         <!-- Hover overlay -->
         <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm">
@@ -65,10 +75,25 @@
       </div>
 
       {% if template.description %}
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-2">{{ template.description }}</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">{{ template.description }}</p>
       {% else %}
-      <p class="text-sm text-gray-400 mb-4">Plantilla de {{ template.get_category_display|lower }}.</p>
+      <p class="text-sm text-gray-400 mb-3">Plantilla de {{ template.get_category_display|lower }}.</p>
       {% endif %}
+
+      <!-- Resumen de contenido -->
+      {% with ntasks=template.default_tasks.count nchecks=template.default_checklist_items.count %}
+      {% if ntasks > 0 or nchecks > 0 %}
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">
+        Incluye:
+        {% if ntasks > 0 %}<span class="text-teal-600 dark:text-teal-400 font-medium">{{ ntasks }} tarea{{ ntasks|pluralize }}</span>{% endif %}
+        {% if ntasks > 0 and nchecks > 0 %} y {% endif %}
+        {% if nchecks > 0 %}<span class="text-blue-600 dark:text-blue-400 font-medium">{{ nchecks }} ítem{{ nchecks|pluralize }} de checklist</span>{% endif %}
+      </p>
+      {% endif %}
+      {% if not template.default_tasks.count and not template.modules.count %}
+      <p class="text-xs text-amber-500 dark:text-amber-400 mb-3">Sin tareas predefinidas — comenzarás desde cero.</p>
+      {% endif %}
+      {% endwith %}
 
       <a href="{% url 'events:event_create' %}?template={{ template.pk }}"
          class="block w-full py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-sm hover:opacity-90 transition-opacity text-center">

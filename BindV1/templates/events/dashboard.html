@@ -338,6 +338,40 @@
       </div>
       {% endif %}
 
+      <!-- Widget: Salud presupuestaria -->
+      {% if budget_events %}
+      <div>
+        <h4 class="text-xl font-bold text-gray-700 dark:text-gray-200 mb-4">Presupuestos</h4>
+        <div class="space-y-3">
+          {% for event in budget_events %}
+          {% with b=event.budget %}
+          <div class="glass p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <div class="flex justify-between items-start mb-2">
+              <p class="text-sm font-semibold text-gray-800 dark:text-white truncate max-w-[70%]">{{ event.name }}</p>
+              <a href="{% url 'modules:budget_detail' event.pk %}"
+                 class="text-xs text-teal-500 hover:underline flex-shrink-0 ml-2">Ver →</a>
+            </div>
+            <!-- Barra de uso -->
+            <div class="w-full bg-gray-200/50 dark:bg-gray-700/50 rounded-full h-2 overflow-hidden mb-1">
+              <div class="h-2 rounded-full transition-all
+                {% if b.usage_percentage >= 85 %}bg-red-500
+                {% elif b.usage_percentage >= 60 %}bg-yellow-400
+                {% else %}bg-green-500{% endif %}"
+                   style="width: {{ b.usage_percentage|default:0 }}%"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
+              <span>{{ b.usage_percentage }}% usado</span>
+              <span class="{% if b.remaining < 0 %}text-red-400{% else %}text-teal-500{% endif %} font-semibold">
+                {{ b.remaining|floatformat:0 }} {{ b.currency }}
+              </span>
+            </div>
+          </div>
+          {% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Notas rápidas -->
       <div>
         <h4 class="text-xl font-bold text-gray-700 dark:text-gray-200 mb-4">Notas Rápidas</h4>
