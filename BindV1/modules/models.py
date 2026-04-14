@@ -181,3 +181,82 @@ class File(models.Model):
         verbose_name = "Archivo"
         verbose_name_plural = "Archivos"
         ordering = ['-uploaded_at']
+
+
+class Budget(models.Model):
+    """Presupuesto por evento. Simple pero funcional desde el día 1."""
+    event = models.OneToOneField(
+        Event, on_delete=models.CASCADE, related_name='budget'
+    )
+    total_budget = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0
+    )
+    currency = models.CharField(max_length=3, default='COP')
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def total_spent(self):
+        from django.db.models import Sum
+        return self.items.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining(self):
+        return self.total_budget - self.total_spent
+
+    @property
+    def usage_percentage(self):
+        if self.total_budget == 0:
+            return 0
+        return int((self.total_spent / self.total_budget) * 100)
+
+    def __str__(self):
+        return f"Presupuesto: {self.event.name}"
+
+    class Meta:
+        verbose_name = "Presupuesto"
+        verbose_name_plural = "Presupuestos"
+
+
+class BudgetItem(models.Model):
+    """Gasto o ingreso individual dentro del presupuesto."""
+    CATEGORY_CHOICES = [
+        ('venue', 'Lugar/Espacio'),
+        ('catering', 'Catering'),
+        ('marketing', 'Marketing'),
+        ('technology', 'Tecnología'),
+        ('staff', 'Personal'),
+        ('transport', 'Transporte'),
+        ('other', 'Otro'),
+    ]
+    TYPE_CHOICES = [
+        ('expense', 'Gasto'),
+        ('income', 'Ingreso'),
+    ]
+
+    budget = models.ForeignKey(
+        Budget, on_delete=models.CASCADE, related_name='items'
+    )
+    name = models.CharField(max_length=200)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    item_type = models.CharField(
+        max_length=10, choices=TYPE_CHOICES, default='expense'
+    )
+    category = models.CharField(
+        max_length=20, choices=CATEGORY_CHOICES, default='other'
+    )
+    related_task = models.ForeignKey(
+        'Task', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='budget_items'
+    )
+    paid = models.BooleanField(default=False)
+    due_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} — {self.amount} {self.budget.currency}"
+
+    class Meta:
+        verbose_name = "Ítem de presupuesto"
+        verbose_name_plural = "Ítems de presupuesto"
+        ordering = ['-created_at']

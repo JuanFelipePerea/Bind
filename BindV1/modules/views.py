@@ -1,15 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import HttpResponse, HttpResponseForbidden
+from types import SimpleNamespace
+import csv
 
 from events.models import Event
-from .models import Task, Attendee, Checklist, ChecklistItem, File
-from types import SimpleNamespace
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse, HttpResponseForbidden
-from django.contrib import messages
-import csv
+from .models import Task, Attendee, Checklist, ChecklistItem, File, Budget, BudgetItem
 
 
 
@@ -27,11 +24,20 @@ def task_list(request, event_pk):
     if status_filter:
         tasks = tasks.filter(status=status_filter)
 
+    # Sugerencias de orden de prioridad (solo tareas pendientes/en progreso)
+    from events.engine.prioritizer import prioritize_tasks
+    try:
+        pending_qs = event.tasks.filter(status__in=['pending', 'in_progress'])
+        priority_suggestions = prioritize_tasks(pending_qs)
+    except Exception:
+        priority_suggestions = []
+
     context = {
-        'event':         event,
-        'tasks':         tasks,
-        'status_filter': status_filter,
-        'status_choices': Task.STATUS_CHOICES,
+        'event':               event,
+        'tasks':               tasks,
+        'status_filter':       status_filter,
+        'status_choices':      Task.STATUS_CHOICES,
+        'priority_suggestions': priority_suggestions,
     }
     return render(request, 'modules/task_list.html', context)
 
@@ -104,7 +110,25 @@ def task_edit(request, event_pk, pk):
         due_date=fv(task.due_date),
     )
 
-    context = {'event': event, 'task': task, 'form': form, 'object': task}
+    # Conexión tarea ↔ presupuesto
+    try:
+        event_budget = Budget.objects.get(event=event)
+        task_budget_items = task.budget_items.select_related('budget').all()
+        has_budget = True
+    except Budget.DoesNotExist:
+        event_budget = None
+        task_budget_items = []
+        has_budget = False
+
+    context = {
+        'event': event,
+        'task': task,
+        'form': form,
+        'object': task,
+        'event_budget': event_budget,
+        'task_budget_items': task_budget_items,
+        'has_budget': has_budget,
+    }
     return render(request, 'modules/task_form.html', context)
 
 
@@ -332,6 +356,146 @@ def task_toggle_done(request, pk):
     task.status = 'done' if task.status != 'done' else 'pending'
     task.save()
     return redirect(request.POST.get('next') or 'modules:task_overview')
+
+
+# ─────────────────────────────────────────────
+#  PRESUPUESTO
+# ─────────────────────────────────────────────
+
+@login_required
+def budget_detail(request, event_pk):
+    """Muestra el presupuesto del evento, creándolo si no existe."""
+    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    budget, _ = Budget.objects.get_or_create(
+        event=event,
+        defaults={'total_budget': 0, 'currency': 'COP'},
+    )
+    items = budget.items.all().order_by('-created_at')
+    expenses = items.filter(item_type='expense')
+    incomes = items.filter(item_type='income')
+
+    from django.db.models import Sum
+    total_expenses = expenses.aggregate(t=Sum('amount'))['t'] or 0
+    total_incomes = incomes.aggregate(t=Sum('amount'))['t'] or 0
+    net_balance = total_incomes - total_expenses
+
+    context = {
+        'event': event,
+        'budget': budget,
+        'expenses': expenses,
+        'incomes': incomes,
+        'total_expenses': total_expenses,
+        'total_incomes': total_incomes,
+        'net_balance': net_balance,
+        'total_spent': budget.total_spent,
+        'remaining': budget.remaining,
+        'usage_percentage': budget.usage_percentage,
+        'category_choices': BudgetItem.CATEGORY_CHOICES,
+        'type_choices': BudgetItem.TYPE_CHOICES,
+    }
+    return render(request, 'modules/budget_detail.html', context)
+
+
+@login_required
+def budget_update(request, event_pk):
+    """Actualiza total_budget y currency del presupuesto."""
+    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    budget, _ = Budget.objects.get_or_create(event=event, defaults={'total_budget': 0})
+
+    if request.method == 'POST':
+        try:
+            budget.total_budget = request.POST.get('total_budget', budget.total_budget)
+            budget.currency = request.POST.get('currency', budget.currency).strip()[:3]
+            budget.notes = request.POST.get('notes', '').strip()
+            budget.save()
+            messages.success(request, 'Presupuesto actualizado.')
+        except Exception:
+            messages.error(request, 'Error al actualizar el presupuesto.')
+
+    return redirect('modules:budget_detail', event_pk=event.pk)
+
+
+@login_required
+def budget_item_create(request, event_pk):
+    """Crea un BudgetItem para el presupuesto del evento.
+    Acepta ?task=pk para preseleccionar related_task, y ?next=url para redirigir
+    de vuelta a la página de edición de tarea después de crear el ítem.
+    """
+    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    budget, _ = Budget.objects.get_or_create(event=event, defaults={'total_budget': 0})
+
+    # Tarea prefill desde query param (viene de task_edit)
+    prefill_task_pk = request.GET.get('task') or request.POST.get('from_task')
+    prefill_task = None
+    if prefill_task_pk:
+        try:
+            prefill_task = Task.objects.get(pk=prefill_task_pk, event=event)
+        except Task.DoesNotExist:
+            pass
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        amount_str = request.POST.get('amount', '0').strip()
+        item_type = request.POST.get('item_type', 'expense')
+        category = request.POST.get('category', 'other')
+        paid = request.POST.get('paid') == 'on'
+        due_date = request.POST.get('due_date') or None
+
+        related_task_pk = request.POST.get('related_task') or request.POST.get('from_task')
+        related_task = None
+        if related_task_pk:
+            try:
+                related_task = Task.objects.get(pk=related_task_pk, event=event)
+            except Task.DoesNotExist:
+                pass
+
+        if not name:
+            messages.error(request, 'El nombre del ítem es obligatorio.')
+        else:
+            try:
+                amount = float(amount_str)
+                BudgetItem.objects.create(
+                    budget=budget,
+                    name=name,
+                    amount=amount,
+                    item_type=item_type,
+                    category=category,
+                    paid=paid,
+                    due_date=due_date,
+                    related_task=related_task,
+                )
+                messages.success(request, f'"{name}" agregado al presupuesto.')
+            except ValueError:
+                messages.error(request, 'El monto ingresado no es válido.')
+
+        next_url = request.POST.get('next', '')
+        if next_url:
+            return redirect(next_url)
+        return redirect('modules:budget_detail', event_pk=event.pk)
+
+    # GET: mostrar formulario con tarea prefill
+    context = {
+        'event': event,
+        'budget': budget,
+        'prefill_task': prefill_task,
+        'event_tasks': event.tasks.exclude(status='done'),
+        'category_choices': BudgetItem.CATEGORY_CHOICES,
+        'type_choices': BudgetItem.TYPE_CHOICES,
+    }
+    return render(request, 'modules/budget_item_form.html', context)
+
+
+@login_required
+def budget_item_delete(request, event_pk, pk):
+    """Elimina un BudgetItem."""
+    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    item = get_object_or_404(BudgetItem, pk=pk, budget__event=event)
+
+    if request.method == 'POST':
+        item.delete()
+        messages.success(request, 'Ítem eliminado.')
+
+    return redirect('modules:budget_detail', event_pk=event.pk)
 
 
 @login_required

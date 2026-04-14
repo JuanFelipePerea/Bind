@@ -32,6 +32,35 @@
     </div>
   </div>
 
+  <!-- Orden sugerido por el engine -->
+  {% if priority_suggestions %}
+  <div class="mb-4 glass p-4 rounded-xl border border-teal-500/20">
+    <div class="flex items-center gap-3 mb-2">
+      <button onclick="toggleSuggested()" id="toggle-suggested-btn"
+              class="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1">
+        Ver orden sugerido ({{ priority_suggestions|length }})
+      </button>
+      <span class="text-xs text-gray-400">· Basado en prioridad y fechas límite</span>
+    </div>
+    <div class="hidden space-y-2" id="suggested-order-list">
+      {% for task in priority_suggestions %}
+      <div class="flex items-center gap-3 p-2.5 bg-white/40 dark:bg-gray-700/30 rounded-lg border-l-2
+        {% if task.priority == 'high' %}border-red-400{% elif task.priority == 'medium' %}border-yellow-400{% else %}border-green-400{% endif %}">
+        <span class="text-xs font-bold text-gray-400 w-5 text-center flex-shrink-0">{{ forloop.counter }}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-800 dark:text-white truncate">{{ task.title }}</p>
+          <p class="text-xs text-gray-400 mt-0.5">
+            {{ task.get_priority_display }} · {{ task.get_status_display }}{% if task.due_date %} · Vence: {{ task.due_date|date:"d M" }}{% endif %}
+          </p>
+        </div>
+        <a href="{% url 'modules:task_edit' event.pk task.pk %}"
+           class="text-xs text-teal-500 hover:underline flex-shrink-0">Editar</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Lista de tareas -->
   <div class="space-y-4">
     {% for task in tasks %}
@@ -97,4 +126,20 @@
   </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSuggested() {
+  var list = document.getElementById('suggested-order-list');
+  var btn = document.getElementById('toggle-suggested-btn');
+  if (list.classList.contains('hidden')) {
+    list.classList.remove('hidden');
+    btn.textContent = 'Ocultar orden sugerido';
+  } else {
+    list.classList.add('hidden');
+    btn.textContent = 'Ver orden sugerido ({{ priority_suggestions|length }})';
+  }
+}
+</script>
 {% endblock %}

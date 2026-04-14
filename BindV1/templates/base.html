@@ -194,10 +194,13 @@
         <!-- Acción contextual (botón "Nuevo evento", etc.) -->
         {% block topbar_action %}{% endblock %}
 
-        <!-- Buscador -->
+        <!-- Buscador global -->
         <div class="relative hidden sm:block group">
-          <input type="text" placeholder="Buscar..." class="pl-10 pr-4 py-2 rounded-full bg-white/50 dark:bg-black/20 border border-transparent focus:border-teal-500 focus:bg-white/80 dark:focus:bg-gray-800 focus:ring-2 focus:ring-teal-500/20 text-sm w-64 transition-all outline-none backdrop-blur-sm">
-          <svg class="w-4 h-4 text-gray-500 group-hover:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <form method="get" action="{% url 'events:search' %}">
+            <input type="text" name="q" placeholder="Buscar..." autocomplete="off"
+                   class="pl-10 pr-4 py-2 rounded-full bg-white/50 dark:bg-black/20 border border-transparent focus:border-teal-500 focus:bg-white/80 dark:focus:bg-gray-800 focus:ring-2 focus:ring-teal-500/20 text-sm w-64 transition-all outline-none backdrop-blur-sm">
+            <svg class="w-4 h-4 text-gray-500 group-hover:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </form>
         </div>
 
         <!-- Toggle de tema -->
@@ -211,9 +214,9 @@
 
     <!-- Mensajes Django (alerts) -->
     {% if messages %}
-    <div class="px-8 pt-4 space-y-2 z-10">
+    <div class="px-8 pt-4 space-y-2 z-10" id="django-messages">
       {% for message in messages %}
-      <div class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm glass
+      <div data-message-alert class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm glass
         {% if message.tags == 'success' %}border-l-4 border-teal-500 text-teal-700 dark:text-teal-300
         {% elif message.tags == 'error' %}border-l-4 border-red-500 text-red-700 dark:text-red-300
         {% else %}border-l-4 border-blue-500 text-blue-700 dark:text-blue-300{% endif %}">
@@ -241,6 +244,24 @@
   </script>
 
   {% block extra_js %}{% endblock %}
+
+  <script>
+  (function() {
+    var alerts = document.querySelectorAll('[data-message-alert]');
+    if (alerts.length > 0) {
+      setTimeout(function() {
+        alerts.forEach(function(el) {
+          el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(-8px)';
+          setTimeout(function() {
+            if (el.parentNode) el.parentNode.removeChild(el);
+          }, 500);
+        });
+      }, 4000);
+    }
+  })();
+  </script>
 
 </body>
 </html>

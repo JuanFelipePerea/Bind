@@ -4,147 +4,13 @@ from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Count, Q
 
-from .models import Event, EventTemplate, EventModule, TemplateModule
+from django.db import models as db_models
+from .models import Event, EventTemplate, EventModule, TemplateModule, EventAlert, EngineMetrics
+from .stats import compute_user_stats
 from modules.models import Task, File, Checklist
 from datetime import timedelta
 import calendar as cal_module
 from datetime import date as date_cls
-
-def compute_user_stats(user):
-    """Compute report statistics for a given user. Returns a dict usable by report_view and dashboard."""
-    today = timezone.now().date()
-    events_qs = Event.objects.filter(owner=user)
-
-    total_events = events_qs.count()
-    active_events = events_qs.filter(status='active').count()
-    completed_events = events_qs.filter(status='completed').count()
-    cancelled_events = events_qs.filter(status='cancelled').count()
-
-    tasks_qs = Task.objects.filter(event__owner=user)
-    total_tasks = tasks_qs.count()
-    done_tasks = tasks_qs.filter(status='done').count()
-    pending_tasks = tasks_qs.filter(status='pending').count()
-    inprog_tasks = tasks_qs.filter(status='in_progress').count()
-    task_completion_rate = int((done_tasks / total_tasks * 100)) if total_tasks > 0 else 0
-
-    total_attendees = user.attendances.count() if hasattr(user, 'attendances') else 0
-    confirmed_attendees = user.attendances.filter(status='confirmed').count() if hasattr(user, 'attendances') else 0
-    total_files = File.objects.filter(event__owner=user).count() if 'File' in globals() else 0
-
-    # weekly activity
-    days_labels = []
-    days_short = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-    tasks_per_day = []
-    max_tasks_day = 0
-    for i in range(6, -1, -1):
-        day = today - timedelta(days=i)
-        count = tasks_qs.filter(updated_at__date=day, status='done').count()
-        label = days_short[day.weekday()]
-        days_labels.append(label)
-        tasks_per_day.append(count)
-        if count > max_tasks_day:
-            max_tasks_day = count
-    if max_tasks_day > 0:
-        tasks_per_day_pct = [max(int((c / max_tasks_day) * 100), 4) if c > 0 else 4 for c in tasks_per_day]
-    else:
-        tasks_per_day_pct = [4] * 7
-    today_label = days_short[today.weekday()]
-    weekly_activity = list(zip(days_labels, tasks_per_day, tasks_per_day_pct))
-
-    high_tasks = tasks_qs.filter(priority='high').count()
-    medium_tasks = tasks_qs.filter(priority='medium').count()
-    low_tasks = tasks_qs.filter(priority='low').count()
-
-    # events by category
-    events_by_category = (
-        events_qs
-        .exclude(template__isnull=True)
-        .values('template__category', 'template__name')
-        .annotate(total=Count('id'))
-        .order_by('-total')[:5]
-    )
-
-    upcoming = (
-        events_qs
-        .filter(status__in=['active', 'draft'], start_date__date__gte=today)
-        .order_by('start_date')[:5]
-    )
-    # plain upcoming events with days_until for dashboard
-    upcoming_events = []
-    for ev in upcoming:
-        if ev.start_date:
-            delta = ev.start_date.date() - today
-            ev.days_until = max(delta.days, 0)
-        upcoming_events.append(ev)
-    upcoming_with_data = []
-    for ev in upcoming:
-        t_total = ev.tasks.count()
-        t_done = ev.tasks.filter(status='done').count()
-        progress = int((t_done / t_total) * 100) if t_total > 0 else 0
-        days_left = (ev.start_date.date() - today).days if ev.start_date else None
-        upcoming_with_data.append({'event': ev, 'progress': progress, 'days_left': days_left, 't_total': t_total, 't_done': t_done})
-
-    overdue_tasks = tasks_qs.filter(due_date__lt=today, status__in=['pending', 'in_progress']).select_related('event').order_by('due_date')[:10]
-
-    all_checklists = Checklist.objects.filter(event__owner=user).prefetch_related('items') if 'Checklist' in globals() else []
-    checklists_data = []
-    for cl in all_checklists[:8]:
-        total_items = cl.items.count()
-        checked_items = cl.items.filter(is_checked=True).count()
-        pct = int((checked_items / total_items) * 100) if total_items > 0 else 0
-        checklists_data.append({'checklist': cl, 'total_items': total_items, 'checked_items': checked_items, 'progress': pct})
-
-    # featured event: next active with date
-    featured_event = (
-        events_qs.filter(status='active', start_date__isnull=False).order_by('start_date').first()
-    )
-    if featured_event and featured_event.start_date:
-        delta = featured_event.start_date.date() - today
-        featured_event.days_until = max(delta.days, 0)
-        total_t = featured_event.tasks.count()
-        done_t = featured_event.tasks.filter(status='done').count() if total_t > 0 else 0
-        featured_event.task_progress = int((done_t / total_t) * 100) if total_t > 0 else 0
-
-    # urgent tasks
-    urgent_tasks = Task.objects.filter(event__owner=user, priority='high', status='pending').select_related('event')[:3]
-
-    # recent events
-    recent_events = events_qs.order_by('-updated_at')[:6]
-
-    # tasks today
-    tasks_today = tasks_qs.filter(due_date=today).count()
-
-    context = {
-        'total_events': total_events,
-        'active_events': active_events,
-        'completed_events': completed_events,
-        'cancelled_events': cancelled_events,
-        'total_tasks': total_tasks,
-        'done_tasks': done_tasks,
-        'pending_tasks': pending_tasks,
-        'inprog_tasks': inprog_tasks,
-        'task_completion_rate': task_completion_rate,
-        'total_attendees': total_attendees,
-        'confirmed_attendees': confirmed_attendees,
-        'total_files': total_files,
-        'weekly_activity': weekly_activity,
-        'today_label': today_label,
-        'max_tasks_day': max_tasks_day,
-        'high_tasks': high_tasks,
-        'medium_tasks': medium_tasks,
-        'low_tasks': low_tasks,
-        'events_by_category': events_by_category,
-        'upcoming_with_data': upcoming_with_data,
-        'upcoming_events': upcoming_events,
-        'overdue_tasks': overdue_tasks,
-        'checklists_data': checklists_data,
-        'featured_event': featured_event,
-        'urgent_tasks': urgent_tasks,
-        'recent_events': recent_events,
-        'tasks_today': tasks_today,
-        'today': today,
-    }
-    return context
 
 
 # ─────────────────────────────────────────────
@@ -153,9 +19,38 @@ def compute_user_stats(user):
 
 @login_required
 def dashboard(request):
+    import logging
+    from events.engine import run_engine_for_user
+    try:
+        engine_output = run_engine_for_user(request.user)
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Engine error: {e}")
+        engine_output = {
+            'event_scores': {},
+            'event_contexts': {},
+            'all_decisions': [],
+            'dashboard_summary': {
+                'critical_count': 0, 'events_at_risk': 0,
+                'events_on_track': 0, 'needs_attention': False,
+            },
+        }
+
     stats = compute_user_stats(request.user)
 
-    # Prepare dashboard-specific context (pick a subset)
+    # AlertsDB — usadas para el panel de decisiones con botón dismiss
+    alerts = EventAlert.objects.filter(
+        event__owner=request.user,
+        is_dismissed=False,
+    ).select_related('event').order_by(
+        db_models.Case(
+            db_models.When(severity='critical', then=0),
+            db_models.When(severity='warning', then=1),
+            default=2,
+            output_field=db_models.IntegerField(),
+        ),
+        '-created_at',
+    )[:5]
+
     context = {
         'active_events_count': stats['active_events'],
         'total_events':        stats['total_events'],
@@ -165,7 +60,6 @@ def dashboard(request):
         'upcoming_events':     stats.get('upcoming_events', [])[:5],
         'urgent_tasks':        stats.get('urgent_tasks')[:3] if stats.get('urgent_tasks') is not None else [],
         'recent_events':       stats.get('recent_events', [])[:6],
-        # Add report-level stats for richer dashboard
         'weekly_activity':     stats.get('weekly_activity', []),
         'today_label':         stats.get('today_label', ''),
         'max_tasks_day':       stats.get('max_tasks_day', 0),
@@ -173,8 +67,65 @@ def dashboard(request):
         'medium_tasks':        stats.get('medium_tasks', 0),
         'low_tasks':           stats.get('low_tasks', 0),
         'overdue_tasks':       stats.get('overdue_tasks', []),
+        'alerts':              alerts,
+        'engine_output':       engine_output,
+        'engine_summary':      engine_output['dashboard_summary'],
+        'engine_decisions':    engine_output['all_decisions'],
     }
     return render(request, 'events/dashboard.html', context)
+
+
+@login_required
+def alert_dismiss(request, pk):
+    """Marca una alerta como dismissed via POST. Registra métrica de descarte."""
+    if request.method == 'POST':
+        alert = get_object_or_404(EventAlert, pk=pk, event__owner=request.user)
+        alert.is_dismissed = True
+        alert.save()
+        try:
+            EngineMetrics.objects.get_or_create(
+                decision_key=alert.alert_key,
+                defaults={
+                    'decision_type': alert.alert_type,
+                    'event': alert.event,
+                    'user': request.user,
+                    'health_score_at_decision': 0,
+                    'risk_level_at_decision': 0,
+                    'user_acted': False,
+                    'action_taken': 'dismissed',
+                }
+            )
+        except Exception:
+            pass
+        return redirect(request.POST.get('next', 'events:dashboard'))
+    return redirect('events:dashboard')
+
+
+@login_required
+def alert_action(request, pk):
+    """
+    Intermedia entre la alerta y su destino.
+    Registra que el usuario siguió la acción (user_acted=True) y redirige.
+    """
+    alert = get_object_or_404(EventAlert, pk=pk, event__owner=request.user)
+    alert.is_read = True
+    alert.save()
+    try:
+        EngineMetrics.objects.create(
+            decision_key=alert.alert_key,
+            decision_type=alert.alert_type,
+            event=alert.event,
+            user=request.user,
+            health_score_at_decision=0,
+            risk_level_at_decision=0,
+            user_acted=True,
+            action_taken='followed_action',
+        )
+    except Exception:
+        pass
+    if alert.action_url:
+        return redirect(alert.action_url)
+    return redirect('events:dashboard')
 
 
 # ─────────────────────────────────────────────
@@ -185,24 +136,48 @@ def dashboard(request):
 def event_list(request):
     """
     Lista TODOS los proyectos/eventos del usuario.
-    Vista tipo gestor: muestra todo con filtros y búsqueda.
+    Vista tipo gestor: muestra todo con filtros, búsqueda y paginación.
     """
-    events = Event.objects.filter(owner=request.user).order_by('-updated_at')
+    from django.core.paginator import Paginator
+    from events.engine.context import build_event_context
+    from events.engine.scorer import score_event
 
-    # Filtro por status (desde query param ?status=active)
+    events_qs = Event.objects.filter(owner=request.user).order_by('-updated_at')
+
     status_filter = request.GET.get('status', '')
     if status_filter:
-        events = events.filter(status=status_filter)
+        events_qs = events_qs.filter(status=status_filter)
 
-    # Búsqueda rápida ?q=nombre
     q = request.GET.get('q', '')
     if q:
-        events = events.filter(name__icontains=q)
+        events_qs = events_qs.filter(name__icontains=q)
+
+    # Anotar health score y calcular task_progress en Python
+    events_list = list(events_qs)
+    for event in events_list:
+        try:
+            ctx = build_event_context(event)
+            escore = score_event(ctx)
+            event.health_score = escore.health_score
+            event.health_label = escore.health_label
+            event.risk_label = escore.risk_label
+            total_t = ctx.task_total
+            done_t = ctx.task_done
+            event.task_progress = int((done_t / total_t) * 100) if total_t > 0 else 0
+        except Exception:
+            event.health_score = None
+            event.health_label = None
+            event.risk_label = None
+            event.task_progress = 0
+
+    paginator = Paginator(events_list, 9)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
     context = {
-        'events':        events,
-        'status_filter': status_filter,
-        'q':             q,
+        'events':         page_obj,
+        'page_obj':       page_obj,
+        'status_filter':  status_filter,
+        'q':              q,
         'status_choices': Event.STATUS_CHOICES,
     }
     return render(request, 'events/event_list.html', context)
@@ -292,6 +267,14 @@ def event_detail(request, pk):
     files_preview = event.files.all().order_by('-uploaded_at')[:5]
     attendees_preview = event.attendees.all()[:5]
 
+    try:
+        from events.engine.context import build_event_context
+        from events.engine.scorer import score_event
+        engine_ctx = build_event_context(event)
+        engine_score = score_event(engine_ctx)
+    except Exception:
+        engine_score = None
+
     context = {
         'event':               event,
         'active_modules':      list(active_modules),
@@ -301,6 +284,7 @@ def event_detail(request, pk):
         'checklists_preview':  checklists_preview,
         'files_preview':       files_preview,
         'attendees_preview':   attendees_preview,
+        'engine_score':        engine_score,
     }
     return render(request, 'events/event_detail.html', context)
 
@@ -389,14 +373,13 @@ def event_create(request):
             template=template,
         )
 
-        # Activar módulos según la plantilla elegida (o todos por defecto)
         if template:
-            for tm in template.modules.all():
-                EventModule.objects.create(event=event, module_type=tm.module_type)
+            from events.services.template_service import apply_template_to_event
+            apply_template_to_event(event, template)
         else:
             # Sin plantilla: activar todos los módulos del MVP por defecto
             for module_type in ['tasks', 'attendees', 'checklist', 'files']:
-                EventModule.objects.create(event=event, module_type=module_type)
+                EventModule.objects.get_or_create(event=event, module_type=module_type)
 
         messages.success(request, f'Evento "{event.name}" creado exitosamente.')
         return redirect('events:event_detail', pk=event.pk)
@@ -450,6 +433,52 @@ def event_delete(request, pk):
 # ─────────────────────────────────────────────
 #  PLANTILLAS
 # ─────────────────────────────────────────────
+
+@login_required
+def global_search(request):
+    """Búsqueda global: eventos, tareas y asistentes del usuario."""
+    q = request.GET.get('q', '').strip()
+
+    if len(q) < 2:
+        return render(request, 'events/search_results.html', {
+            'q': q,
+            'too_short': True,
+        })
+
+    user = request.user
+    from modules.models import Attendee
+
+    events_results = Event.objects.filter(
+        owner=user
+    ).filter(
+        db_models.Q(name__icontains=q) | db_models.Q(description__icontains=q)
+    ).order_by('-updated_at')[:6]
+
+    tasks_results = Task.objects.filter(
+        event__owner=user,
+        title__icontains=q
+    ).select_related('event').order_by('-created_at')[:6]
+
+    attendees_results = Attendee.objects.filter(
+        event__owner=user
+    ).filter(
+        db_models.Q(name__icontains=q) | db_models.Q(email__icontains=q)
+    ).select_related('event').order_by('name')[:6]
+
+    total = (
+        events_results.count()
+        + tasks_results.count()
+        + attendees_results.count()
+    )
+
+    return render(request, 'events/search_results.html', {
+        'q': q,
+        'events_results': events_results,
+        'tasks_results': tasks_results,
+        'attendees_results': attendees_results,
+        'total': total,
+    })
+
 
 @login_required
 def template_list(request):

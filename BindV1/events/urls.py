@@ -15,4 +15,7 @@ urlpatterns = [
     path('templates/', views.template_list, name='template_list'),  # Plantillas
     path('report/', views.report_view, name='report'),
     path('calendar/', views.calendar_view, name='calendar'),
+    path('alerts/<int:pk>/dismiss/', views.alert_dismiss, name='alert_dismiss'),
+    path('alerts/<int:pk>/action/', views.alert_action, name='alert_action'),
+    path('search/', views.global_search, name='search'),
 ]

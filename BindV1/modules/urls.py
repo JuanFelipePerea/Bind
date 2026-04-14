@@ -32,4 +32,10 @@ urlpatterns = [
     # Task quick actions
     path('tasks/<int:pk>/toggle-done/', views.task_toggle_done, name='task_toggle_done'),
     path('export/tasks/csv/', views.export_tasks_csv, name='export_tasks_csv'),
+
+    # Presupuesto
+    path('events/<int:event_pk>/budget/', views.budget_detail, name='budget_detail'),
+    path('events/<int:event_pk>/budget/update/', views.budget_update, name='budget_update'),
+    path('events/<int:event_pk>/budget/items/new/', views.budget_item_create, name='budget_item_create'),
+    path('events/<int:event_pk>/budget/items/<int:pk>/delete/', views.budget_item_delete, name='budget_item_delete'),
 ]

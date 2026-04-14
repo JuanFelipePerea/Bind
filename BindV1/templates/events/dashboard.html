@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load engine_tags %}
 {% block title %}BIND - Dashboard{% endblock %}
 {% block page_title %}Panel Principal{% endblock %}
 
@@ -12,14 +13,105 @@
 {% block content %}
 <div class="p-6 md:p-8">
 
+  <!-- Resumen ejecutivo: solo si hay riesgo -->
+  {% if engine_summary.needs_attention %}
+  <div class="mb-6 glass rounded-2xl p-5 border-l-4 border-red-500
+              flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667
+                   1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464
+                   0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="font-bold text-gray-800 dark:text-white text-sm">
+          {% if engine_summary.critical_count > 0 %}
+            {{ engine_summary.critical_count }} decisión{% if engine_summary.critical_count > 1 %}es{% endif %} crítica{% if engine_summary.critical_count > 1 %}s{% endif %} requiere{% if engine_summary.critical_count > 1 %}n{% endif %} atención inmediata
+          {% else %}
+            {{ engine_summary.events_at_risk }} evento{% if engine_summary.events_at_risk > 1 %}s{% endif %} en riesgo
+          {% endif %}
+        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          {{ engine_summary.events_on_track }} evento{% if engine_summary.events_on_track != 1 %}s{% endif %} van bien
+        </p>
+      </div>
+    </div>
+    <a href="#decisions-panel"
+       class="text-xs font-bold text-red-500 hover:underline flex-shrink-0">
+      Ver decisiones ↓
+    </a>
+  </div>
+  {% endif %}
+
   <!-- Saludo -->
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
     <div>
       <h3 class="text-3xl font-bold text-gray-800 dark:text-white">
-        Hola, <span class="bg-gradient-to-r from-teal-400 to-cyan-500 bg-clip-text text-transparent">{{ user.get_full_name|default:user.username }}</span> 
+        Hola, <span class="bg-gradient-to-r from-teal-400 to-cyan-500 bg-clip-text text-transparent">{{ user.get_full_name|default:user.username }}</span>
       </h3>
       <p class="text-gray-600 dark:text-gray-300 mt-1">Aquí tienes lo que está pasando hoy.</p>
     </div>
+  </div>
+
+  <!-- Panel de decisiones / alertas -->
+  <div id="decisions-panel" class="mb-8">
+    {% if alerts %}
+    <div class="flex items-center justify-between mb-4">
+      <h4 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+        Requiere atención
+      </h4>
+      <span class="text-xs text-gray-400">{{ alerts|length }} elemento{% if alerts|length != 1 %}s{% endif %}</span>
+    </div>
+    <div class="space-y-3">
+      {% for alert in alerts %}
+      <div class="glass rounded-2xl p-4 border-l-4 flex items-start justify-between gap-4
+        {% if alert.severity == 'critical' %}border-l-red-500
+        {% elif alert.severity == 'warning' %}border-l-amber-500
+        {% else %}border-l-teal-500{% endif %}">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-2 h-2 rounded-full flex-shrink-0
+              {% if alert.severity == 'critical' %}bg-red-500 animate-pulse
+              {% elif alert.severity == 'warning' %}bg-amber-500
+              {% else %}bg-teal-500{% endif %}">
+            </span>
+            <p class="font-semibold text-sm text-gray-800 dark:text-white truncate">
+              {{ alert.title }}
+            </p>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 ml-4 line-clamp-2">
+            {{ alert.message }}
+          </p>
+          <div class="flex items-center gap-3 ml-4 flex-wrap">
+            <span class="text-xs text-gray-400">{{ alert.event.name }}</span>
+            {% if alert.action_url %}
+            <a href="{% url 'events:alert_action' alert.pk %}"
+               class="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
+              {{ alert.action_label|default:"Ver ahora" }} →
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        <form method="post"
+              action="{% url 'events:alert_dismiss' alert.pk %}"
+              class="flex-shrink-0">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button type="submit"
+                  class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1"
+                  title="Descartar">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 
   <!-- Tarjetas de stats -->
@@ -61,6 +153,45 @@
       </div>
     </div>
   </div>
+
+  <!-- Mini-panel de health scores por evento -->
+  {% if engine_output.event_scores %}
+  <div class="mb-8">
+    <h4 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-4">
+      Estado de proyectos
+    </h4>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {% for event in recent_events %}
+      {% with score=engine_output.event_scores|get_item:event.pk %}
+      {% if score %}
+      <a href="{% url 'events:event_detail' event.pk %}"
+         class="glass p-4 rounded-xl flex items-center gap-3 hover:-translate-y-0.5 transition-transform group">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm
+          {% if score.health_label == 'critical' %}bg-red-500/20 text-red-600 dark:text-red-400
+          {% elif score.health_label == 'at_risk' %}bg-amber-500/20 text-amber-600 dark:text-amber-400
+          {% elif score.health_label == 'good' %}bg-teal-500/20 text-teal-600 dark:text-teal-400
+          {% else %}bg-green-500/20 text-green-600 dark:text-green-400{% endif %}">
+          {{ score.health_score }}
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-semibold text-gray-800 dark:text-white truncate group-hover:text-teal-500 transition-colors">
+            {{ event.name }}
+          </p>
+          <p class="text-xs text-gray-400 mt-0.5">
+            {{ score.momentum_label|capfirst }}
+            <span class="mx-1">·</span>
+            <span class="{% if score.risk_label == 'critical' %}text-red-400{% elif score.risk_label == 'high' %}text-amber-400{% else %}text-gray-400{% endif %}">
+              {{ score.health_label|capfirst }}
+            </span>
+          </p>
+        </div>
+      </a>
+      {% endif %}
+      {% endwith %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Grid principal: Destacado + Agenda -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-8">
@@ -125,7 +256,7 @@
         {% endif %}
       </div>
 
-      <!-- Actividad semanal (decorativa - datos estáticos del frontend) -->
+      <!-- Actividad semanal -->
       <div>
         <h4 class="text-xl font-bold text-gray-700 dark:text-gray-200 mb-4">Actividad Semanal</h4>
         <div class="glass p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
@@ -207,7 +338,7 @@
       </div>
       {% endif %}
 
-      <!-- Notas rápidas (visual, no persistente en MVP) -->
+      <!-- Notas rápidas -->
       <div>
         <h4 class="text-xl font-bold text-gray-700 dark:text-gray-200 mb-4">Notas Rápidas</h4>
         <div class="glass p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">

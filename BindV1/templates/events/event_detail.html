@@ -83,6 +83,37 @@
         </div>
       </div>
       {% endif %}
+
+      <!-- Indicadores del engine -->
+      {% if engine_score %}
+      <div class="flex items-center gap-3 mt-4 flex-wrap">
+        <div class="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
+          <span class="text-xs text-white/70 font-medium">Salud</span>
+          <span class="text-lg font-bold text-white">{{ engine_score.health_score }}/100</span>
+          <span class="text-xs px-2 py-0.5 rounded-full font-bold
+            {% if engine_score.health_label == 'critical' %}bg-red-500/30 text-red-200
+            {% elif engine_score.health_label == 'at_risk' %}bg-amber-500/30 text-amber-200
+            {% elif engine_score.health_label == 'good' %}bg-white/20 text-white
+            {% else %}bg-green-500/30 text-green-200{% endif %}">
+            {{ engine_score.health_label|capfirst }}
+          </span>
+        </div>
+        <div class="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
+          <span class="text-xs text-white/70 font-medium">Riesgo</span>
+          <span class="text-xs font-bold px-2 py-0.5 rounded-full
+            {% if engine_score.risk_label == 'critical' %}bg-red-500/30 text-red-200
+            {% elif engine_score.risk_label == 'high' %}bg-amber-500/30 text-amber-200
+            {% elif engine_score.risk_label == 'medium' %}bg-yellow-500/30 text-yellow-200
+            {% else %}bg-white/20 text-white{% endif %}">
+            {{ engine_score.risk_label|capfirst }}
+          </span>
+        </div>
+        <div class="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
+          <span class="text-xs text-white/70 font-medium">Momentum</span>
+          <span class="text-xs font-bold text-white">{{ engine_score.momentum_label|capfirst }}</span>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 
@@ -224,6 +255,48 @@
       </div>
       {% endif %}
 
+      <!-- Presupuesto -->
+      {% if event.budget %}
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-bold text-sm text-gray-500 uppercase">Presupuesto</h3>
+          <a href="{% url 'modules:budget_detail' event.pk %}"
+             class="text-xs text-teal-500 hover:underline">Ver detalle →</a>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div class="text-center">
+            <p class="text-xs text-gray-400">Planificado</p>
+            <p class="font-bold text-gray-800 dark:text-white text-sm">{{ event.budget.total_budget|floatformat:0 }}</p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-gray-400">Gastado</p>
+            <p class="font-bold text-sm {% if event.budget.usage_percentage >= 80 %}text-red-500{% else %}text-gray-800 dark:text-white{% endif %}">
+              {{ event.budget.total_spent|floatformat:0 }}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-gray-400">Restante</p>
+            <p class="font-bold text-sm {% if event.budget.remaining < 0 %}text-red-500{% else %}text-teal-500{% endif %}">
+              {{ event.budget.remaining|floatformat:0 }}
+            </p>
+          </div>
+        </div>
+        <div class="w-full bg-gray-200/50 dark:bg-gray-700/50 rounded-full h-2 overflow-hidden">
+          <div class="h-2 rounded-full {% if event.budget.usage_percentage >= 80 %}bg-red-500{% else %}bg-gradient-to-r from-teal-400 to-cyan-500{% endif %}"
+               style="width: {{ event.budget.usage_percentage|default:0 }}%"></div>
+        </div>
+        <p class="text-xs text-gray-400 mt-1 text-right">{{ event.budget.currency }} · {{ event.budget.usage_percentage }}% usado</p>
+      </div>
+      {% else %}
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <p class="text-xs text-gray-400 mb-2">Sin presupuesto definido</p>
+        <a href="{% url 'modules:budget_detail' event.pk %}"
+           class="text-xs font-bold text-teal-500 hover:underline">
+          Crear presupuesto →
+        </a>
+      </div>
+      {% endif %}
+
       <!-- Propietario -->
       <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
         <h3 class="font-bold text-sm text-gray-500 uppercase mb-4">Responsable</h3>
@@ -260,6 +333,10 @@
             Ver checklists
           </a>
           {% endif %}
+          <a href="{% url 'modules:budget_detail' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
+            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Presupuesto
+          </a>
           <a href="{% url 'events:event_edit' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
             Editar evento
