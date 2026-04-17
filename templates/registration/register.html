@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BIND - Crear cuenta</title>
+  <script>
+    (() => {
+      const html = document.documentElement;
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (saved === 'dark' || (!saved && prefersDark)) html.classList.add('dark');
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% load static %}
+  <script>tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { poppins: ['Poppins','sans-serif'] } } } }</script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Poppins', sans-serif; }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-20px); } }
+    .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+    .animate-float { animation: float 6s ease-in-out infinite; }
+    .input-group { position: relative; }
+    .input-group input:focus { border-color: #5EEAD4; background-color: rgba(45,212,191,0.1); }
+    .bg-decoration { position:absolute; border-radius:50%; filter:blur(80px); opacity:0.3; pointer-events:none; }
+    .decoration-1 { width:400px; height:400px; background:linear-gradient(135deg,#14B8A6,#06B6D4); top:-200px; right:-100px; }
+    .decoration-2 { width:350px; height:350px; background:linear-gradient(135deg,#0891B2,#0E7490); bottom:-150px; left:-100px; }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-teal-900 via-cyan-900 to-blue-900 dark:from-gray-950 dark:via-teal-950 dark:to-blue-950 text-white min-h-screen transition-all duration-500 relative overflow-hidden font-poppins">
+
+  <div class="bg-decoration decoration-1 animate-float"></div>
+  <div class="bg-decoration decoration-2 animate-float" style="animation-delay:3s;"></div>
+
+  <header class="absolute top-0 left-0 w-full py-6 px-6 z-20">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <a href="{% url 'events:dashboard' %}" class="flex items-center gap-3 animate-fade-in-up">
+        <div class="w-12 h-12 rounded-xl overflow-hidden shadow-lg">
+          <img src="{% static 'img/logo.svg' %}" alt="BIND" class="w-full h-full object-cover">
+        </div>
+        <h1 class="text-2xl font-bold text-white tracking-tight">Bind</h1>
+      </a>
+      <button id="themeToggle" class="p-2.5 rounded-xl hover:bg-white/10 transition-all backdrop-blur-sm border border-white/10">
+        <svg class="w-5 h-5 text-white block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <svg class="w-5 h-5 text-white hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a7 7 0 1010.586 10.586z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="min-h-screen flex items-center justify-center px-6 py-24 relative z-10">
+    <div class="w-full max-w-md">
+
+      <div class="bg-gradient-to-b from-teal-800/50 to-cyan-900/40 dark:from-teal-950/50 dark:to-cyan-950/40 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/10 animate-fade-in-up" style="animation-delay:0.2s;">
+
+        <div class="text-center mb-8">
+          <h2 class="text-4xl font-bold mb-2 bg-gradient-to-r from-white to-teal-200 bg-clip-text text-transparent">Registro</h2>
+          <p class="text-teal-100/70 text-sm">Crea tu cuenta y comienza tu experiencia</p>
+        </div>
+
+        <!-- Mensajes Django -->
+        {% if messages %}
+        {% for message in messages %}
+        <div class="bg-red-500/20 border border-red-500/30 text-red-200 text-sm px-4 py-3 rounded-xl mb-6">
+          {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- Errores del formulario -->
+        {% if form.errors %}
+        <div class="bg-red-500/20 border border-red-500/30 text-red-200 text-sm px-4 py-3 rounded-xl mb-6 space-y-1">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}<p>{{ error }}</p>{% endfor %}
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" class="space-y-5">
+          {% csrf_token %}
+
+          <!-- Username -->
+          <div class="input-group">
+            <input type="text" name="username" placeholder="Nombre de usuario" required autocomplete="username"
+              value="{{ form.username.value|default:'' }}"
+              class="w-full px-5 py-3.5 pl-12 rounded-xl bg-white/5 border-2 border-white/10 text-white placeholder-teal-200/50 focus:border-teal-400 outline-none transition-all text-sm">
+            <svg class="w-5 h-5 text-teal-200/50 absolute left-4 top-1/2 -translate-y-1/2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+            </svg>
+          </div>
+
+          <!-- Email (opcional) -->
+          <div class="input-group">
+            <input type="email" name="email" placeholder="Correo electrónico (opcional)" autocomplete="email"
+              value="{{ form.email.value|default:'' }}"
+              class="w-full px-5 py-3.5 pl-12 rounded-xl bg-white/5 border-2 border-white/10 text-white placeholder-teal-200/50 focus:border-teal-400 outline-none transition-all text-sm">
+            <svg class="w-5 h-5 text-teal-200/50 absolute left-4 top-1/2 -translate-y-1/2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+            </svg>
+          </div>
+
+          <!-- Password -->
+          <div class="input-group">
+            <input type="password" name="password1" id="password" placeholder="Contraseña" required autocomplete="new-password"
+              class="w-full px-5 py-3.5 pl-12 pr-12 rounded-xl bg-white/5 border-2 border-white/10 text-white placeholder-teal-200/50 focus:border-teal-400 outline-none transition-all text-sm">
+            <svg class="w-5 h-5 text-teal-200/50 absolute left-4 top-1/2 -translate-y-1/2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+            </svg>
+            <button type="button" onclick="togglePass()" class="absolute right-4 top-1/2 -translate-y-1/2 text-teal-200/50 hover:text-teal-200 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="input-group">
+            <input type="password" name="password2" placeholder="Confirmar contraseña" required autocomplete="new-password"
+              class="w-full px-5 py-3.5 pl-12 rounded-xl bg-white/5 border-2 border-white/10 text-white placeholder-teal-200/50 focus:border-teal-400 outline-none transition-all text-sm">
+            <svg class="w-5 h-5 text-teal-200/50 absolute left-4 top-1/2 -translate-y-1/2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+
+          <button type="submit"
+            class="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white py-3.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+            Crear cuenta
+          </button>
+        </form>
+
+        <p class="text-center mt-6 text-xs text-teal-100/60">
+          Al crear una cuenta, aceptas nuestros Términos de servicio y Política de privacidad.
+        </p>
+      </div>
+
+      <div class="text-center mt-6 animate-fade-in-up" style="animation-delay:0.4s;">
+        <p class="text-teal-100/70 text-sm">
+          ¿Ya tienes una cuenta?
+          <a href="{% url 'accounts:login' %}" class="text-white font-semibold hover:text-teal-300 transition-colors ml-1">Iniciar sesión</a>
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+    function togglePass() {
+      const inp = document.getElementById('password');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+  </script>
+</body>
+</html>
