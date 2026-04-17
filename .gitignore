@@ -1,0 +1,77 @@
+# ============================================================
+# Python
+# ============================================================
+
+# Bytecode compilado — generado automáticamente por el intérprete
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribuciones / empaquetado
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ============================================================
+# Django
+# ============================================================
+
+# Base de datos local de desarrollo — nunca debe subirse al repo
+db.sqlite3
+db.sqlite3-journal
+
+# Archivos de medios subidos por usuarios — se gestionan fuera del repo
+media/
+
+# Archivos estáticos recolectados (collectstatic) — se regeneran en deploy
+staticfiles/
+static_root/
+
+# ============================================================
+# Variables de entorno y configuración sensible
+# ============================================================
+
+# Credenciales, claves secretas y configuración por entorno
+.env
+.env.*
+*.env
+local_settings.py
+
+# ============================================================
+# Entornos virtuales
+# ============================================================
+
+venv/
+.venv/
+env/
+ENV/
+
+# ============================================================
+# IDEs y editores
+# ============================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================================
+# Sistema operativo
+# ============================================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# Cobertura de tests y herramientas de calidad
+# ============================================================
+
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
