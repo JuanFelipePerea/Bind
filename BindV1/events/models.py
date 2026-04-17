@@ -136,3 +136,129 @@ class EventModule(models.Model):
         verbose_name = "Módulo de evento"
         verbose_name_plural = "Módulos de evento"
         unique_together = ('event', 'module_type')
+
+
+class TemplateTask(models.Model):
+    """Tarea predefinida dentro de una plantilla."""
+    template = models.ForeignKey(
+        EventTemplate, on_delete=models.CASCADE,
+        related_name='default_tasks'
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    priority = models.CharField(
+        max_length=10,
+        choices=[('low', 'Baja'), ('medium', 'Media'), ('high', 'Alta')],
+        default='medium'
+    )
+    days_before_event = models.IntegerField(
+        null=True, blank=True,
+        help_text="Due date = start_date - N días. Null = sin fecha calculada."
+    )
+    order = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Tarea de plantilla"
+        verbose_name_plural = "Tareas de plantilla"
+
+    def __str__(self):
+        return f"{self.template.name} → {self.title}"
+
+
+class TemplateChecklistItem(models.Model):
+    """Ítem de checklist predefinido en una plantilla."""
+    template = models.ForeignKey(
+        EventTemplate, on_delete=models.CASCADE,
+        related_name='default_checklist_items'
+    )
+    checklist_title = models.CharField(max_length=150)
+    item_text = models.CharField(max_length=300)
+    order = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['checklist_title', 'order']
+        verbose_name = "Ítem de checklist de plantilla"
+        verbose_name_plural = "Ítems de checklist de plantilla"
+
+    def __str__(self):
+        return f"{self.template.name} → {self.checklist_title}: {self.item_text}"
+
+
+class EventAlert(models.Model):
+    """Alerta generada por el sistema. Es la voz del asistente."""
+    ALERT_TYPE_CHOICES = [
+        ('deadline', 'Fecha límite próxima'),
+        ('stalled', 'Sin actividad'),
+        ('budget', 'Presupuesto en riesgo'),
+        ('attendance', 'Asistentes pendientes'),
+        ('milestone', 'Hito importante'),
+        ('suggestion', 'Sugerencia'),
+        ('celebration', 'Celebración'),
+    ]
+    SEVERITY_CHOICES = [
+        ('info', 'Información'),
+        ('warning', 'Advertencia'),
+        ('critical', 'Crítico'),
+    ]
+
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name='alerts'
+    )
+    alert_type = models.CharField(max_length=20, choices=ALERT_TYPE_CHOICES)
+    severity = models.CharField(
+        max_length=10, choices=SEVERITY_CHOICES, default='info'
+    )
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    action_url = models.CharField(max_length=200, blank=True)
+    action_label = models.CharField(max_length=50, blank=True)
+    is_read = models.BooleanField(default=False)
+    is_dismissed = models.BooleanField(default=False)
+    alert_key = models.CharField(max_length=150, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Alerta de evento"
+        verbose_name_plural = "Alertas de evento"
+
+    def __str__(self):
+        return f"[{self.severity}] {self.title}"
+
+
+class EngineMetrics(models.Model):
+    """
+    Registra qué decisiones tomó el engine y cómo respondió el usuario.
+    Base del loop de aprendizaje.
+    """
+    decision_key = models.CharField(max_length=150, db_index=True)
+    decision_type = models.CharField(max_length=20)
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name='engine_metrics'
+    )
+    user = models.ForeignKey(
+        'auth.User', on_delete=models.CASCADE, related_name='engine_metrics'
+    )
+    health_score_at_decision = models.IntegerField(default=0)
+    risk_level_at_decision = models.IntegerField(default=0)
+
+    # Respuesta del usuario: None = no respondió, True = actuó, False = descartó
+    user_acted = models.BooleanField(null=True, blank=True)
+    action_taken = models.CharField(max_length=50, blank=True)
+    time_to_action_hours = models.FloatField(null=True, blank=True)
+
+    issue_resolved = models.BooleanField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Métrica del engine"
+        verbose_name_plural = "Métricas del engine"
+        indexes = [
+            models.Index(fields=['user', 'decision_type']),
+            models.Index(fields=['decision_key']),
+        ]
+
+    def __str__(self):
+        return f"{self.decision_key} — {self.action_taken or 'sin respuesta'}"

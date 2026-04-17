@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block title %}BIND - {% if object %}Editar{% else %}Nuevo{% endif %} Evento{% endblock %}
+{% block page_title %}{% if object %}Editar Evento{% else %}Nuevo Evento{% endif %}{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-8 max-w-3xl mx-auto animate-fade-in">
+
+  <div class="glass rounded-3xl p-8 border border-gray-100 dark:border-gray-700 shadow-sm">
+
+    {% if not object %}
+    <!-- Datos de plantillas para auto-relleno JS -->
+    <script id="templateData" type="application/json">
+    {
+      {% for tmpl in templates %}
+      "{{ tmpl.pk }}": {
+        "name": "{{ tmpl.name|escapejs }}",
+        "description": "{{ tmpl.description|escapejs }}",
+        "category": "{{ tmpl.category }}",
+        "taskCount": {{ tmpl.default_tasks.count }},
+        "tasks": [{% for t in tmpl.default_tasks.all %}"{{ t.title|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}]
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    }
+    </script>
+
+    <!-- Selector de plantilla (solo en creación) -->
+    <div class="mb-6">
+      <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Elegir plantilla</h3>
+      <p class="text-sm text-gray-400 dark:text-gray-500 mb-4">Al seleccionar una plantilla, el proyecto se configura automáticamente.</p>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+
+        <label class="cursor-pointer">
+          <input type="radio" name="template_id" value="" class="sr-only peer" checked>
+          <div class="glass p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 peer-checked:border-teal-500 peer-checked:bg-teal-50/50 dark:peer-checked:bg-teal-900/20 transition-all text-center">
+            <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mx-auto mb-2">
+              <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </div>
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">En blanco</p>
+          </div>
+        </label>
+
+        {% for tmpl in templates %}
+        <label class="cursor-pointer">
+          <input type="radio" name="template_id" value="{{ tmpl.pk }}" class="sr-only peer"
+            {% if selected_template and selected_template.pk == tmpl.pk %}checked{% endif %}>
+          <div class="glass p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 peer-checked:border-teal-500 peer-checked:bg-teal-50/50 dark:peer-checked:bg-teal-900/20 transition-all text-center">
+            <div class="w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center
+              {% if tmpl.category == 'business' %}bg-blue-500
+              {% elif tmpl.category == 'academic' %}bg-gray-600
+              {% elif tmpl.category == 'creative' %}bg-purple-500
+              {% elif tmpl.category == 'marketing' %}bg-orange-500
+              {% elif tmpl.category == 'social' %}bg-teal-500
+              {% else %}bg-teal-500{% endif %}">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+            </div>
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{{ tmpl.name }}</p>
+            <p class="text-[10px] text-gray-400 uppercase mt-0.5">{{ tmpl.get_category_display }}</p>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Preview dinámico de lo que incluye la plantilla -->
+    <div id="templatePreview" class="hidden mb-6 p-4 rounded-xl bg-teal-50/60 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700/50">
+      <p class="text-xs font-bold text-teal-700 dark:text-teal-300 uppercase mb-2">Se generará automáticamente</p>
+      <div id="previewContent" class="text-sm text-teal-800 dark:text-teal-200 space-y-1"></div>
+    </div>
+
+    <hr class="border-gray-200 dark:border-gray-700 mb-8">
+    {% endif %}
+
+    <!-- Formulario principal -->
+    <form method="post" id="eventForm">
+      {% csrf_token %}
+
+      {% if not object %}
+      <!-- Campo oculto para pasar template seleccionado via JS -->
+      <input type="hidden" name="template" id="selectedTemplate" value="{{ selected_template.pk|default:'' }}">
+      {% endif %}
+
+      <div class="space-y-6">
+
+        <!-- Nombre -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Nombre del evento <span class="text-red-400">*</span>
+          </label>
+          <input type="text" name="name" required
+            value="{{ form.name.value|default:'' }}"
+            placeholder="Ej: Conferencia de Marketing 2025"
+            class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all text-gray-800 dark:text-white placeholder-gray-400 text-sm">
+        </div>
+
+        <!-- Descripción -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Descripción</label>
+          <textarea name="description" rows="3"
+            placeholder="Describe el evento brevemente..."
+            class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all text-gray-800 dark:text-white placeholder-gray-400 text-sm resize-none">{{ form.description.value|default:'' }}</textarea>
+        </div>
+
+        <!-- Ubicación -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ubicación</label>
+          <input type="text" name="location"
+            value="{{ form.location.value|default:'' }}"
+            placeholder="Ej: Bogotá, Colombia"
+            class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all text-gray-800 dark:text-white placeholder-gray-400 text-sm">
+        </div>
+
+        <!-- Fechas -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Fecha de inicio</label>
+            <input type="datetime-local" name="start_date"
+              value="{{ form.start_date.value|default:'' }}"
+              class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all text-gray-800 dark:text-white text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Fecha de fin</label>
+            <input type="datetime-local" name="end_date"
+              value="{{ form.end_date.value|default:'' }}"
+              class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all text-gray-800 dark:text-white text-sm">
+          </div>
+        </div>
+
+        <!-- Estado (solo en edición) -->
+        {% if object %}
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Estado</label>
+          <select name="status"
+            class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 outline-none text-gray-800 dark:text-white text-sm">
+            <option value="draft" {% if form.status.value == 'draft' %}selected{% endif %}>Borrador</option>
+            <option value="active" {% if form.status.value == 'active' %}selected{% endif %}>Activo</option>
+            <option value="completed" {% if form.status.value == 'completed' %}selected{% endif %}>Completado</option>
+            <option value="cancelled" {% if form.status.value == 'cancelled' %}selected{% endif %}>Cancelado</option>
+          </select>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Botones -->
+      <div class="flex gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <button type="submit"
+          class="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white py-3 rounded-xl font-semibold shadow-lg transition-all hover:scale-[1.01]">
+          {% if object %}Guardar cambios{% else %}Crear evento{% endif %}
+        </button>
+        <a href="{% if object %}{% url 'events:event_detail' object.pk %}{% else %}{% url 'events:event_list' %}{% endif %}"
+           class="px-6 py-3 rounded-xl glass hover:bg-white/80 dark:hover:bg-gray-700 transition-all font-medium text-gray-700 dark:text-gray-300">
+          Cancelar
+        </a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if not object %}
+<script>
+  // ── Datos de plantillas ────────────────────────────────────────────────────
+  const TEMPLATE_DATA = JSON.parse(document.getElementById('templateData').textContent);
+
+  // Defaults de fechas por categoría (días de anticipación, duración en horas)
+  const CATEGORY_DAYS   = { business: 30, marketing: 45, academic: 60, creative: 21, social: 14 };
+  const CATEGORY_HOURS  = { business:  8, marketing:  4, academic:  3, creative:  3, social:  4 };
+
+  const descInput  = document.querySelector('textarea[name="description"]');
+  const startInput = document.querySelector('input[name="start_date"]');
+  const endInput   = document.querySelector('input[name="end_date"]');
+  const preview    = document.getElementById('templatePreview');
+  const previewContent = document.getElementById('previewContent');
+
+  const pad = n => String(n).padStart(2, '0');
+  const toLocalISO = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+  function applyTemplateDefaults(templateId) {
+    const data = TEMPLATE_DATA[templateId];
+    if (!data) {
+      // Plantilla en blanco: limpiar preview y restaurar estado
+      if (preview) preview.classList.add('hidden');
+      return;
+    }
+
+    // Auto-relleno de descripción si está vacía
+    if (descInput && !descInput.value.trim()) {
+      descInput.value = data.description;
+    }
+
+    // Auto-cálculo de fechas según categoría
+    const daysAhead = CATEGORY_DAYS[data.category] || 30;
+    const durationH = CATEGORY_HOURS[data.category] || 4;
+
+    if (startInput && !startInput.value) {
+      const start = new Date();
+      start.setDate(start.getDate() + daysAhead);
+      start.setHours(9, 0, 0, 0);
+      startInput.value = toLocalISO(start);
+
+      if (endInput && !endInput.value) {
+        const end = new Date(start);
+        end.setHours(end.getHours() + durationH);
+        endInput.value = toLocalISO(end);
+        endInput.min   = toLocalISO(start);
+      }
+    }
+
+    // Mostrar preview de lo que se creará
+    if (preview && previewContent) {
+      const taskList = data.tasks.slice(0, 4).map(t => `<li class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-teal-500 inline-block"></span>${t}</li>`).join('');
+      const more = data.taskCount > 4 ? `<li class="text-teal-600 dark:text-teal-400 text-xs">+ ${data.taskCount - 4} tareas más…</li>` : '';
+      previewContent.innerHTML = `
+        <p class="font-semibold mb-1">${data.taskCount} tareas predefinidas · fechas calculadas · estado Activo</p>
+        <ul class="space-y-0.5">${taskList}${more}</ul>
+      `;
+      preview.classList.remove('hidden');
+    }
+  }
+
+  // Escuchar cambios en los radios de plantilla
+  document.querySelectorAll('input[name="template_id"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      applyTemplateDefaults(radio.value);
+    });
+  });
+
+  // Pre-select desde URL param
+  const params = new URLSearchParams(window.location.search);
+  const templateParam = params.get('template');
+  if (templateParam) {
+    const radio = document.querySelector(`input[name="template_id"][value="${templateParam}"]`);
+    if (radio) {
+      radio.checked = true;
+      applyTemplateDefaults(templateParam);
+    }
+  } else {
+    // Verificar si hay un radio pre-seleccionado (ej: selected_template del servidor)
+    const checked = document.querySelector('input[name="template_id"]:checked');
+    if (checked && checked.value) applyTemplateDefaults(checked.value);
+  }
+
+  // Fallback: preset start_date a +1h si sigue vacío (evento en blanco)
+  if (startInput && !startInput.value) {
+    const now = new Date();
+    now.setHours(now.getHours() + 1, 0, 0, 0);
+    startInput.value = toLocalISO(now);
+    startInput.min   = toLocalISO(now);
+  }
+
+  // Cuando cambia start_date manualmente, actualizar min de end_date
+  if (startInput && endInput) {
+    startInput.addEventListener('change', () => {
+      endInput.min = startInput.value;
+      if (endInput.value && endInput.value < startInput.value) endInput.value = startInput.value;
+    });
+  }
+</script>
+{% endif %}
+{% endblock %}

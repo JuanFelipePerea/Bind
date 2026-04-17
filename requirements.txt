@@ -1,0 +1,2 @@
+Django==6.0.1
+# Add other dependencies here if you install them (Pillow, requests, etc.)

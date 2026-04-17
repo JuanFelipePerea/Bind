@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile events/services/template_service.py)",
+      "Bash(python -m py_compile events/views.py)",
+      "Bash(python -m py_compile events/urls.py)",
+      "Bash(python -m py_compile events/management/commands/test_template_automation.py)",
+      "Bash(python manage.py check --deploy)",
+      "Bash(python manage.py check)",
+      "Bash(python:*)"
+    ]
+  }
+}
