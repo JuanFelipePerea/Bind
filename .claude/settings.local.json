@@ -7,7 +7,9 @@
       "Bash(python -m py_compile events/management/commands/test_template_automation.py)",
       "Bash(python manage.py check --deploy)",
       "Bash(python manage.py check)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
