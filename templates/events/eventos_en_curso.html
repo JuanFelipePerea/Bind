@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}BIND - Eventos en Curso{% endblock %}
+{% block page_title %}Eventos en Curso{% endblock %}
+
+{% block topbar_action %}
+<a href="{% url 'events:event_create' %}" class="glass px-5 py-2.5 rounded-xl font-semibold text-sm shadow hover:bg-white/80 dark:hover:bg-gray-700 transition-all flex items-center gap-2 group text-gray-800 dark:text-white">
+  <svg class="w-4 h-4 group-hover:rotate-90 transition-transform text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+  Nuevo evento
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-8 animate-fade-in">
+
+  <!-- SECCIÓN 1: EN PROGRESO (activos) -->
+  <div class="mb-10">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center shadow-lg">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">En Progreso</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Eventos activos actualmente</p>
+      </div>
+    </div>
+
+    {% if active_events %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for event in active_events %}
+      <div class="glass rounded-2xl p-6 hover:-translate-y-1 transition-transform cursor-pointer group border-l-4 border-teal-500"
+           onclick="window.location.href='{% url 'events:event_detail' event.pk %}'">
+
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-xs font-bold px-3 py-1 rounded-full bg-teal-100 text-teal-700 border border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800">
+            En progreso
+          </span>
+          {% if event.days_until is not None %}
+          <span class="text-xs font-semibold {% if event.days_until <= 3 %}text-red-500{% else %}text-gray-400{% endif %}">
+            {% if event.days_until == 0 %}¡Hoy!
+            {% elif event.days_until < 0 %}Finalizado
+            {% else %}{{ event.days_until }} día{{ event.days_until|pluralize }}{% endif %}
+          </span>
+          {% endif %}
+        </div>
+
+        <h4 class="text-lg font-bold text-gray-800 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors mb-2">
+          {{ event.name }}
+        </h4>
+
+        {% if event.location %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-3">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+          {{ event.location }}
+        </p>
+        {% endif %}
+
+        {% if event.start_date %}
+        <p class="text-xs text-gray-400 flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          {{ event.start_date|date:"d M Y" }}
+        </p>
+        {% endif %}
+
+        <!-- Barra de progreso -->
+        <div class="mt-4">
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-gray-500">Progreso</span>
+            <span class="text-gray-400 font-medium">{{ event.task_progress }}%</span>
+          </div>
+          <div class="w-full bg-gray-200/50 dark:bg-gray-700/50 rounded-full h-1.5">
+            <div class="bg-gradient-to-r from-teal-400 to-cyan-500 h-1.5 rounded-full"
+                 style="width: {{ event.task_progress }}%"></div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass rounded-2xl p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
+      <svg class="w-16 h-16 mx-auto mb-4 opacity-40 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+      <p class="text-gray-500 dark:text-gray-400">No hay eventos en progreso actualmente</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- SECCIÓN 2: EN REVISIÓN (borradores) -->
+  <div class="mb-10">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">En Revisión</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Borradores pendientes de publicar</p>
+      </div>
+    </div>
+
+    {% if draft_events %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for event in draft_events %}
+      <div class="glass rounded-2xl p-6 hover:-translate-y-1 transition-transform cursor-pointer group border-l-4 border-yellow-500"
+           onclick="window.location.href='{% url 'events:event_detail' event.pk %}'">
+
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-xs font-bold px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
+            En revisión
+          </span>
+        </div>
+
+        <h4 class="text-lg font-bold text-gray-800 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors mb-2">
+          {{ event.name }}
+        </h4>
+
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+          {{ event.description|truncatechars:80|default:"Sin descripción" }}
+        </p>
+
+        <div class="flex items-center gap-2">
+          <a href="{% url 'events:event_edit' event.pk %}"
+             class="text-xs font-medium text-teal-500 hover:text-teal-600 hover:underline">
+            Editar →
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass rounded-2xl p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
+      <svg class="w-16 h-16 mx-auto mb-4 opacity-40 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <p class="text-gray-500 dark:text-gray-400">No hay borradores pendientes</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- SECCIÓN 3: COMPLETADOS RECIENTEMENTE -->
+  <div class="mb-10">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Completados</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Últimos eventos finalizados</p>
+      </div>
+    </div>
+
+    {% if completed_events %}
+    <div class="space-y-3">
+      {% for event in completed_events %}
+      <div class="glass rounded-xl p-4 flex items-center justify-between hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+           onclick="window.location.href='{% url 'events:event_detail' event.pk %}'">
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div>
+            <h4 class="font-semibold text-gray-800 dark:text-white">{{ event.name }}</h4>
+            {% if event.end_date %}
+            <p class="text-xs text-gray-400">Finalizado: {{ event.end_date|date:"d M Y" }}</p>
+            {% endif %}
+          </div>
+        </div>
+        <span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
+          Completado
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass rounded-2xl p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
+      <p class="text-gray-500 dark:text-gray-400">No hay eventos completados aún</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
