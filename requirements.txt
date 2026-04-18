@@ -1,2 +1,7 @@
 Django==6.0.1
-# Add other dependencies here if you install them (Pillow, requests, etc.)
+python-dotenv==1.2.2
+django-allauth[google]==65.16.1
+Pillow
+requests
+PyJWT
+cryptography
