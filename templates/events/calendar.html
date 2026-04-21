@@ -496,7 +496,7 @@ function renderDay(){
     html+=`<div class="absolute inset-x-1 top-1 space-y-1 pointer-events-none">`;
     evs.forEach(ev=>{
       html+=`<div class="ev-pill pointer-events-auto" style="background:${col(ev).bg};color:${col(ev).fg};border-left:3px solid ${col(ev).dot};font-size:13px;padding:6px 10px;"
-        onclick="showPop(event,${encodeEv(ev)})">${ev.type==='task'?'✓ ':''}${ev.title}${ev.loc?` <span style="opacity:.5;font-size:11px;margin-left:4px;">📍 ${ev.loc}</span>`:''}
+        onclick="showPop(event,${encodeEv(ev)})">${ev.type==='task'?'✓ ':''}${ev.title}${ev.loc?` <span style="opacity:.5;font-size:11px;margin-left:4px;">&#x2316; ${ev.loc}</span>`:''}
       </div>`;
     });
     html+=`</div>`;

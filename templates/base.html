@@ -16,6 +16,7 @@
   </script>
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   {% load static %}
   <script>
     tailwind.config = {
@@ -304,6 +305,7 @@
   </script>
 
   {% block extra_js %}{% endblock %}
+  <script>lucide.createIcons();</script>
 
 </body>
 </html>

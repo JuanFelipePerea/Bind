@@ -70,7 +70,7 @@
             {% elif event.health_score > 0 %}bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400
             {% else %}bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400{% endif %}">
             {% if event.health_score == 100 %}
-            🏆
+            <i data-lucide="award" class="w-3.5 h-3.5"></i>
             {% else %}
             <span class="w-1.5 h-1.5 rounded-full
               {% if event.health_score >= 80 %}bg-green-500

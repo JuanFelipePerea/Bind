@@ -405,7 +405,7 @@
       const ok = val === p1.value;
 
       p2.classList.add(ok ? 'inp-match' : 'inp-no-match');
-      matchIcon.textContent = ok ? '✅' : '❌';
+      matchIcon.textContent = ok ? '✓' : '✗';
       matchText.textContent = ok ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
       matchText.className   = 'text-xs font-medium ' + (ok ? 'text-teal-400' : 'text-red-400');
     }

@@ -101,7 +101,7 @@
             {% elif engine_score.health_score >= 50 %}bg-white/20 text-white
             {% elif engine_score.health_score > 0 %}bg-amber-500/30 text-amber-200
             {% else %}bg-red-500/30 text-red-200{% endif %}">
-            {% if engine_score.health_score == 100 %}🏆 Perfecto{% elif engine_score.health_score >= 80 %}Excelente{% elif engine_score.health_score >= 50 %}Bueno{% elif engine_score.health_score > 0 %}En riesgo{% else %}Crítico{% endif %}
+            {% if engine_score.health_score == 100 %}<i data-lucide="award" class="w-3 h-3 inline-block mr-0.5"></i>Perfecto{% elif engine_score.health_score >= 80 %}Excelente{% elif engine_score.health_score >= 50 %}Bueno{% elif engine_score.health_score > 0 %}En riesgo{% else %}Crítico{% endif %}
           </span>
         </div>
         <div class="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5">
