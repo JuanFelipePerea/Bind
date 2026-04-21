@@ -17,7 +17,8 @@
       "Bash(rm -rf /c/Users/USER/Desktop/Bind-feature-decision-engine-integration/BindV1/BindV1/static)",
       "Bash(pip install *)",
       "Bash(pip show *)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(grep -E \"\\\\.py$\")"
     ]
   }
 }
