@@ -85,22 +85,22 @@ class ChecklistForm(forms.ModelForm):
 class FileForm(forms.ModelForm):
     class Meta:
         model = File
-        fields = ['name', 'file_path', 'file_type']
+        fields = ['name', 'file', 'file_type']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'w-full bg-white/50 dark:bg-black/20 rounded-xl px-4 py-3 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50',
-                'placeholder': 'Nombre del archivo',
-            }),
-            'file_path': forms.TextInput(attrs={
-                'class': 'w-full bg-white/50 dark:bg-black/20 rounded-xl px-4 py-3 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50',
-                'placeholder': '/ruta/al/archivo.pdf',
+                'placeholder': 'Se auto-completa desde el nombre del archivo',
             }),
             'file_type': forms.Select(attrs={
                 'class': 'w-full bg-white/50 dark:bg-black/20 rounded-xl px-4 py-3 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50',
             }),
         }
         labels = {
-            'name': 'Nombre',
-            'file_path': 'Ruta del archivo',
-            'file_type': 'Tipo',
+            'name': 'Nombre (opcional)',
+            'file': 'Archivo',
+            'file_type': 'Tipo (auto-detectado)',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].required = False
