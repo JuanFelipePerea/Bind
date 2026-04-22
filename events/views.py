@@ -1,7 +1,11 @@
+import json
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Count, Q
 
 from django.db import models as db_models
@@ -11,6 +15,44 @@ from modules.models import Task, File, Checklist
 from datetime import timedelta
 import calendar as cal_module
 from datetime import date as date_cls
+
+
+# ── Helper: serializa plantillas a JSON para el frontend ─────────────────────
+
+def _build_templates_json(templates_qs):
+    data = {}
+    for tmpl in templates_qs:
+        checklists = {}
+        for item in tmpl.default_checklist_items.order_by('checklist_title', 'order'):
+            checklists.setdefault(item.checklist_title, []).append(item.item_text)
+        data[str(tmpl.pk)] = {
+            'name':        tmpl.name,
+            'description': tmpl.description,
+            'category':    tmpl.category,
+            'taskCount':   tmpl.default_tasks.count(),
+            'tasks': [
+                {
+                    'pk':               t.pk,
+                    'title':            t.title,
+                    'priority':         t.priority,
+                    'days_before_event': t.days_before_event,
+                }
+                for t in tmpl.default_tasks.order_by('order')
+            ],
+            'checklists': checklists,
+            'modules':    list(tmpl.modules.values_list('module_type', flat=True)),
+            'budgetItems': [
+                {
+                    'pk':       bi.pk,
+                    'name':     bi.name,
+                    'amount':   float(bi.amount_estimate),
+                    'type':     bi.item_type,
+                    'category': bi.get_category_display(),
+                }
+                for bi in tmpl.default_budget_items.order_by('order')
+            ],
+        }
+    return json.dumps(data, ensure_ascii=False)
 
 
 # ─────────────────────────────────────────────
@@ -378,81 +420,103 @@ def event_create(request):
     from events.services.template_service import (
         apply_template_to_event, get_smart_start_date, get_smart_end_date
     )
-    templates = EventTemplate.objects.prefetch_related('modules', 'default_tasks').all()
+    templates = EventTemplate.objects.prefetch_related(
+        'modules', 'default_tasks', 'default_checklist_items', 'default_budget_items'
+    ).all()
 
     if request.method == 'POST':
-        name        = request.POST.get('name', '').strip()
-        description = request.POST.get('description', '').strip()
-        location    = request.POST.get('location', '').strip()
-        status      = request.POST.get('status', 'draft')
-        start_date  = request.POST.get('start_date') or None
-        end_date    = request.POST.get('end_date') or None
-        template_id = request.POST.get('template_id') or None
+        name             = request.POST.get('name', '').strip()
+        description      = request.POST.get('description', '').strip()
+        location         = request.POST.get('location', '').strip()
+        status           = request.POST.get('status', 'draft')
+        start_date       = request.POST.get('start_date') or None
+        end_date         = request.POST.get('end_date') or None
+        template_id      = request.POST.get('template_id') or None
+        selected_modules = request.POST.getlist('modules')
+
+        # Personalización on-the-fly enviada desde el panel lateral del formulario
+        customization = {}
+        customization_raw = request.POST.get('template_customization', '')
+        if customization_raw:
+            try:
+                customization = json.loads(customization_raw)
+            except (json.JSONDecodeError, ValueError):
+                pass
 
         if not name:
             messages.error(request, 'El nombre del evento es obligatorio.')
-            return render(request, 'events/event_form.html', {'templates': templates})
+            return render(request, 'events/event_form.html', {
+                'templates':      templates,
+                'templates_json': _build_templates_json(templates),
+            })
 
-        # Obtener plantilla si se eligió una
         template = None
         if template_id:
-            template = EventTemplate.objects.filter(pk=template_id).first()
+            template = EventTemplate.objects.prefetch_related(
+                'modules', 'default_tasks', 'default_checklist_items', 'default_budget_items'
+            ).filter(pk=template_id).first()
 
-        # ── Defaults inteligentes cuando se usa plantilla ─────────────────
         if template:
-            # Heredar descripción de la plantilla si el usuario no escribió una
             if not description:
                 description = template.description
-
-            # Auto-calcular start_date si no se proporcionó
             if not start_date:
                 start_date = get_smart_start_date(template.category)
-
-            # Auto-calcular end_date si no se proporcionó
             if not end_date and start_date:
                 end_date = get_smart_end_date(
-                    start_date if hasattr(start_date, 'hour') else timezone.datetime.fromisoformat(str(start_date)),
+                    start_date if hasattr(start_date, 'hour')
+                    else timezone.datetime.fromisoformat(str(start_date)),
                     template.category,
                 )
-
-            # Activar estado 'active' en lugar de 'draft' al usar plantilla
             if status == 'draft':
                 status = 'active'
 
-        event = Event.objects.create(
-            name=name,
-            description=description,
-            location=location,
-            status=status,
-            start_date=start_date,
-            end_date=end_date,
-            owner=request.user,
-            template=template,
-        )
-
-        if template:
-            apply_template_to_event(event, template, owner=request.user)
-            task_count = event.tasks.count()
-            messages.success(
-                request,
-                f'Proyecto "{event.name}" listo — {task_count} tareas generadas automáticamente.'
+        with transaction.atomic():
+            event = Event.objects.create(
+                name=name,
+                description=description,
+                location=location,
+                status=status,
+                start_date=start_date,
+                end_date=end_date,
+                owner=request.user,
+                template=template,
             )
-        else:
-            # Sin plantilla: activar todos los módulos del MVP por defecto
-            for module_type in ['tasks', 'attendees', 'checklist', 'files']:
-                EventModule.objects.get_or_create(event=event, module_type=module_type)
-            messages.success(request, f'Evento "{event.name}" creado exitosamente.')
+
+            if template:
+                allowed = selected_modules if selected_modules else None
+                apply_template_to_event(
+                    event, template,
+                    owner=request.user,
+                    allowed_modules=allowed,
+                    customization=customization,
+                )
+                task_count = event.tasks.count()
+                messages.success(
+                    request,
+                    f'Proyecto "{event.name}" creado con {task_count} tarea{"s" if task_count != 1 else ""}.'
+                )
+            else:
+                modules_to_activate = selected_modules if selected_modules else [
+                    'tasks', 'attendees', 'checklist', 'files'
+                ]
+                for module_type in modules_to_activate:
+                    EventModule.objects.get_or_create(
+                        event=event,
+                        module_type=module_type,
+                        defaults={'is_active': True},
+                    )
+                messages.success(request, f'Evento "{event.name}" creado.')
 
         return redirect('events:event_detail', pk=event.pk)
 
-    # Preseleccionar plantilla si viene por URL param
     selected_template = None
     template_param = request.GET.get('template')
     if template_param:
         selected_template = EventTemplate.objects.filter(pk=template_param).first()
 
     return render(request, 'events/event_form.html', {
-        'templates': templates,
+        'templates':         templates,
+        'templates_json':    _build_templates_json(templates),
         'selected_template': selected_template,
     })
 
@@ -465,8 +529,7 @@ def event_create(request):
 def quick_create_from_template(request, template_id):
     """
     Crea un proyecto completo desde una plantilla con un solo clic.
-    Zero friction: genera nombre, fechas y tareas automáticamente.
-    Solo requiere POST con campo 'name' (opcional — se auto-genera si falta).
+    Acepta 'name' (opcional) y 'template_customization' (JSON, opcional).
     """
     from events.services.template_service import (
         apply_template_to_event, get_smart_start_date, get_smart_end_date
@@ -477,32 +540,54 @@ def quick_create_from_template(request, template_id):
 
     template = get_object_or_404(EventTemplate, pk=template_id)
 
-    # Nombre: usar el que envió el usuario o generar uno automático
     name = request.POST.get('name', '').strip()
     if not name:
         name = f"{template.name} — {timezone.now().strftime('%d/%m/%Y')}"
 
-    # Fechas inteligentes según categoría
+    customization = {}
+    customization_raw = request.POST.get('template_customization', '')
+    if customization_raw:
+        try:
+            customization = json.loads(customization_raw)
+        except (json.JSONDecodeError, ValueError):
+            pass
+
     start_date = get_smart_start_date(template.category)
     end_date   = get_smart_end_date(start_date, template.category)
 
-    event = Event.objects.create(
-        name=name,
-        description=template.description,
-        status='active',
-        start_date=start_date,
-        end_date=end_date,
-        owner=request.user,
-        template=template,
-    )
+    with transaction.atomic():
+        event = Event.objects.create(
+            name=name,
+            description=template.description,
+            status='active',
+            start_date=start_date,
+            end_date=end_date,
+            owner=request.user,
+            template=template,
+        )
+        apply_template_to_event(event, template, owner=request.user, customization=customization)
 
-    apply_template_to_event(event, template, owner=request.user)
+    # Modificación permanente de la plantilla si el usuario lo solicitó
+    if request.POST.get('modify_template') == '1' and customization:
+        from events.models import TemplateTask, TemplateBudgetItem, TemplateChecklistItem
+        exc_task_pks   = customization.get('excluded_task_pks', [])
+        exc_budget_pks = customization.get('excluded_budget_item_pks', [])
+        exc_cl_items   = customization.get('excluded_checklist_items', {})
+        if exc_task_pks:
+            TemplateTask.objects.filter(template=template, pk__in=exc_task_pks).delete()
+        if exc_budget_pks:
+            TemplateBudgetItem.objects.filter(template=template, pk__in=exc_budget_pks).delete()
+        for cl_title, items in exc_cl_items.items():
+            if items:
+                TemplateChecklistItem.objects.filter(
+                    template=template, checklist_title=cl_title, item_text__in=items
+                ).delete()
 
     task_count = event.tasks.count()
     messages.success(
         request,
-        f'Proyecto "{event.name}" listo al instante — {task_count} tareas generadas, '
-        f'inicio estimado el {start_date.strftime("%d/%m/%Y")}.'
+        f'Proyecto "{event.name}" creado — {task_count} tarea{"s" if task_count != 1 else ""}, '
+        f'inicio programado para el {start_date.strftime("%d/%m/%Y")}.'
     )
     return redirect('events:event_detail', pk=event.pk)
 
@@ -540,7 +625,8 @@ def event_edit(request, pk):
         return redirect('events:event_detail', pk=event.pk)
 
     return render(request, 'events/event_form.html', {
-        'event':     event,
+        'event':    event,
+        'object':   event,
         'templates': EventTemplate.objects.all(),
     })
 
@@ -672,7 +758,6 @@ def global_search(request):
 
 @login_required
 def template_list(request):
-    # Filtro por categoría
     category = request.GET.get('category', '')
     templates = EventTemplate.objects.prefetch_related(
         'modules', 'default_tasks', 'default_checklist_items'
@@ -681,11 +766,33 @@ def template_list(request):
         templates = templates.filter(category=category)
 
     context = {
-        'templates':         templates,
-        'category_filter':   category,
-        'category_choices':  EventTemplate.CATEGORY_CHOICES,
+        'templates':        templates,
+        'templates_json':   _build_templates_json(templates),
+        'category_filter':  category,
+        'category_choices': EventTemplate.CATEGORY_CHOICES,
     }
     return render(request, 'events/template_list.html', context)
+
+
+@login_required
+def template_preview_json(request, template_id):
+    """Devuelve los datos de una plantilla como JSON para modales y paneles."""
+    template = get_object_or_404(EventTemplate, pk=template_id)
+    checklists = {}
+    for item in template.default_checklist_items.order_by('checklist_title', 'order'):
+        checklists.setdefault(item.checklist_title, []).append(item.item_text)
+    return JsonResponse({
+        'id':               template.pk,
+        'name':             template.name,
+        'description':      template.description,
+        'category':         template.category,
+        'category_display': template.get_category_display(),
+        'tasks': list(template.default_tasks.order_by('order').values(
+            'title', 'priority', 'days_before_event'
+        )),
+        'checklists': checklists,
+        'modules':    list(template.modules.values_list('module_type', flat=True)),
+    })
 @login_required
 def report_view(request):
     stats = compute_user_stats(request.user)
@@ -702,24 +809,41 @@ def calendar_view(request):
     from datetime import date as date_cls
     today = timezone.now().date()
  
-    # Todos los eventos del usuario (sin rango, el JS filtra)
-    all_events = Event.objects.filter(
+    # Todos los eventos del usuario, anotados con progreso de tareas
+    all_events_qs = Event.objects.filter(
         owner=request.user
-    ).select_related('template').order_by('start_date')
- 
+    ).select_related('template', 'budget').annotate(
+        ev_total_tasks=Count('tasks', distinct=True),
+        ev_done_tasks=Count('tasks', filter=Q(tasks__status='done'), distinct=True)
+    ).order_by('start_date')
+
+    all_events = list(all_events_qs)
+    for ev in all_events:
+        total = ev.ev_total_tasks
+        done  = ev.ev_done_tasks
+        ev.task_progress_pct = int(done / total * 100) if total > 0 else 0
+        try:
+            ev.budget_pct   = ev.budget.usage_percentage
+            ev.budget_used  = float(ev.budget.total_spent)
+            ev.budget_total = float(ev.budget.total_budget)
+        except Exception:
+            ev.budget_pct   = 0
+            ev.budget_used  = 0.0
+            ev.budget_total = 0.0
+
     # Todas las tareas pendientes / en progreso con fecha límite
     all_tasks = Task.objects.filter(
         event__owner=request.user,
         due_date__isnull=False,
     ).select_related('event').order_by('due_date')
- 
+
     # Próximos 5 eventos para el panel lateral
     upcoming_events = Event.objects.filter(
         owner=request.user,
         start_date__date__gte=today,
         status__in=['active', 'draft'],
     ).order_by('start_date')[:5]
- 
+
     context = {
         'all_events':      all_events,
         'all_tasks':       all_tasks,

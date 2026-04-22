@@ -19,53 +19,58 @@
 {% endblock %}
 
 {% block content %}
-<div class="p-8 md:p-10 animate-fade-in">
+<div class="p-6 md:p-8 animate-fade-in">
 
-  <!-- Header del evento -->
-  <div class="bg-gradient-to-r from-teal-500 to-cyan-600 rounded-3xl p-8 text-white shadow-lg mb-8 relative overflow-hidden">
-    <div class="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+  <!-- Header del evento — compacto, información densa -->
+  <div class="bg-gradient-to-r from-teal-600 to-cyan-700 rounded-2xl p-6 text-white shadow-lg mb-6 relative overflow-hidden">
+    <div class="absolute right-0 top-0 w-48 h-48 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl pointer-events-none"></div>
     <div class="relative z-10">
-      <!-- Badges -->
-      <div class="flex items-center gap-3 mb-4">
-        {% if event.template %}
-        <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
-          {{ event.template.get_category_display }}
-        </span>
-        {% endif %}
-        <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
-          {{ event.get_status_display }}
-        </span>
+
+      <!-- Badges + responsable -->
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          {% if event.template %}
+          <span class="bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide">{{ event.template.get_category_display }}</span>
+          {% endif %}
+          <span class="bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide">{{ event.get_status_display }}</span>
+        </div>
+        <!-- Responsable inline — no necesita card propia -->
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-full bg-white/30 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {{ event.owner.username|first|upper }}
+          </div>
+          <span class="text-xs text-white/80">{{ event.owner.get_full_name|default:event.owner.username }}</span>
+        </div>
       </div>
 
-      <h1 class="text-4xl font-bold mb-2">{{ event.name }}</h1>
+      <h1 class="text-3xl font-bold mb-2 leading-tight">{{ event.name }}</h1>
 
       {% if event.location %}
-      <p class="opacity-90 flex items-center gap-2 mb-4">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <p class="opacity-80 flex items-center gap-1.5 text-sm mb-3">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         {{ event.location }}
       </p>
       {% endif %}
 
-      <div class="flex items-center gap-6 mt-4 flex-wrap">
+      <!-- Fechas + días restantes en línea -->
+      <div class="flex items-center gap-4 flex-wrap mb-4">
         {% if event.start_date %}
         <div>
-          <p class="text-sm opacity-70">Fecha de inicio</p>
-          <p class="font-semibold text-lg">{{ event.start_date|date:"d M Y" }}</p>
+          <p class="text-xs opacity-75">Inicio</p>
+          <p class="font-semibold text-sm">{{ event.start_date|date:"d M Y" }}</p>
         </div>
         {% endif %}
         {% if event.end_date %}
         <div>
-          <p class="text-sm opacity-70">Fecha de fin</p>
-          <p class="font-semibold text-lg">{{ event.end_date|date:"d M Y" }}</p>
+          <p class="text-xs opacity-75">Fin</p>
+          <p class="font-semibold text-sm">{{ event.end_date|date:"d M Y" }}</p>
         </div>
         {% endif %}
         {% if days_until is not None %}
-        <div>
-          <p class="text-sm opacity-70">Tiempo restante</p>
-          <p class="font-semibold text-lg bg-white/20 px-3 rounded-lg">
-            {% if days_until == 0 %}Hoy
-            {% elif days_until < 0 %}Finalizado
-            {% else %}{{ days_until }} día{{ days_until|pluralize }}{% endif %}
+        <div class="ml-auto text-right">
+          <p class="text-xs opacity-75">Tiempo restante</p>
+          <p class="font-bold text-lg bg-white/20 px-3 py-0.5 rounded-lg inline-block">
+            {% if days_until == 0 %}Hoy{% elif days_until < 0 %}Finalizado{% else %}{{ days_until }} día{{ days_until|pluralize }}{% endif %}
           </p>
         </div>
         {% endif %}
@@ -73,121 +78,133 @@
 
       <!-- Barra de progreso -->
       {% if task_progress is not None %}
-      <div class="mt-6">
-        <div class="flex justify-between text-sm mb-2">
+      <div>
+        <div class="flex justify-between text-xs mb-1.5">
           <span class="opacity-80">Progreso de tareas</span>
           <span class="font-bold">{{ task_progress }}%</span>
         </div>
-        <div class="w-full bg-white/20 rounded-full h-2.5">
-          <div class="bg-white h-2.5 rounded-full transition-all" style="width: {{ task_progress }}%"></div>
+        <div class="w-full bg-white/20 rounded-full h-2">
+          <div class="bg-white h-2 rounded-full transition-all" style="width: {{ task_progress }}%"></div>
         </div>
       </div>
       {% endif %}
 
-      <!-- Indicadores del engine -->
+      <!-- Engine indicators — compactos -->
       {% if engine_score %}
-      <div class="flex items-center gap-3 mt-4 flex-wrap">
-        <div class="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
-          <span class="text-xs text-white/70 font-medium">Salud</span>
-          <span class="text-lg font-bold text-white">{{ engine_score.health_score }}/100</span>
-          <span class="text-xs px-2 py-0.5 rounded-full font-bold
-            {% if engine_score.health_label == 'critical' %}bg-red-500/30 text-red-200
-            {% elif engine_score.health_label == 'at_risk' %}bg-amber-500/30 text-amber-200
-            {% elif engine_score.health_label == 'good' %}bg-white/20 text-white
-            {% else %}bg-green-500/30 text-green-200{% endif %}">
-            {{ engine_score.health_label|capfirst }}
+      <div class="flex items-center gap-2 mt-3 flex-wrap">
+        <div class="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5">
+          <span class="text-xs text-white/85">Salud</span>
+          <span class="text-sm font-bold">{{ engine_score.health_score }}/100</span>
+          <span class="text-xs px-1.5 py-0.5 rounded-full font-bold
+            {% if engine_score.health_score == 100 %}bg-teal-500/30 text-teal-100
+            {% elif engine_score.health_score >= 80 %}bg-green-500/30 text-green-200
+            {% elif engine_score.health_score >= 50 %}bg-white/20 text-white
+            {% elif engine_score.health_score > 0 %}bg-amber-500/30 text-amber-200
+            {% else %}bg-red-500/30 text-red-200{% endif %}">
+            {% if engine_score.health_score == 100 %}<i data-lucide="award" class="w-3 h-3 inline-block mr-0.5"></i>Perfecto{% elif engine_score.health_score >= 80 %}Excelente{% elif engine_score.health_score >= 50 %}Bueno{% elif engine_score.health_score > 0 %}En riesgo{% else %}Crítico{% endif %}
           </span>
         </div>
-        <div class="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
-          <span class="text-xs text-white/70 font-medium">Riesgo</span>
-          <span class="text-xs font-bold px-2 py-0.5 rounded-full
+        <div class="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5">
+          <span class="text-xs text-white/85">Riesgo</span>
+          <span class="text-xs font-bold px-1.5 py-0.5 rounded-full
             {% if engine_score.risk_label == 'critical' %}bg-red-500/30 text-red-200
             {% elif engine_score.risk_label == 'high' %}bg-amber-500/30 text-amber-200
             {% elif engine_score.risk_label == 'medium' %}bg-yellow-500/30 text-yellow-200
             {% else %}bg-white/20 text-white{% endif %}">
-            {{ engine_score.risk_label|capfirst }}
+            {% if engine_score.risk_label == 'critical' %}Crítico{% elif engine_score.risk_label == 'high' %}Alto{% elif engine_score.risk_label == 'medium' %}Medio{% else %}Bajo{% endif %}
           </span>
         </div>
-        <div class="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
-          <span class="text-xs text-white/70 font-medium">Momentum</span>
-          <span class="text-xs font-bold text-white">{{ engine_score.momentum_label|capfirst }}</span>
+        <div class="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5">
+          <span class="text-xs text-white/85">Momentum</span>
+          <span class="text-xs font-bold text-white">{% if engine_score.momentum_label == 'accelerating' %}Acelerando{% elif engine_score.momentum_label == 'stalled' %}Estancado{% elif engine_score.momentum_label == 'slowing' %}Desacelerando{% else %}Estable{% endif %}</span>
         </div>
       </div>
       {% endif %}
+
     </div>
   </div>
 
   <!-- Contenido principal -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
     <!-- Columna izquierda: módulos -->
-    <div class="lg:col-span-2 space-y-6">
+    <div class="lg:col-span-2 space-y-5">
 
-      <!-- Descripción -->
+      <!-- Descripción — peso terciario si existe -->
       {% if event.description %}
-      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <h3 class="font-bold text-lg mb-3 text-gray-800 dark:text-white">Descripción</h3>
-        <p class="text-gray-600 dark:text-gray-300 leading-relaxed">{{ event.description }}</p>
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Descripción</h3>
+        <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{{ event.description }}</p>
       </div>
       {% endif %}
 
-      <!-- Módulo: Tareas -->
+      <!-- Módulo: Tareas — módulo primario -->
       {% if 'tasks' in active_modules %}
-      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-lg text-gray-800 dark:text-white">
-            <svg class="w-5 h-5 inline mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
+            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
             Tareas
           </h3>
-          <a href="{% url 'modules:task_list' event.pk %}" class="text-sm text-teal-500 font-medium hover:underline">Gestionar todas →</a>
+          <a href="{% url 'modules:task_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
         </div>
-        <div class="space-y-3">
+        <div class="space-y-2 mb-4">
           {% for task in tasks_preview %}
-          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border-l-4
-            {% if task.priority == 'high' %}border-red-500{% elif task.priority == 'medium' %}border-yellow-500{% else %}border-green-500{% endif %}">
-            <span class="text-sm {% if task.status == 'done' %}text-gray-400 line-through{% else %}text-gray-800 dark:text-white{% endif %}">{{ task.title }}</span>
-            <span class="ml-auto text-xs px-2 py-0.5 rounded
-              {% if task.status == 'done' %}bg-green-100 text-green-700{% elif task.status == 'in_progress' %}bg-blue-100 text-blue-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+          <div class="flex items-center gap-3 p-3 rounded-xl border-l-4
+            {% if task.priority == 'high' %}border-red-400 bg-red-500/5{% elif task.priority == 'medium' %}border-yellow-400 bg-yellow-500/5{% else %}border-green-400 bg-green-500/5{% endif %}
+            {% if task.status == 'done' %}opacity-50{% endif %}">
+            <span class="flex-1 text-sm {% if task.status == 'done' %}text-gray-400 line-through{% else %}text-gray-800 dark:text-white{% endif %}">{{ task.title }}</span>
+            <span class="text-xs px-2 py-0.5 rounded font-medium
+              {% if task.status == 'done' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300
+              {% elif task.status == 'in_progress' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300
+              {% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% endif %}">
               {{ task.get_status_display }}
             </span>
           </div>
           {% empty %}
-          <p class="text-gray-400 text-sm text-center py-4">Sin tareas aún.
-            <a href="{% url 'modules:task_create' event.pk %}" class="text-teal-500 hover:underline">Crear primera</a>
-          </p>
+          <p class="text-gray-400 text-sm text-center py-3">Sin tareas aún.</p>
           {% endfor %}
         </div>
-        <a href="{% url 'modules:task_create' event.pk %}" class="mt-4 flex items-center gap-2 text-sm text-teal-600 dark:text-teal-400 hover:text-teal-700 font-medium">
+        <!-- CTA primario del módulo -->
+        <button type="button" onclick="openAside('_tplTaskCreate', 'Nueva tarea')"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold rounded-xl transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           Nueva tarea
-        </a>
+        </button>
       </div>
       {% endif %}
 
       <!-- Módulo: Checklist -->
       {% if 'checklist' in active_modules %}
-      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-lg text-gray-800 dark:text-white">
-            <svg class="w-5 h-5 inline mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             Checklists
           </h3>
-          <a href="{% url 'modules:checklist_list' event.pk %}" class="text-sm text-teal-500 font-medium hover:underline">Ver todas →</a>
+          <div class="flex items-center gap-3">
+            <button type="button" onclick="openAside('_tplChecklistCreate', 'Nueva checklist')"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500/90 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Nueva
+            </button>
+            <a href="{% url 'modules:checklist_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
+          </div>
         </div>
         <div class="space-y-3">
           {% for checklist in checklists_preview %}
-          <div class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-            <div class="flex justify-between items-center mb-1">
+          <div class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+            <div class="flex justify-between items-center mb-1.5">
               <span class="text-sm font-medium text-gray-800 dark:text-white">{{ checklist.title }}</span>
-              <span class="text-xs text-gray-500">{{ checklist.progress }}%</span>
+              <span class="text-xs font-bold text-gray-500">{{ checklist.progress }}%</span>
             </div>
-            <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
-              <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ checklist.progress }}%"></div>
+            <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div class="bg-teal-400 h-1.5 rounded-full transition-all" style="width: {{ checklist.progress }}%"></div>
             </div>
           </div>
           {% empty %}
-          <p class="text-gray-400 text-sm text-center py-4">Sin checklists.
-            <a href="{% url 'modules:checklist_create' event.pk %}" class="text-teal-500 hover:underline">Crear una</a>
+          <p class="text-gray-400 text-sm text-center py-3">Sin checklists.
+            <button type="button" onclick="openAside('_tplChecklistCreate', 'Nueva checklist')" class="text-teal-500 hover:underline">Crear una</button>
           </p>
           {% endfor %}
         </div>
@@ -196,27 +213,27 @@
 
       <!-- Módulo: Archivos -->
       {% if 'files' in active_modules %}
-      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-lg text-gray-800 dark:text-white">
-            <svg class="w-5 h-5 inline mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
+            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             Archivos
           </h3>
-          <a href="{% url 'modules:file_list' event.pk %}" class="text-sm text-teal-500 font-medium hover:underline">Ver todos →</a>
+          <a href="{% url 'modules:file_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todos →</a>
         </div>
         {% if files_preview %}
         <div class="space-y-2">
           {% for file in files_preview %}
-          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-            <div class="w-8 h-8 rounded bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+            <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
               <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
             </div>
-            <span class="text-sm text-gray-700 dark:text-gray-300">{{ file.name }}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ file.name }}</span>
           </div>
           {% endfor %}
         </div>
         {% else %}
-        <p class="text-gray-400 text-sm text-center py-4">Sin archivos.
+        <p class="text-gray-400 text-sm text-center py-3">Sin archivos.
           <a href="{% url 'modules:file_create' event.pk %}" class="text-teal-500 hover:underline">Agregar uno</a>
         </p>
         {% endif %}
@@ -225,19 +242,19 @@
 
     </div>
 
-    <!-- Columna derecha -->
-    <div class="space-y-6">
+    <!-- Columna derecha — solo datos únicos: asistentes + presupuesto -->
+    <div class="space-y-5">
 
       <!-- Asistentes -->
       {% if 'attendees' in active_modules %}
-      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-sm text-gray-500 uppercase">Asistentes</h3>
-          <a href="{% url 'modules:attendee_list' event.pk %}" class="text-xs text-teal-500 hover:underline">Ver todos →</a>
+          <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Asistentes</h3>
+          <a href="{% url 'modules:attendee_list' event.pk %}" class="text-xs text-teal-500 hover:underline font-semibold">Ver todos →</a>
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 mb-3">
           {% for attendee in attendees_preview %}
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-xs font-bold" title="{{ attendee.name }}">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-xs font-bold" title="{{ attendee.name }}">
             {{ attendee.name|first|upper }}
           </div>
           {% empty %}
@@ -247,8 +264,8 @@
           {% endfor %}
         </div>
         {% if attendees_preview %}
-        <a href="{% url 'modules:attendee_create' event.pk %}" class="mt-4 flex items-center gap-2 text-sm text-teal-600 dark:text-teal-400 hover:text-teal-700 font-medium">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <a href="{% url 'modules:attendee_create' event.pk %}" class="inline-flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-semibold hover:underline">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           Agregar asistente
         </a>
         {% endif %}
@@ -259,93 +276,113 @@
       {% if event.budget %}
       <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-center mb-3">
-          <h3 class="font-bold text-sm text-gray-500 uppercase">Presupuesto</h3>
-          <a href="{% url 'modules:budget_detail' event.pk %}"
-             class="text-xs text-teal-500 hover:underline">Ver detalle →</a>
+          <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Presupuesto</h3>
+          <a href="{% url 'modules:budget_detail' event.pk %}" class="text-xs text-teal-500 hover:underline font-semibold">Ver detalle →</a>
         </div>
         <div class="grid grid-cols-3 gap-2 mb-3">
           <div class="text-center">
-            <p class="text-xs text-gray-400">Planificado</p>
+            <p class="text-xs text-gray-400 mb-0.5">Planificado</p>
             <p class="font-bold text-gray-800 dark:text-white text-sm">{{ event.budget.total_budget|floatformat:0 }}</p>
           </div>
           <div class="text-center">
-            <p class="text-xs text-gray-400">Gastado</p>
-            <p class="font-bold text-sm {% if event.budget.usage_percentage >= 80 %}text-red-500{% else %}text-gray-800 dark:text-white{% endif %}">
-              {{ event.budget.total_spent|floatformat:0 }}
-            </p>
+            <p class="text-xs text-gray-400 mb-0.5">Gastado</p>
+            <p class="font-bold text-sm {% if event.budget.usage_percentage >= 80 %}text-red-500{% else %}text-gray-800 dark:text-white{% endif %}">{{ event.budget.total_spent|floatformat:0 }}</p>
           </div>
           <div class="text-center">
-            <p class="text-xs text-gray-400">Restante</p>
-            <p class="font-bold text-sm {% if event.budget.remaining < 0 %}text-red-500{% else %}text-teal-500{% endif %}">
-              {{ event.budget.remaining|floatformat:0 }}
-            </p>
+            <p class="text-xs text-gray-400 mb-0.5">Restante</p>
+            <p class="font-bold text-sm {% if event.budget.remaining < 0 %}text-red-500{% else %}text-teal-500{% endif %}">{{ event.budget.remaining|floatformat:0 }}</p>
           </div>
         </div>
-        <div class="w-full bg-gray-200/50 dark:bg-gray-700/50 rounded-full h-2 overflow-hidden">
-          <div class="h-2 rounded-full {% if event.budget.usage_percentage >= 80 %}bg-red-500{% else %}bg-gradient-to-r from-teal-400 to-cyan-500{% endif %}"
+        <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div class="h-1.5 rounded-full {% if event.budget.usage_percentage >= 80 %}bg-red-500{% else %}bg-teal-400{% endif %}"
                style="width: {{ event.budget.usage_percentage|default:0 }}%"></div>
         </div>
-        <p class="text-xs text-gray-400 mt-1 text-right">{{ event.budget.currency }} · {{ event.budget.usage_percentage }}% usado</p>
+        <p class="text-xs text-gray-400 mt-1.5 text-right">{{ event.budget.currency }} · {{ event.budget.usage_percentage }}% usado</p>
       </div>
       {% else %}
-      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+      <div class="glass p-5 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
         <p class="text-xs text-gray-400 mb-2">Sin presupuesto definido</p>
-        <a href="{% url 'modules:budget_detail' event.pk %}"
-           class="text-xs font-bold text-teal-500 hover:underline">
-          Crear presupuesto →
-        </a>
+        <a href="{% url 'modules:budget_detail' event.pk %}" class="text-xs font-bold text-teal-500 hover:underline">Crear presupuesto →</a>
       </div>
       {% endif %}
-
-      <!-- Propietario -->
-      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <h3 class="font-bold text-sm text-gray-500 uppercase mb-4">Responsable</h3>
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">
-            {{ event.owner.username|first|upper }}
-          </div>
-          <div>
-            <p class="font-medium text-gray-800 dark:text-white text-sm">{{ event.owner.get_full_name|default:event.owner.username }}</p>
-            <p class="text-xs text-gray-500">Organizador</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Acciones rápidas -->
-      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <h3 class="font-bold text-sm text-gray-500 uppercase mb-4">Acciones</h3>
-        <div class="space-y-2">
-          {% if 'tasks' in active_modules %}
-          <a href="{% url 'modules:task_list' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
-            <svg class="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-            Ver tareas
-          </a>
-          {% endif %}
-          {% if 'attendees' in active_modules %}
-          <a href="{% url 'modules:attendee_list' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
-            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            Ver asistentes
-          </a>
-          {% endif %}
-          {% if 'checklist' in active_modules %}
-          <a href="{% url 'modules:checklist_list' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
-            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            Ver checklists
-          </a>
-          {% endif %}
-          <a href="{% url 'modules:budget_detail' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
-            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            Presupuesto
-          </a>
-          <a href="{% url 'events:event_edit' event.pk %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors text-sm text-gray-700 dark:text-gray-300">
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-            Editar evento
-          </a>
-        </div>
-      </div>
 
     </div>
   </div>
 
 </div>
+
+<!-- ══ ASIDE TEMPLATES (hidden, cloned by openAside) ══════════════════════ -->
+<div id="_tplTaskCreate" class="hidden">
+  <form method="post" action="{% url 'modules:task_create' event.pk %}">
+    {% csrf_token %}
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Título *</label>
+        <input type="text" name="title" required placeholder="¿Qué hay que hacer?"
+               style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;transition:border-color .2s"
+               onfocus="this.style.borderColor='rgba(20,184,166,.5)'"
+               onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Descripción</label>
+        <textarea name="description" rows="3" placeholder="Detalles opcionales…"
+                  style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;resize:none;transition:border-color .2s"
+                  onfocus="this.style.borderColor='rgba(20,184,166,.5)'"
+                  onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Prioridad</label>
+          <select name="priority"
+                  style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none">
+            <option value="low">Baja</option>
+            <option value="medium" selected>Media</option>
+            <option value="high">Alta</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Estado</label>
+          <select name="status"
+                  style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none">
+            <option value="pending" selected>Pendiente</option>
+            <option value="in_progress">En progreso</option>
+            <option value="done">Completada</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Fecha límite</label>
+        <input type="date" name="due_date"
+               style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;transition:border-color .2s"
+               onfocus="this.style.borderColor='rgba(20,184,166,.5)'"
+               onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <button type="submit"
+              style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#14b8a6,#06b6d4);color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(20,184,166,.3);transition:opacity .2s">
+        Crear tarea
+      </button>
+    </div>
+  </form>
+</div>
+
+<div id="_tplChecklistCreate" class="hidden">
+  <form method="post" action="{% url 'modules:checklist_create' event.pk %}">
+    {% csrf_token %}
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Título del checklist *</label>
+        <input type="text" name="title" required placeholder="Ej: Lista de materiales, Preparativos…"
+               style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;transition:border-color .2s"
+               onfocus="this.style.borderColor='rgba(59,130,246,.5)'"
+               onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <p style="font-size:12px;color:#6b7280">Podrás agregar ítems después de crear el checklist.</p>
+      <button type="submit"
+              style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,.3);transition:opacity .2s">
+        Crear checklist
+      </button>
+    </div>
+  </form>
+</div>
+
 {% endblock %}

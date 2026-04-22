@@ -4,408 +4,411 @@
 {% block page_title %}Panel Principal{% endblock %}
 
 {% block topbar_action %}
-<a href="{% url 'events:event_create' %}" class="glass px-6 py-3 rounded-xl font-semibold shadow-lg hover:bg-white/80 dark:hover:bg-gray-700 transition-all flex items-center gap-2 group text-gray-800 dark:text-white">
-  <svg class="w-5 h-5 group-hover:rotate-90 transition-transform text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+<a href="{% url 'events:event_create' %}" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all flex items-center gap-2 group text-sm">
+  <svg class="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
   Nuevo evento
 </a>
 {% endblock %}
 
+{% block extra_head %}
+<style>
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #5ECFBE40 transparent;
+  }
+  .scroll-thin::-webkit-scrollbar { width: 4px; }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background-color: #5ECFBE60;
+    border-radius: 999px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb:hover { background-color: #5ECFBE; }
+
+  .card-hover {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .card-hover:hover {
+    transform: scale(1.01);
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="p-6 md:p-8">
+<div class="h-full flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-950">
 
-  <!-- Resumen ejecutivo: solo si hay riesgo -->
-  {% if engine_summary.needs_attention %}
-  <div class="mb-6 glass rounded-2xl p-5 border-l-4 border-red-500
-              flex items-center justify-between gap-4">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
-        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667
-                   1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464
-                   0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-        </svg>
-      </div>
-      <div>
-        <p class="font-bold text-gray-800 dark:text-white text-sm">
-          {% if engine_summary.critical_count > 0 %}
-            {{ engine_summary.critical_count }} decisión{% if engine_summary.critical_count > 1 %}es{% endif %} crítica{% if engine_summary.critical_count > 1 %}s{% endif %} requiere{% if engine_summary.critical_count > 1 %}n{% endif %} atención inmediata
-          {% else %}
-            {{ engine_summary.events_at_risk }} evento{% if engine_summary.events_at_risk > 1 %}s{% endif %} en riesgo
-          {% endif %}
-        </p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-          {{ engine_summary.events_on_track }} evento{% if engine_summary.events_on_track != 1 %}s{% endif %} van bien
-        </p>
-      </div>
-    </div>
-    <a href="#decisions-panel"
-       class="text-xs font-bold text-red-500 hover:underline flex-shrink-0">
-      Ver decisiones ↓
-    </a>
-  </div>
-  {% endif %}
-
-  <!-- Saludo -->
-  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-    <div>
-      <h3 class="text-3xl font-bold text-gray-800 dark:text-white">
-        Hola, <span class="bg-gradient-to-r from-teal-400 to-cyan-500 bg-clip-text text-transparent">{{ user.get_full_name|default:user.username }}</span>
-      </h3>
-      <p class="text-gray-600 dark:text-gray-300 mt-1">Aquí tienes lo que está pasando hoy.</p>
-    </div>
-  </div>
-
-  <!-- Panel de decisiones / alertas -->
-  <div id="decisions-panel" class="mb-8">
-    {% if alerts %}
-    <div class="flex items-center justify-between mb-4">
-      <h4 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-        Requiere atención
-      </h4>
-      <span class="text-xs text-gray-400">{{ alerts|length }} elemento{% if alerts|length != 1 %}s{% endif %}</span>
-    </div>
-    <div class="space-y-3">
-      {% for alert in alerts %}
-      <div class="glass rounded-2xl p-4 border-l-4 flex items-start justify-between gap-4
-        {% if alert.severity == 'critical' %}border-l-red-500
-        {% elif alert.severity == 'warning' %}border-l-amber-500
-        {% else %}border-l-teal-500{% endif %}">
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="w-2 h-2 rounded-full flex-shrink-0
-              {% if alert.severity == 'critical' %}bg-red-500 animate-pulse
-              {% elif alert.severity == 'warning' %}bg-amber-500
-              {% else %}bg-teal-500{% endif %}">
-            </span>
-            <p class="font-semibold text-sm text-gray-800 dark:text-white truncate">
-              {{ alert.title }}
-            </p>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 ml-4 line-clamp-2">
-            {{ alert.message }}
+  <!-- ── ALERTAS ── -->
+  {% if alerts %}
+  <div class="shrink-0 px-5 pt-3 space-y-1.5">
+    {% for alert in alerts %}
+    <div class="rounded-xl px-4 py-2.5 flex items-center justify-between gap-3
+      {% if alert.severity == 'critical' %}bg-red-500/10 border border-red-500/40
+      {% elif alert.severity == 'warning' %}bg-amber-500/10 border border-amber-500/40
+      {% else %}bg-teal-500/10 border border-teal-500/30{% endif %}">
+      <div class="flex items-center gap-2.5 flex-1 min-w-0">
+        <span class="w-2 h-2 rounded-full flex-shrink-0
+          {% if alert.severity == 'critical' %}bg-red-500 animate-pulse
+          {% elif alert.severity == 'warning' %}bg-amber-500
+          {% else %}bg-teal-500{% endif %}"></span>
+        <div class="min-w-0">
+          <p class="font-bold text-xs
+            {% if alert.severity == 'critical' %}text-red-700 dark:text-red-300
+            {% elif alert.severity == 'warning' %}text-amber-700 dark:text-amber-300
+            {% else %}text-teal-700 dark:text-teal-300{% endif %}">
+            {{ alert.title }}
           </p>
-          <div class="flex items-center gap-3 ml-4 flex-wrap">
-            <span class="text-xs text-gray-400">{{ alert.event.name }}</span>
-            {% if alert.action_url %}
-            <a href="{% url 'events:alert_action' alert.pk %}"
-               class="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline">
-              {{ alert.action_label|default:"Ver ahora" }} →
-            </a>
-            {% endif %}
-          </div>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">{{ alert.event.name }} · {{ alert.message|truncatechars:60 }}</p>
         </div>
-        <form method="post"
-              action="{% url 'events:alert_dismiss' alert.pk %}"
-              class="flex-shrink-0">
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        {% if alert.action_url %}
+        <a href="{% url 'events:alert_action' alert.pk %}"
+           class="text-xs font-bold px-3 py-1 rounded-lg transition-colors
+           {% if alert.severity == 'critical' %}bg-red-500 text-white hover:bg-red-600
+           {% elif alert.severity == 'warning' %}bg-amber-500 text-white hover:bg-amber-600
+           {% else %}bg-teal-500 text-white hover:bg-teal-600{% endif %}">
+          {{ alert.action_label|default:"Resolver" }}
+        </a>
+        {% endif %}
+        <form method="post" action="{% url 'events:alert_dismiss' alert.pk %}">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.path }}">
-          <button type="submit"
-                  class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1"
-                  title="Descartar">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
+          <button type="submit" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1" title="Descartar">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </form>
       </div>
-      {% endfor %}
     </div>
-    {% endif %}
-  </div>
-
-  <!-- Tarjetas de stats -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-    <div class="glass p-4 rounded-2xl flex items-center gap-4 hover:-translate-y-1 transition-transform">
-      <div class="w-12 h-12 rounded-xl bg-teal-500/20 text-teal-600 flex items-center justify-center">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-      </div>
-      <div>
-        <p class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Tareas Hoy</p>
-        <h4 class="text-2xl font-bold text-gray-800 dark:text-white">{{ tasks_today|default:"0" }}</h4>
-      </div>
-    </div>
-    <div class="glass p-4 rounded-2xl flex items-center gap-4 hover:-translate-y-1 transition-transform">
-      <div class="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-600 flex items-center justify-center">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      </div>
-      <div>
-        <p class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Eventos Activos</p>
-        <h4 class="text-2xl font-bold text-gray-800 dark:text-white">{{ active_events_count|default:"0" }}</h4>
-      </div>
-    </div>
-    <div class="glass p-4 rounded-2xl flex items-center gap-4 hover:-translate-y-1 transition-transform">
-      <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-600 flex items-center justify-center">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-      </div>
-      <div>
-        <p class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Total Proyectos</p>
-        <h4 class="text-2xl font-bold text-gray-800 dark:text-white">{{ total_events|default:"0" }}</h4>
-      </div>
-    </div>
-    <div class="glass p-4 rounded-2xl flex items-center gap-4 hover:-translate-y-1 transition-transform">
-      <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-600 flex items-center justify-center">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-      </div>
-      <div>
-        <p class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Pendientes</p>
-        <h4 class="text-2xl font-bold text-gray-800 dark:text-white">{{ pending_tasks|default:"0" }}</h4>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mini-panel de health scores por evento -->
-  {% if engine_output.event_scores %}
-  <div class="mb-8">
-    <h4 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-4">
-      Estado de proyectos
-    </h4>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {% for event in recent_events %}
-      {% with score=engine_output.event_scores|get_item:event.pk %}
-      {% if score %}
-      <a href="{% url 'events:event_detail' event.pk %}"
-         class="glass p-4 rounded-xl flex items-center gap-3 hover:-translate-y-0.5 transition-transform group">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm
-          {% if score.health_label == 'critical' %}bg-red-500/20 text-red-600 dark:text-red-400
-          {% elif score.health_label == 'at_risk' %}bg-amber-500/20 text-amber-600 dark:text-amber-400
-          {% elif score.health_label == 'good' %}bg-teal-500/20 text-teal-600 dark:text-teal-400
-          {% else %}bg-green-500/20 text-green-600 dark:text-green-400{% endif %}">
-          {{ score.health_score }}
-        </div>
-        <div class="min-w-0 flex-1">
-          <p class="text-sm font-semibold text-gray-800 dark:text-white truncate group-hover:text-teal-500 transition-colors">
-            {{ event.name }}
-          </p>
-          <p class="text-xs text-gray-400 mt-0.5">
-            {{ score.momentum_label|capfirst }}
-            <span class="mx-1">·</span>
-            <span class="{% if score.risk_label == 'critical' %}text-red-400{% elif score.risk_label == 'high' %}text-amber-400{% else %}text-gray-400{% endif %}">
-              {{ score.health_label|capfirst }}
-            </span>
-          </p>
-        </div>
-      </a>
-      {% endif %}
-      {% endwith %}
-      {% endfor %}
-    </div>
+    {% endfor %}
   </div>
   {% endif %}
 
-  <!-- Grid principal: Destacado + Agenda -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-8">
-
-    <!-- Columna izquierda (2/3) -->
-    <div class="lg:col-span-2 space-y-8">
-
-      <!-- Evento destacado -->
-      <div class="space-y-4">
-        <div class="flex justify-between items-center">
-          <h4 class="text-xl font-bold text-gray-700 dark:text-gray-200">Destacado</h4>
-          <a href="{% url 'events:event_list' %}" class="text-sm text-teal-500 hover:text-teal-600 font-medium">Ver todos →</a>
-        </div>
-
-        {% if featured_event %}
-        <a href="{% url 'events:event_detail' featured_event.pk %}"
-           class="glass cursor-pointer rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg hover:border-teal-500/30 transition-all group relative overflow-hidden block">
-          <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-teal-400/20 to-cyan-500/20 rounded-bl-full -mr-16 -mt-16 transition-transform group-hover:scale-110 duration-500"></div>
-          <div class="relative z-10">
-            <div class="flex justify-between items-start mb-6">
-              <div>
-                {% if featured_event.template %}
-                <span class="bg-teal-500/20 text-teal-700 dark:text-teal-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide border border-teal-500/30">
-                  {{ featured_event.template.get_category_display }}
-                </span>
-                {% endif %}
-                <h2 class="text-3xl font-bold text-gray-800 dark:text-white mt-3 group-hover:text-teal-500 transition-colors">{{ featured_event.name }}</h2>
-                {% if featured_event.location %}
-                <p class="text-gray-500 dark:text-gray-400 text-sm mt-2 flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                  {{ featured_event.location }}
-                </p>
-                {% endif %}
-              </div>
-              {% if featured_event.days_until is not None %}
-              <div class="text-right bg-gray-50/50 dark:bg-gray-700/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-600">
-                <p class="text-4xl font-bold text-gray-800 dark:text-white font-mono">{{ featured_event.days_until|stringformat:"02d" }}</p>
-                <p class="text-xs text-gray-500 uppercase font-semibold tracking-wider mt-1">Días</p>
-              </div>
-              {% endif %}
-            </div>
-            <div class="mt-8">
-              <div class="flex justify-between text-sm mb-2">
-                <span class="text-teal-600 dark:text-teal-400 font-medium">Progreso</span>
-                <span class="text-gray-400 font-medium">{{ featured_event.task_progress }}%</span>
-              </div>
-              <div class="w-full bg-gray-200/50 dark:bg-gray-700/50 rounded-full h-3 overflow-hidden">
-                <div class="bg-gradient-to-r from-teal-400 to-cyan-500 h-3 rounded-full shadow-[0_0_10px_rgba(45,212,191,0.5)]"
-                     style="width: {{ featured_event.task_progress }}%"></div>
-              </div>
-            </div>
-          </div>
-        </a>
-        {% else %}
-        <div class="glass rounded-3xl p-12 text-center border border-gray-100 dark:border-gray-700">
-          <p class="text-gray-500 dark:text-gray-400 mb-4">No hay eventos activos</p>
-          <a href="{% url 'events:event_create' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Crear primer evento
-          </a>
-        </div>
-        {% endif %}
+  <!-- ── HEADER DE MÉTRICAS (fijo, ~72px) ── -->
+  <div class="shrink-0 px-5 py-3 border-b border-gray-200/40 dark:border-gray-700/30"
+       style="background: linear-gradient(to right, rgba(94,207,190,0.06), rgba(34,211,238,0.04));">
+    <div class="flex items-center justify-between gap-4">
+      <!-- Saludo -->
+      <div>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Hola, <span class="font-semibold text-gray-700 dark:text-gray-200">{{ user.get_full_name|default:user.username }}</span></p>
+        <p class="text-[11px] text-gray-400 dark:text-gray-500">Aquí tienes lo que está pasando hoy.</p>
       </div>
 
-      <!-- Actividad semanal -->
-      <div>
-        <h4 class="text-xl font-bold text-gray-700 dark:text-gray-200 mb-4">Actividad Semanal</h4>
-        <div class="glass p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <div class="flex items-end justify-between gap-2 h-48 w-full">
-            {% for label, count, pct in weekly_activity %}
-            <div class="w-full flex flex-col items-center gap-1 h-full justify-end relative">
-              {% if count > 0 %}
-              <span class="absolute -top-5 text-[10px] font-bold text-teal-600 dark:text-teal-400">{{ count }}</span>
-              {% endif %}
-              <div class="w-full rounded-t-lg transition-all duration-500 relative {% if label == today_label %}bg-teal-500 shadow-lg shadow-teal-500/30{% else %}bg-gray-200/70 dark:bg-gray-700/70 hover:bg-teal-400/30{% endif %}"
-                   style="height: {{ pct }}%;"></div>
-              <span class="absolute -bottom-6 text-[11px] {% if label == today_label %}font-bold text-teal-500{% else %}text-gray-400{% endif %}">{{ label }}</span>
+      <!-- Métricas — orden de prioridad: Pendientes > Tareas Hoy > Proyectos -->
+      <div class="flex items-center gap-3">
+
+        <!-- 1. Pendientes (máxima prioridad) -->
+        <div class="flex items-center gap-2 px-4 py-2 rounded-xl border
+          {% if pending_tasks > 0 %}bg-red-500/10 border-red-400/40{% else %}glass border-gray-200/50 dark:border-gray-700/40{% endif %}">
+          <svg class="w-4 h-4 {% if pending_tasks > 0 %}text-red-500{% else %}text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <div class="leading-none">
+            <p class="text-[10px] font-bold uppercase tracking-wider {% if pending_tasks > 0 %}text-red-500{% else %}text-gray-400{% endif %}">Pendientes</p>
+            <p class="text-xl font-bold {% if pending_tasks > 0 %}text-red-600 dark:text-red-400{% else %}text-gray-700 dark:text-white{% endif %}">{{ pending_tasks|default:"0" }}</p>
+          </div>
+          {% if pending_tasks > 0 %}
+          <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+          {% endif %}
+        </div>
+
+        <!-- 2. Tareas Hoy -->
+        <a href="{% url 'modules:task_overview' %}" class="flex items-center gap-2 px-4 py-2 rounded-xl glass border border-gray-200/50 dark:border-gray-700/40 hover:border-teal-500/40 transition-colors group">
+          <svg class="w-4 h-4 text-teal-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          <div class="leading-none">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Tareas hoy</p>
+            <p class="text-xl font-bold text-gray-700 dark:text-white">{{ tasks_today|default:"0" }}</p>
+          </div>
+        </a>
+
+        <!-- 3. Proyectos Activos -->
+        <a href="{% url 'events:event_list' %}" class="flex items-center gap-2 px-4 py-2 rounded-xl glass border border-gray-200/50 dark:border-gray-700/40 hover:border-teal-500/40 transition-colors group">
+          <svg class="w-4 h-4 text-teal-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <div class="leading-none">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Proyectos</p>
+            <p class="text-xl font-bold text-gray-700 dark:text-white">{{ active_events_count|default:"0" }}</p>
+          </div>
+        </a>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ GRID 12 COLUMNAS ══════════════════ -->
+  <div class="flex-1 grid grid-cols-12 overflow-hidden min-h-0">
+
+    <!-- ─── COL 1 (span-3): ACCIÓN AHORA ─── -->
+    <div class="col-span-3 flex flex-col border-r border-gray-200/50 dark:border-gray-700/30 bg-amber-50/60 dark:bg-amber-900/5 overflow-hidden">
+      <div class="shrink-0 px-4 py-3 border-b border-amber-200/50 dark:border-amber-800/20 flex items-center gap-2">
+        <span class="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+        <h4 class="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest">Acción Ahora</h4>
+      </div>
+      <div class="flex-1 overflow-y-auto scroll-thin p-4 space-y-3">
+        {% for task in urgent_tasks %}
+        <div class="glass p-3.5 rounded-xl border border-amber-400/40 bg-amber-500/5 card-hover">
+          <div class="flex items-start gap-2 mb-3">
+            <span class="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 flex-shrink-0 animate-pulse"></span>
+            <p class="text-xs font-semibold text-amber-900 dark:text-amber-100 leading-snug">{{ task.title }}</p>
+          </div>
+          {% if task.event %}
+          <p class="text-[10px] text-amber-600/70 dark:text-amber-400/60 mb-2.5 truncate">{{ task.event.name }}</p>
+          {% endif %}
+          <form method="post" action="{% url 'modules:task_toggle_done' task.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="w-full text-xs py-1 px-3 border border-teal-500/40 text-teal-400 bg-transparent hover:bg-teal-500/10 rounded-full transition-colors">
+              ✓ Marcar como hecha
+            </button>
+          </form>
+        </div>
+        {% empty %}
+        <div class="flex flex-col items-center justify-center h-full py-12 gap-3 text-center">
+          <svg class="w-10 h-10 text-teal-400/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-xs text-gray-400 dark:text-gray-500 italic">Todo en orden</p>
+          <p class="text-[10px] text-gray-300 dark:text-gray-600">Sin tareas urgentes</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ─── COL 2 (span-5): NÚCLEO OPERATIVO ─── -->
+    <div class="col-span-5 flex flex-col border-r border-gray-200/50 dark:border-gray-700/30 overflow-hidden">
+      <div class="flex-1 overflow-y-auto scroll-thin p-5 space-y-5">
+
+        <!-- Próximo Evento (destacado) -->
+        <div>
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Próximo evento</h4>
+            <a href="{% url 'events:event_list' %}" class="text-xs text-teal-500 hover:text-teal-600 font-medium">Ver todos →</a>
+          </div>
+
+          {% if featured_event %}
+          <div class="glass rounded-2xl p-5 border border-gray-100 dark:border-gray-700 relative overflow-hidden card-hover">
+            <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-teal-400/10 to-cyan-500/8 rounded-bl-full -mr-12 -mt-12 pointer-events-none"></div>
+            <div class="relative z-10">
+              <div class="flex justify-between items-start mb-3">
+                <div class="flex-1 min-w-0">
+                  {% if featured_event.template %}
+                  <span class="bg-teal-500/10 text-teal-700 dark:text-teal-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-teal-500/20">
+                    {{ featured_event.template.get_category_display }}
+                  </span>
+                  {% endif %}
+                  <h2 class="text-lg font-bold text-gray-800 dark:text-white mt-1.5 leading-tight">{{ featured_event.name }}</h2>
+                  {% if featured_event.location %}
+                  <p class="text-gray-500 dark:text-gray-400 text-xs mt-0.5 flex items-center gap-1">
+                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    {{ featured_event.location }}
+                  </p>
+                  {% endif %}
+                </div>
+                {% if featured_event.days_until is not None %}
+                <div class="text-right ml-3 flex-shrink-0 bg-gray-50/60 dark:bg-gray-700/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-600">
+                  <p class="text-3xl font-bold text-gray-800 dark:text-white font-mono leading-none">{{ featured_event.days_until|stringformat:"02d" }}</p>
+                  <p class="text-[9px] text-gray-400 uppercase font-semibold tracking-wider mt-0.5">días</p>
+                </div>
+                {% endif %}
+              </div>
+
+              <!-- Barra de progreso real -->
+              <div class="mb-4">
+                <div class="flex justify-between text-[10px] mb-1">
+                  <span class="text-gray-500 font-medium">Progreso de tareas</span>
+                  <span class="font-bold text-teal-600 dark:text-teal-400">{{ featured_event.task_progress }}%</span>
+                </div>
+                <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div class="bg-teal-400 h-1.5 rounded-full transition-all duration-700"
+                       style="width: {{ featured_event.task_progress }}%"></div>
+                </div>
+              </div>
+
+              <a href="{% url 'events:event_detail' featured_event.pk %}"
+                 class="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl text-xs transition-colors shadow-md shadow-teal-500/20">
+                Ir al evento
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+              </a>
+            </div>
+          </div>
+          {% else %}
+          <div class="glass rounded-2xl p-8 text-center border-2 border-dashed border-gray-200 dark:border-gray-700">
+            <p class="text-gray-400 dark:text-gray-500 mb-3 text-xs italic">Todo en orden — sin eventos activos</p>
+            <a href="{% url 'events:event_create' %}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl text-xs transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Crear primer evento
+            </a>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Estado de Proyectos -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Estado de proyectos</h4>
+            <a href="{% url 'events:event_list' %}" class="text-xs text-teal-500 hover:text-teal-600 font-medium">Ver todos →</a>
+          </div>
+          <div class="space-y-2">
+            {% for event in recent_events %}
+            {% with score=engine_output.event_scores|get_item:event.pk %}
+            {% if score %}
+            <a href="{% url 'events:event_detail' event.pk %}"
+               class="glass p-3 rounded-xl flex items-center gap-3 border border-transparent hover:border-teal-500/30 transition-all group card-hover">
+
+              <!-- Score badge con lógica de color y tooltip -->
+              <div class="relative group/score">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0
+                  {% if score.health_score == 100 %}bg-teal-500/20 text-teal-600 dark:text-teal-400 ring-1 ring-teal-500/30
+                  {% elif score.health_score >= 80 %}bg-green-500/15 text-green-600 dark:text-green-400
+                  {% elif score.health_score >= 50 %}bg-slate-500/20 text-slate-600 dark:text-slate-300
+                  {% elif score.health_score > 0 %}bg-amber-500/20 text-amber-600 dark:text-amber-400
+                  {% else %}bg-red-500/20 text-red-600 dark:text-red-400 ring-1 ring-red-500/30{% endif %}">
+                  {% if score.health_score == 100 %}<i data-lucide="award" class="w-4 h-4"></i>{% else %}{{ score.health_score }}{% endif %}
+                </div>
+                <!-- Tooltip -->
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-800 text-white text-[10px] rounded-lg opacity-0 group-hover/score:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
+                  Health score: {{ score.health_score }}/100
+                </div>
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-gray-800 dark:text-white truncate group-hover:text-teal-500 transition-colors">{{ event.name }}</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <div class="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
+                    <div class="h-1.5 rounded-full transition-all duration-500
+                      {% if score.health_score < 30 %}bg-red-500
+                      {% elif score.health_label == 'at_risk' %}bg-amber-400
+                      {% elif score.health_score == 100 %}bg-teal-400
+                      {% else %}bg-teal-400{% endif %}"
+                      style="width: {{ score.health_score }}%"></div>
+                  </div>
+                  <span class="text-[10px]
+                    {% if score.health_score == 100 %}text-teal-500 font-bold
+                    {% elif score.health_score >= 80 %}text-green-400 font-bold
+                    {% elif score.health_score >= 50 %}text-slate-400
+                    {% elif score.health_score > 0 %}text-amber-400
+                    {% else %}text-red-400 font-bold{% endif %}">
+                    {% if score.health_score == 100 %}Perfecto
+                    {% elif score.health_score >= 80 %}Excelente
+                    {% elif score.health_score >= 50 %}Bueno
+                    {% elif score.health_score > 0 %}En riesgo
+                    {% else %}Crítico{% endif %}
+                  </span>
+                </div>
+              </div>
+              <svg class="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            {% endif %}
+            {% endwith %}
+            {% empty %}
+            <div class="flex flex-col items-center justify-center py-8 gap-2 text-center">
+              <svg class="w-8 h-8 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              <p class="text-xs text-gray-400 dark:text-gray-500 italic">Todo en orden — sin proyectos activos</p>
+              <a href="{% url 'events:event_create' %}" class="text-xs font-bold text-teal-500 hover:underline">+ Crear evento</a>
             </div>
             {% endfor %}
           </div>
         </div>
-      </div>
 
+      </div>
     </div>
 
-    <!-- Columna derecha (1/3) -->
-    <div class="space-y-8">
+    <!-- ─── COL 3 (span-4): AGENDA Y CONTEXTO ─── -->
+    <div class="col-span-4 flex flex-col overflow-hidden">
 
-      <!-- Agenda: próximos eventos -->
-      <div>
-        <div class="flex justify-between items-center mb-4">
-          <h4 class="text-xl font-bold text-gray-700 dark:text-gray-200">Agenda</h4>
+      <!-- Sub-panel 1: Próximos Eventos (flex-1 con scroll) -->
+      <div class="flex-1 flex flex-col min-h-0 border-b border-gray-200/50 dark:border-gray-700/30 overflow-hidden">
+        <div class="shrink-0 px-4 py-3 border-b border-gray-100/50 dark:border-gray-700/20 flex items-center justify-between">
+          <h4 class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Próximos eventos</h4>
+          <a href="{% url 'events:event_list' %}" class="text-[10px] text-teal-500 hover:text-teal-600 font-medium">Ver todos →</a>
         </div>
-        <div class="space-y-3">
+        <div class="flex-1 overflow-y-auto scroll-thin p-3 space-y-2">
           {% for event in upcoming_events %}
           <a href="{% url 'events:event_detail' event.pk %}"
-             class="glass p-4 rounded-2xl flex items-center gap-4 hover:bg-white/80 dark:hover:bg-gray-700/50 transition-colors cursor-pointer group block">
-            <div class="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400 flex flex-col items-center justify-center font-bold text-xs border border-blue-500/30 group-hover:scale-105 transition-transform flex-shrink-0">
+             class="glass p-2.5 rounded-xl flex items-center gap-2.5 border border-transparent hover:border-blue-500/30 transition-all group card-hover block">
+            <div class="w-9 h-9 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex flex-col items-center justify-center font-bold border border-blue-500/20 flex-shrink-0">
               {% if event.start_date %}
-              <span class="uppercase text-[10px]">{{ event.start_date|date:"M" }}</span>
-              <span class="text-lg leading-none">{{ event.start_date|date:"d" }}</span>
+              <span class="uppercase text-[8px] leading-none">{{ event.start_date|date:"M" }}</span>
+              <span class="text-sm leading-none mt-0.5">{{ event.start_date|date:"d" }}</span>
               {% else %}
-              <span class="text-lg">—</span>
+              <span class="text-xs">—</span>
               {% endif %}
             </div>
-            <div>
-              <h5 class="font-bold text-gray-800 dark:text-gray-100 text-sm group-hover:text-blue-500 transition-colors">{{ event.name }}</h5>
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate group-hover:text-blue-500 transition-colors">{{ event.name }}</p>
               {% if event.days_until is not None %}
-              <p class="text-xs text-gray-500">Dentro de {{ event.days_until }} día{{ event.days_until|pluralize }}</p>
+              <p class="text-[10px] text-gray-400 mt-0.5">{{ event.days_until }} día{{ event.days_until|pluralize }}</p>
               {% endif %}
             </div>
           </a>
           {% empty %}
-          <div class="glass p-6 rounded-2xl text-center text-gray-500 text-sm">
-            Sin eventos próximos
+          <div class="flex flex-col items-center justify-center h-full py-8 gap-2 text-center">
+            <svg class="w-7 h-7 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <p class="text-xs text-gray-400 dark:text-gray-500 italic">Todo en orden</p>
           </div>
           {% endfor %}
         </div>
       </div>
 
-      <!-- Atención: tareas urgentes -->
-      {% if urgent_tasks %}
-      <div>
-        <h4 class="text-xl font-bold text-gray-700 dark:text-gray-200 mb-4">Atención</h4>
-        {% for task in urgent_tasks %}
-        <div class="glass p-5 rounded-2xl relative overflow-hidden group hover:border-amber-300 transition-colors border border-amber-200 dark:border-amber-800/30 mb-3">
-          <div class="absolute -right-6 -top-6 w-20 h-20 bg-amber-400/20 rounded-full blur-2xl"></div>
-          <div class="relative z-10">
-            <h5 class="text-amber-900 dark:text-amber-100 font-bold text-sm mb-1 flex items-center gap-2">
-              <span class="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
-              1 Tarea urgente
-            </h5>
-            <p class="text-amber-700 dark:text-amber-300/80 text-xs mb-3">{{ task.title }}</p>
-            <form method="post" action="{% url 'modules:task_toggle_done' task.pk %}" class="inline-block">
-              {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}">
-              <button type="submit" class="inline-flex items-center gap-1 text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/40 px-3 py-1.5 rounded-lg hover:bg-amber-200 transition-colors">
-                Marcar como hecha
-              </button>
-            </form>
-          </div>
+      <!-- Sub-panel 2: Presupuestos (flex-1 con scroll) -->
+      <div class="flex-1 flex flex-col min-h-0 border-b border-gray-200/50 dark:border-gray-700/30 overflow-hidden">
+        <div class="shrink-0 px-4 py-3 border-b border-gray-100/50 dark:border-gray-700/20">
+          <h4 class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Presupuestos</h4>
         </div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      <!-- Widget: Salud presupuestaria -->
-      {% if budget_events %}
-      <div>
-        <h4 class="text-xl font-bold text-gray-700 dark:text-gray-200 mb-4">Presupuestos</h4>
-        <div class="space-y-3">
+        <div class="flex-1 overflow-y-auto scroll-thin p-3 space-y-2">
+          {% if budget_events %}
           {% for event in budget_events %}
           {% with b=event.budget %}
-          <div class="glass p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
-            <div class="flex justify-between items-start mb-2">
-              <p class="text-sm font-semibold text-gray-800 dark:text-white truncate max-w-[70%]">{{ event.name }}</p>
-              <a href="{% url 'modules:budget_detail' event.pk %}"
-                 class="text-xs text-teal-500 hover:underline flex-shrink-0 ml-2">Ver →</a>
+          <div class="glass p-3 rounded-xl border card-hover
+            {% if b.usage_percentage >= 85 %}border-red-400/30 bg-red-500/5{% else %}border-gray-100 dark:border-gray-700{% endif %}">
+            <div class="flex justify-between items-center mb-1.5">
+              <p class="text-[11px] font-semibold text-gray-700 dark:text-gray-300 truncate max-w-[65%]">{{ event.name }}</p>
+              <a href="{% url 'modules:budget_detail' event.pk %}" class="text-[10px] text-teal-500 hover:underline flex-shrink-0 ml-2">Ver →</a>
             </div>
-            <!-- Barra de uso -->
-            <div class="w-full bg-gray-200/50 dark:bg-gray-700/50 rounded-full h-2 overflow-hidden mb-1">
-              <div class="h-2 rounded-full transition-all
+            <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div class="h-1.5 rounded-full transition-all duration-500
                 {% if b.usage_percentage >= 85 %}bg-red-500
-                {% elif b.usage_percentage >= 60 %}bg-yellow-400
-                {% else %}bg-green-500{% endif %}"
+                {% elif b.usage_percentage >= 60 %}bg-amber-400
+                {% else %}bg-teal-400{% endif %}"
                    style="width: {{ b.usage_percentage|default:0 }}%"></div>
             </div>
-            <div class="flex justify-between text-xs text-gray-400 mt-1">
+            <div class="flex justify-between text-[10px] text-gray-400 mt-1">
               <span>{{ b.usage_percentage }}% usado</span>
-              <span class="{% if b.remaining < 0 %}text-red-400{% else %}text-teal-500{% endif %} font-semibold">
-                {{ b.remaining|floatformat:0 }} {{ b.currency }}
-              </span>
+              <span class="{% if b.remaining < 0 %}text-red-400{% else %}text-teal-500{% endif %} font-semibold">{{ b.remaining|floatformat:0 }} {{ b.currency }}</span>
             </div>
           </div>
           {% endwith %}
           {% endfor %}
+          {% else %}
+          <div class="flex flex-col items-center justify-center h-full py-8 gap-2 text-center">
+            <svg class="w-7 h-7 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p class="text-xs text-gray-400 dark:text-gray-500 italic">Todo en orden</p>
+          </div>
+          {% endif %}
         </div>
       </div>
-      {% endif %}
 
-      <!-- Notas rápidas -->
-      <div>
-        <h4 class="text-xl font-bold text-gray-700 dark:text-gray-200 mb-4">Notas Rápidas</h4>
-        <div class="glass p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <textarea id="quickNote" class="w-full bg-white/50 dark:bg-black/20 rounded-xl p-3 text-sm text-gray-700 dark:text-gray-300 outline-none focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none h-24 placeholder-gray-500" placeholder="Escribe una idea..."></textarea>
-          <div class="flex justify-between mt-2">
-            <div class="flex items-center gap-2">
-              <a href="{% url 'modules:export_tasks_csv' %}" class="text-xs bg-gray-200 px-2 py-1 rounded-lg text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400/40">Exportar tareas CSV</a>
-              <a href="{% url 'modules:task_overview' %}" class="text-xs bg-teal-50 px-2 py-1 rounded-lg text-teal-700 dark:text-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-300/40">Ver todas las tareas</a>
-            </div>
-            <button onclick="saveNote()" class="text-xs px-3 py-1.5 rounded-lg bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-opacity">Guardar</button>
+      <!-- Sub-panel 3: Actividad Semanal (120px fijos) -->
+      <div class="shrink-0 h-[140px] overflow-hidden flex flex-col border-gray-100/50 dark:border-gray-700/20">
+        <div class="shrink-0 px-4 py-2 border-b border-gray-100/50 dark:border-gray-700/20">
+          <h4 class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Actividad semanal</h4>
+        </div>
+        <div class="flex-1 px-4 pb-5 pt-3 flex items-end justify-between gap-1.5 overflow-hidden">
+          {% for label, count, pct in weekly_activity %}
+          <div class="flex-1 flex flex-col items-center gap-1 h-full justify-end relative">
+            {% if count > 0 %}
+            <span class="absolute -top-3 text-[9px] font-bold text-teal-600 dark:text-teal-400">{{ count }}</span>
+            {% endif %}
+            <div class="w-full rounded-t transition-all duration-500
+              {% if label == today_label %}bg-teal-500 shadow-sm shadow-teal-500/30{% else %}bg-gray-200/70 dark:bg-gray-700/70{% endif %}"
+                 style="height: {{ pct }}%; min-height: 2px;"></div>
+            <span class="text-[8px] {% if label == today_label %}font-bold text-teal-500{% else %}text-gray-400{% endif %} leading-none">{{ label }}</span>
           </div>
+          {% empty %}
+          <div class="w-full flex items-center justify-center">
+            <p class="text-xs text-gray-400 dark:text-gray-500 italic">Sin actividad registrada</p>
+          </div>
+          {% endfor %}
         </div>
       </div>
 
     </div>
+    <!-- ─── FIN COL 3 ─── -->
+
   </div>
+  <!-- ══════════════════ FIN GRID ══════════════════ -->
 
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-  function saveNote() {
-    const btn = document.querySelector('button[onclick="saveNote()"]');
-    const textarea = document.getElementById('quickNote');
-    if(textarea.value.trim() === "") return;
-    btn.innerText = "¡Listo!";
-    btn.classList.add('bg-green-500');
-    setTimeout(() => {
-      textarea.value = "";
-      btn.innerText = "Guardar";
-      btn.classList.remove('bg-green-500');
-    }, 1000);
-  }
-</script>
 {% endblock %}

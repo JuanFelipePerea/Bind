@@ -8,6 +8,7 @@ import csv
 
 from events.models import Event
 from .models import Task, Attendee, Checklist, ChecklistItem, File, Budget, BudgetItem
+from .forms import TaskForm, AttendeeForm, ChecklistForm, FileForm
 
 
 
@@ -289,12 +290,47 @@ def checklist_delete(request, pk):
 #  ARCHIVOS
 # ─────────────────────────────────────────────
 
+_EXT_TYPE = {
+    'pdf': 'pdf',
+    'doc': 'document', 'docx': 'document', 'odt': 'document', 'txt': 'document',
+    'xls': 'spreadsheet', 'xlsx': 'spreadsheet', 'csv': 'spreadsheet', 'ods': 'spreadsheet',
+    'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'gif': 'image',
+    'webp': 'image', 'svg': 'image', 'bmp': 'image',
+}
+
+
+def _detect_file_meta(uploaded_file):
+    """Devuelve (name_sugerido, file_type, page_count_o_None)."""
+    import os
+    original = uploaded_file.name or ''
+    stem, ext = os.path.splitext(original)
+    ext = ext.lstrip('.').lower()
+    file_type = _EXT_TYPE.get(ext, 'other')
+    name = stem.replace('_', ' ').replace('-', ' ').strip() or original
+
+    pages = None
+    try:
+        if ext == 'pdf':
+            from PyPDF2 import PdfReader
+            reader = PdfReader(uploaded_file)
+            pages = len(reader.pages)
+            uploaded_file.seek(0)
+        elif ext == 'docx':
+            from docx import Document
+            doc = Document(uploaded_file)
+            pages = len(doc.paragraphs)   # approx: párrafos como proxy
+            uploaded_file.seek(0)
+    except Exception:
+        pass
+
+    return name, file_type, pages
+
+
 @login_required
 def file_list(request, event_pk):
-    event   = get_object_or_404(Event, pk=event_pk, owner=request.user)
-    files   = event.files.all().order_by('-uploaded_at')
-    context = {'event': event, 'files': files}
-    return render(request, 'modules/file_list.html', context)
+    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    files = event.files.all().order_by('-uploaded_at')
+    return render(request, 'modules/file_list.html', {'event': event, 'files': files})
 
 
 @login_required
@@ -302,24 +338,28 @@ def file_create(request, event_pk):
     event = get_object_or_404(Event, pk=event_pk, owner=request.user)
 
     if request.method == 'POST':
-        name      = request.POST.get('name', '').strip()
-        file_path = request.POST.get('file_path', '').strip()
-        file_type = request.POST.get('file_type', 'other')
+        form = FileForm(request.POST, request.FILES)
+        if form.is_valid():
+            file_obj = form.save(commit=False)
+            file_obj.event = event
+            file_obj.uploaded_by = request.user
 
-        if not name or not file_path:
-            messages.error(request, 'Nombre y ruta del archivo son obligatorios.')
-        else:
-            File.objects.create(
-                event=event,
-                name=name,
-                file_path=file_path,
-                file_type=file_type,
-                uploaded_by=request.user,
-            )
-            messages.success(request, f'Archivo "{name}" registrado.')
+            # Auto-detectar nombre y tipo si el usuario los dejó en blanco/default
+            uploaded = request.FILES.get('file')
+            if uploaded:
+                auto_name, auto_type, _ = _detect_file_meta(uploaded)
+                if not file_obj.name or file_obj.name == uploaded.name:
+                    file_obj.name = auto_name
+                if file_obj.file_type == 'other' and auto_type != 'other':
+                    file_obj.file_type = auto_type
+
+            file_obj.save()
+            messages.success(request, f'Archivo "{file_obj.name}" subido correctamente.')
             return redirect('modules:file_list', event_pk=event.pk)
+    else:
+        form = FileForm()
 
-    return render(request, 'modules/file_form.html', {'event': event})
+    return render(request, 'modules/file_form.html', {'event': event, 'form': form})
 
 
 @login_required
@@ -396,6 +436,7 @@ def budget_detail(request, event_pk):
         'usage_percentage': budget.usage_percentage,
         'category_choices': BudgetItem.CATEGORY_CHOICES,
         'type_choices': BudgetItem.TYPE_CHOICES,
+        'event_tasks': event.tasks.exclude(status='done').order_by('title'),
     }
     return render(request, 'modules/budget_detail.html', context)
 
@@ -504,7 +545,7 @@ def budget_item_delete(request, event_pk, pk):
 
 @login_required
 def export_tasks_csv(request):
-    """Export all tasks for the logged-in user as CSV (MVP)."""
+    """Export all tasks for the logged-in user as CSV."""
     user = request.user
     tasks = Task.objects.filter(event__owner=user).select_related('event')
 

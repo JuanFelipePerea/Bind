@@ -9,20 +9,19 @@
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
       Volver a archivos
     </a>
-    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs px-4 py-3 rounded-xl mb-6">
-      MVP: Ingresa la ruta o URL del archivo. El upload real se implementará en fases futuras.
-    </div>
-    <form method="post" class="space-y-5">
+    <form method="post" enctype="multipart/form-data" class="space-y-5">
       {% csrf_token %}
       <div>
         <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nombre <span class="text-red-400">*</span></label>
         <input type="text" name="name" required value="{{ form.name.value|default:'' }}" placeholder="Ej: Presentación final"
           class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm text-gray-800 dark:text-white placeholder-gray-400 transition-all">
+        {% if form.name.errors %}<p class="mt-1 text-xs text-red-500">{{ form.name.errors|join:", " }}</p>{% endif %}
       </div>
       <div>
-        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ruta / URL</label>
-        <input type="text" name="file_path" value="{{ form.file_path.value|default:'' }}" placeholder="https://... o /ruta/al/archivo"
-          class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm text-gray-800 dark:text-white placeholder-gray-400 transition-all">
+        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Archivo <span class="text-red-400">*</span></label>
+        <input type="file" name="file" required
+          class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm text-gray-800 dark:text-white transition-all file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 dark:file:bg-teal-900/30 dark:file:text-teal-300">
+        {% if form.file.errors %}<p class="mt-1 text-xs text-red-500">{{ form.file.errors|join:", " }}</p>{% endif %}
       </div>
       <div>
         <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
@@ -36,7 +35,7 @@
       </div>
       <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
         <button type="submit" class="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white py-3 rounded-xl font-semibold shadow-lg transition-all">
-          Guardar archivo
+          Subir archivo
         </button>
         <a href="{% url 'modules:file_list' event.pk %}" class="px-6 py-3 rounded-xl glass hover:bg-white/80 dark:hover:bg-gray-700 transition-all font-medium text-gray-700 dark:text-gray-300">Cancelar</a>
       </div>

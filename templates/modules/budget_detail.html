@@ -60,11 +60,11 @@
         {{ usage_percentage }}%
       </span>
     </div>
-    <div class="w-full bg-gray-200/50 dark:bg-gray-700/50 rounded-full h-3 overflow-hidden">
-      <div class="h-3 rounded-full transition-all duration-500
-        {% if usage_percentage >= 80 %}bg-gradient-to-r from-red-400 to-red-600
-        {% elif usage_percentage >= 60 %}bg-gradient-to-r from-amber-400 to-amber-500
-        {% else %}bg-gradient-to-r from-teal-400 to-cyan-500{% endif %}"
+    <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div class="h-1.5 rounded-full transition-all duration-500
+        {% if usage_percentage >= 80 %}bg-red-500
+        {% elif usage_percentage >= 60 %}bg-amber-400
+        {% else %}bg-teal-400{% endif %}"
            style="width: {{ usage_percentage|default:0 }}%"></div>
     </div>
   </div>
@@ -123,6 +123,15 @@
               <option value="{{ val }}">{{ label }}</option>
               {% endfor %}
             </select>
+            {% if event_tasks %}
+            <select name="related_task"
+                    class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+              <option value="">— Tarea asociada (opcional) —</option>
+              {% for task in event_tasks %}
+              <option value="{{ task.pk }}">{{ task.title|truncatechars:40 }}</option>
+              {% endfor %}
+            </select>
+            {% endif %}
             <input type="date" name="due_date"
                    class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
             <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">

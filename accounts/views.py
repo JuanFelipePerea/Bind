@@ -137,7 +137,7 @@ def register_view(request):
             username=username, email=email, password=password1,
             first_name=first_name, last_name=last_name,
         )
-        UserProfile.objects.create(user=user)
+        # UserProfile is created automatically by the post_save signal in models.py
         login(request, user)
         messages.success(request, f'¡Bienvenido a Bind, {user.first_name or user.username}!')
         return redirect('events:dashboard')

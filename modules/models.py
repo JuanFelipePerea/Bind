@@ -23,21 +23,28 @@ class Task(models.Model):
     ]
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='tasks')
-    title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-
-    # A quién está asignada la tarea (puede no estar asignada aún)
+    title = models.CharField(
+        max_length=200, verbose_name='Título',
+        help_text='Nombre descriptivo de la actividad a realizar.'
+    )
+    description = models.TextField(blank=True, verbose_name='Descripción')
+    priority = models.CharField(
+        max_length=10, choices=PRIORITY_CHOICES, default='medium',
+        verbose_name='Prioridad'
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='pending',
+        verbose_name='Estado'
+    )
     assigned_to = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='assigned_tasks'
+        null=True, blank=True,
+        related_name='assigned_tasks',
+        verbose_name='Responsable',
+        help_text='Usuario interno responsable de completar esta tarea.'
     )
-
-    due_date = models.DateField(null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True, verbose_name='Fecha límite')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -65,17 +72,19 @@ class Attendee(models.Model):
     ]
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='attendees')
-    name = models.CharField(max_length=150)
-    email = models.EmailField(blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-
-    # Enlace opcional al User de Django (null si es invitado externo sin cuenta)
+    name = models.CharField(max_length=150, verbose_name='Nombre completo')
+    email = models.EmailField(blank=True, verbose_name='Correo electrónico')
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='pending',
+        verbose_name='Estado de asistencia'
+    )
     user = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='attendances'
+        null=True, blank=True,
+        related_name='attendances',
+        verbose_name='Usuario BIND',
+        help_text='Cuenta BIND del asistente. Dejar vacío para invitados externos.'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -140,12 +149,7 @@ class ChecklistItem(models.Model):
 
 
 class File(models.Model):
-    """
-    Archivo adjunto a un evento.
-    MVP: se guarda solo la ruta como string (no FileField real).
-    Se puede escalar a FileField + Pillow en fases futuras.
-    Relación: 1 Event → N Files
-    """
+    """Archivo adjunto a un evento. Relación: 1 Event → N Files."""
 
     FILE_TYPE_CHOICES = [
         ('image', 'Imagen'),
@@ -158,8 +162,13 @@ class File(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='files')
     name = models.CharField(max_length=200)
 
-    # Ruta del archivo (string simple en MVP)
-    file_path = models.CharField(max_length=500)
+    file = models.FileField(
+        upload_to='event_files/%Y/%m/',
+        blank=True,
+        null=True,
+        verbose_name='Archivo',
+    )
+    file_path = models.CharField(max_length=500, blank=True)  # legado
 
     file_type = models.CharField(max_length=20, choices=FILE_TYPE_CHOICES, default='other')
 
@@ -184,15 +193,21 @@ class File(models.Model):
 
 
 class Budget(models.Model):
-    """Presupuesto por evento. Simple pero funcional desde el día 1."""
+    """Presupuesto por evento. Relación: 1 Event → 1 Budget."""
     event = models.OneToOneField(
         Event, on_delete=models.CASCADE, related_name='budget'
     )
     total_budget = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='Presupuesto total',
+        help_text='Monto máximo autorizado para el evento.'
     )
-    currency = models.CharField(max_length=3, default='COP')
-    notes = models.TextField(blank=True)
+    currency = models.CharField(
+        max_length=3, default='COP',
+        verbose_name='Moneda',
+        help_text='Código ISO 4217 (COP, USD, EUR…).'
+    )
+    notes = models.TextField(blank=True, verbose_name='Notas')
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
@@ -237,20 +252,33 @@ class BudgetItem(models.Model):
     budget = models.ForeignKey(
         Budget, on_delete=models.CASCADE, related_name='items'
     )
-    name = models.CharField(max_length=200)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    name = models.CharField(
+        max_length=200, verbose_name='Concepto',
+        help_text='Descripción del gasto o ingreso.'
+    )
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        verbose_name='Monto'
+    )
     item_type = models.CharField(
-        max_length=10, choices=TYPE_CHOICES, default='expense'
+        max_length=10, choices=TYPE_CHOICES, default='expense',
+        verbose_name='Tipo'
     )
     category = models.CharField(
-        max_length=20, choices=CATEGORY_CHOICES, default='other'
+        max_length=20, choices=CATEGORY_CHOICES, default='other',
+        verbose_name='Categoría'
     )
     related_task = models.ForeignKey(
         'Task', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='budget_items'
+        null=True, blank=True, related_name='budget_items',
+        verbose_name='Tarea asociada',
+        help_text='Tarea del evento a la que corresponde este ítem. Facilita la trazabilidad costo-actividad.'
     )
-    paid = models.BooleanField(default=False)
-    due_date = models.DateField(null=True, blank=True)
+    paid = models.BooleanField(
+        default=False, verbose_name='Pagado',
+        help_text='Marca este ítem como liquidado.'
+    )
+    due_date = models.DateField(null=True, blank=True, verbose_name='Fecha de pago')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
