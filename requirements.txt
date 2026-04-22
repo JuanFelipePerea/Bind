@@ -10,3 +10,4 @@ PyJWT
 cryptography
 python-docx
 PyPDF2
+gunicorn==23.0.0
