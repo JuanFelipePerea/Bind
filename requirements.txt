@@ -8,3 +8,5 @@ Pillow
 requests
 PyJWT
 cryptography
+python-docx
+PyPDF2

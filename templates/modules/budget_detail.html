@@ -123,6 +123,15 @@
               <option value="{{ val }}">{{ label }}</option>
               {% endfor %}
             </select>
+            {% if event_tasks %}
+            <select name="related_task"
+                    class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+              <option value="">— Tarea asociada (opcional) —</option>
+              {% for task in event_tasks %}
+              <option value="{{ task.pk }}">{{ task.title|truncatechars:40 }}</option>
+              {% endfor %}
+            </select>
+            {% endif %}
             <input type="date" name="due_date"
                    class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
             <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">

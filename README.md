@@ -128,27 +128,26 @@ http://127.0.0.1:8000/
 
 ## Módulos del sistema
 
-### Núcleo MVP
+### Módulos implementados
 
 | Módulo | Descripción | Estado |
 |---|---|---|
 | **Events** | Creación y gestión de eventos | Activo |
 | **Tasks** | Tareas y checklists por evento | Activo |
 | **Attendees** | Control de asistentes e invitados | Activo |
-| **Files** | Gestión de archivos por evento | Activo |
+| **Files** | Subida y gestión de archivos por evento | Activo |
+| **Budget** | Presupuesto e ítems financieros por evento | Activo |
 | **Templates** | Plantillas reutilizables de eventos | Activo |
+| **Calendar** | Vista de calendario de eventos | Activo |
+| **Reports** | Reportes y estadísticas de eventos | Activo |
 | **Accounts** | Autenticación, perfiles y roles | Activo |
 
-### Módulos futuros (roadmap)
+### Módulos en desarrollo
 
 | Módulo | Derivado de | Estado |
 |---|---|---|
-| Finances | Events + Tasks | Planeado |
-| Reports | Finances + Tasks | Planeado |
-| Notifications | Events | Planeado |
-| Surveys | Events | Planeado |
-| Calendar | Events | Planeado |
-| ApiKeys | Finances + Notifications | Planeado |
+| Surveys | Events | En desarrollo |
+| ApiKeys | Accounts | En desarrollo |
 
 ---
 
