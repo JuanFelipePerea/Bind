@@ -22,7 +22,7 @@
 <div class="p-6 md:p-8 animate-fade-in">
 
   <!-- Header del evento — compacto, información densa -->
-  <div class="bg-gradient-to-r from-teal-500 to-cyan-600 rounded-2xl p-6 text-white shadow-lg mb-6 relative overflow-hidden">
+  <div class="bg-gradient-to-r from-teal-600 to-cyan-700 rounded-2xl p-6 text-white shadow-lg mb-6 relative overflow-hidden">
     <div class="absolute right-0 top-0 w-48 h-48 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl pointer-events-none"></div>
     <div class="relative z-10">
 
@@ -56,19 +56,19 @@
       <div class="flex items-center gap-4 flex-wrap mb-4">
         {% if event.start_date %}
         <div>
-          <p class="text-xs opacity-60">Inicio</p>
+          <p class="text-xs opacity-75">Inicio</p>
           <p class="font-semibold text-sm">{{ event.start_date|date:"d M Y" }}</p>
         </div>
         {% endif %}
         {% if event.end_date %}
         <div>
-          <p class="text-xs opacity-60">Fin</p>
+          <p class="text-xs opacity-75">Fin</p>
           <p class="font-semibold text-sm">{{ event.end_date|date:"d M Y" }}</p>
         </div>
         {% endif %}
         {% if days_until is not None %}
         <div class="ml-auto text-right">
-          <p class="text-xs opacity-60">Tiempo restante</p>
+          <p class="text-xs opacity-75">Tiempo restante</p>
           <p class="font-bold text-lg bg-white/20 px-3 py-0.5 rounded-lg inline-block">
             {% if days_until == 0 %}Hoy{% elif days_until < 0 %}Finalizado{% else %}{{ days_until }} día{{ days_until|pluralize }}{% endif %}
           </p>
@@ -80,7 +80,7 @@
       {% if task_progress is not None %}
       <div>
         <div class="flex justify-between text-xs mb-1.5">
-          <span class="opacity-70">Progreso de tareas</span>
+          <span class="opacity-80">Progreso de tareas</span>
           <span class="font-bold">{{ task_progress }}%</span>
         </div>
         <div class="w-full bg-white/20 rounded-full h-2">
@@ -93,7 +93,7 @@
       {% if engine_score %}
       <div class="flex items-center gap-2 mt-3 flex-wrap">
         <div class="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5">
-          <span class="text-xs text-white/60">Salud</span>
+          <span class="text-xs text-white/85">Salud</span>
           <span class="text-sm font-bold">{{ engine_score.health_score }}/100</span>
           <span class="text-xs px-1.5 py-0.5 rounded-full font-bold
             {% if engine_score.health_score == 100 %}bg-teal-500/30 text-teal-100
@@ -105,7 +105,7 @@
           </span>
         </div>
         <div class="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5">
-          <span class="text-xs text-white/60">Riesgo</span>
+          <span class="text-xs text-white/85">Riesgo</span>
           <span class="text-xs font-bold px-1.5 py-0.5 rounded-full
             {% if engine_score.risk_label == 'critical' %}bg-red-500/30 text-red-200
             {% elif engine_score.risk_label == 'high' %}bg-amber-500/30 text-amber-200
@@ -115,7 +115,7 @@
           </span>
         </div>
         <div class="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5">
-          <span class="text-xs text-white/60">Momentum</span>
+          <span class="text-xs text-white/85">Momentum</span>
           <span class="text-xs font-bold text-white">{% if engine_score.momentum_label == 'accelerating' %}Acelerando{% elif engine_score.momentum_label == 'stalled' %}Estancado{% elif engine_score.momentum_label == 'slowing' %}Desacelerando{% else %}Estable{% endif %}</span>
         </div>
       </div>
@@ -165,12 +165,12 @@
           <p class="text-gray-400 text-sm text-center py-3">Sin tareas aún.</p>
           {% endfor %}
         </div>
-        <!-- CTA primario del módulo — botón visible, no link texto -->
-        <a href="{% url 'modules:task_create' event.pk %}"
+        <!-- CTA primario del módulo -->
+        <button type="button" onclick="openAside('_tplTaskCreate', 'Nueva tarea')"
            class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold rounded-xl transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           Nueva tarea
-        </a>
+        </button>
       </div>
       {% endif %}
 
@@ -182,7 +182,14 @@
             <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             Checklists
           </h3>
-          <a href="{% url 'modules:checklist_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
+          <div class="flex items-center gap-3">
+            <button type="button" onclick="openAside('_tplChecklistCreate', 'Nueva checklist')"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500/90 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Nueva
+            </button>
+            <a href="{% url 'modules:checklist_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
+          </div>
         </div>
         <div class="space-y-3">
           {% for checklist in checklists_preview %}
@@ -197,7 +204,7 @@
           </div>
           {% empty %}
           <p class="text-gray-400 text-sm text-center py-3">Sin checklists.
-            <a href="{% url 'modules:checklist_create' event.pk %}" class="text-teal-500 hover:underline">Crear una</a>
+            <button type="button" onclick="openAside('_tplChecklistCreate', 'Nueva checklist')" class="text-teal-500 hover:underline">Crear una</button>
           </p>
           {% endfor %}
         </div>
@@ -303,4 +310,79 @@
   </div>
 
 </div>
+
+<!-- ══ ASIDE TEMPLATES (hidden, cloned by openAside) ══════════════════════ -->
+<div id="_tplTaskCreate" class="hidden">
+  <form method="post" action="{% url 'modules:task_create' event.pk %}">
+    {% csrf_token %}
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Título *</label>
+        <input type="text" name="title" required placeholder="¿Qué hay que hacer?"
+               style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;transition:border-color .2s"
+               onfocus="this.style.borderColor='rgba(20,184,166,.5)'"
+               onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Descripción</label>
+        <textarea name="description" rows="3" placeholder="Detalles opcionales…"
+                  style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;resize:none;transition:border-color .2s"
+                  onfocus="this.style.borderColor='rgba(20,184,166,.5)'"
+                  onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Prioridad</label>
+          <select name="priority"
+                  style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none">
+            <option value="low">Baja</option>
+            <option value="medium" selected>Media</option>
+            <option value="high">Alta</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Estado</label>
+          <select name="status"
+                  style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none">
+            <option value="pending" selected>Pendiente</option>
+            <option value="in_progress">En progreso</option>
+            <option value="done">Completada</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Fecha límite</label>
+        <input type="date" name="due_date"
+               style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;transition:border-color .2s"
+               onfocus="this.style.borderColor='rgba(20,184,166,.5)'"
+               onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <button type="submit"
+              style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#14b8a6,#06b6d4);color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(20,184,166,.3);transition:opacity .2s">
+        Crear tarea
+      </button>
+    </div>
+  </form>
+</div>
+
+<div id="_tplChecklistCreate" class="hidden">
+  <form method="post" action="{% url 'modules:checklist_create' event.pk %}">
+    {% csrf_token %}
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Título del checklist *</label>
+        <input type="text" name="title" required placeholder="Ej: Lista de materiales, Preparativos…"
+               style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;transition:border-color .2s"
+               onfocus="this.style.borderColor='rgba(59,130,246,.5)'"
+               onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <p style="font-size:12px;color:#6b7280">Podrás agregar ítems después de crear el checklist.</p>
+      <button type="submit"
+              style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,.3);transition:opacity .2s">
+        Crear checklist
+      </button>
+    </div>
+  </form>
+</div>
+
 {% endblock %}

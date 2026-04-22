@@ -66,6 +66,16 @@
     *::-webkit-scrollbar-thumb:hover { background: #5ECFBE; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    /* Date & select inputs: force browser chrome to match theme */
+    .dark input[type="date"],
+    .dark input[type="datetime-local"],
+    .dark input[type="time"],
+    .dark select { color-scheme: dark; }
+    /* Ensure option text is visible in dark selects */
+    .dark select option { background: #1f2937; color: #f3f4f6; }
+    /* Aside select/date consistent chrome */
+    #asideBody select, #asideBody input[type="date"] { color-scheme: dark; }
+    #asideBody select option { background: #1f2937; color: #f3f4f6; }
   </style>
 
   {% block extra_head %}{% endblock %}
@@ -302,6 +312,121 @@
         }, 500);
       }, 5000);
     })();
+  </script>
+
+
+  <!-- ══════════════════════ GLOBAL ASIDE PANEL ══════════════════════════════ -->
+  <div id="asideBackdrop"
+       onclick="closeAside()"
+       style="opacity:0;pointer-events:none;transition:opacity .3s ease"
+       class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"></div>
+
+  <aside id="globalAside"
+         style="transform:translateX(100%);transition:transform .32s cubic-bezier(.16,1,.3,1);background:linear-gradient(160deg,#0f172a 0%,#080f1e 100%);box-shadow:-20px 0 60px rgba(0,0,0,.55)"
+         class="fixed top-0 right-0 h-screen w-full sm:w-[480px] z-50 flex flex-col overflow-hidden">
+    <div class="absolute left-0 top-0 h-full w-px" style="background:linear-gradient(180deg,transparent 0%,#14b8a6 30%,#06b6d4 70%,transparent 100%)"></div>
+    <div class="absolute left-0 top-0 h-full w-10 pointer-events-none" style="background:linear-gradient(90deg,rgba(20,184,166,.06) 0%,transparent 100%)"></div>
+    <div class="relative flex flex-col h-full">
+      <div class="flex items-center justify-between px-6 py-4 shrink-0" style="border-bottom:1px solid rgba(255,255,255,.07)">
+        <div class="flex items-center gap-3">
+          <div class="w-0.5 h-5 rounded-full shrink-0" style="background:linear-gradient(180deg,#14b8a6,#06b6d4)"></div>
+          <h2 id="asideTitle" class="text-[15px] font-bold text-white leading-tight"></h2>
+        </div>
+        <button onclick="closeAside()"
+                class="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-white transition-all"
+                style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div id="asideBody" class="flex-1 overflow-y-auto px-6 py-5"></div>
+    </div>
+  </aside>
+
+  <script>
+  (function () {
+    var _scroll = 0;
+
+    window.openAside = function (contentId, title) {
+      var src = document.getElementById(contentId);
+      if (!src) return;
+      _open(src.innerHTML, title);
+    };
+
+    window.openAsideHtml = function (html, title) {
+      _open(html, title);
+    };
+
+    function _open(html, title) {
+      var scrollEl = document.querySelector('main .flex-1.overflow-y-auto');
+      _scroll = scrollEl ? scrollEl.scrollTop : 0;
+      document.getElementById('asideTitle').textContent = title || '';
+      document.getElementById('asideBody').innerHTML = html;
+      var bd = document.getElementById('asideBackdrop');
+      var panel = document.getElementById('globalAside');
+      bd.style.pointerEvents = 'auto';
+      requestAnimationFrame(function () {
+        bd.style.opacity = '1';
+        panel.style.transform = 'translateX(0)';
+      });
+      document.body.style.overflow = 'hidden';
+      var form = document.querySelector('#asideBody form');
+      if (form && !form.dataset.wired) {
+        form.dataset.wired = '1';
+        form.addEventListener('submit', _submit);
+      }
+      setTimeout(function () {
+        var inp = document.querySelector('#asideBody input:not([type=hidden]):not([type=checkbox]):not([type=radio])');
+        if (inp) inp.focus();
+      }, 340);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    window.closeAside = function () {
+      var bd = document.getElementById('asideBackdrop');
+      var panel = document.getElementById('globalAside');
+      bd.style.opacity = '0';
+      bd.style.pointerEvents = 'none';
+      panel.style.transform = 'translateX(100%)';
+      document.body.style.overflow = '';
+    };
+
+    async function _submit(e) {
+      e.preventDefault();
+      var form = e.currentTarget;
+      var btn  = form.querySelector('button[type=submit]');
+      var orig = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="w-4 h-4 animate-spin inline mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>Guardando…';
+      }
+      try {
+        await fetch(form.action || location.href, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          redirect: 'follow'
+        });
+        sessionStorage.setItem('_bindScroll', _scroll);
+        closeAside();
+        location.reload();
+      } catch (err) {
+        if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+      }
+    }
+
+    var sv = sessionStorage.getItem('_bindScroll');
+    if (sv) {
+      sessionStorage.removeItem('_bindScroll');
+      requestAnimationFrame(function () {
+        var el = document.querySelector('main .flex-1.overflow-y-auto');
+        if (el) el.scrollTop = +sv;
+      });
+    }
+
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAside(); });
+  })();
   </script>
 
   {% block extra_js %}{% endblock %}
