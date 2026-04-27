@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BIND — Crear cuenta</title>
+  <script>
+    (() => {
+      const saved = localStorage.getItem('theme');
+      const dark  = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      if (dark) document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% load static %}
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { poppins: ['Poppins','sans-serif'] } } }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Poppins', sans-serif; }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.55s ease-out forwards; }
+
+    /* ── Decorative blobs ── */
+    .blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(90px); opacity: 0.18; pointer-events: none;
+    }
+
+    /* ── Base input ── */
+    .bind-input {
+      width: 100%;
+      padding: 0.875rem 3rem 0.875rem 2.75rem;
+      background: #1a1f2e;
+      border: 2px solid #2a3040;
+      border-radius: 0.75rem;
+      color: #e2e8f0;
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .bind-input::placeholder { color: #4a5568; }
+    .bind-input:hover:not(:focus) { border-color: #374151; }
+    .bind-input:focus { border-color: #14b8a6; background: #1e2535; box-shadow: 0 0 0 3px rgba(20,184,166,0.12); }
+
+    /* Validation border states */
+    .inp-weak   { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.10) !important; }
+    .inp-medium { border-color: #f59e0b !important; box-shadow: 0 0 0 3px rgba(245,158,11,0.10) !important; }
+    .inp-strong { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.10) !important; }
+    .inp-match  { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.10) !important; }
+    .inp-no-match { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.10) !important; }
+
+    /* Strength bar */
+    .bar-track { height: 3px; border-radius: 9999px; background: #1e293b; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 9999px; transition: width 0.3s ease, background-color 0.3s ease; }
+
+    /* Password toggle */
+    .eye-btn {
+      position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+      color: #4a5568; transition: color 0.2s;
+    }
+    .eye-btn:hover { color: #94a3b8; }
+
+    /* Submit button */
+    .btn-primary {
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+    .btn-primary:hover:not(:disabled)  { transform: scale(1.02); box-shadow: 0 8px 28px rgba(20,184,166,0.30); }
+    .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Google button */
+    .btn-google {
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-google:hover { background: #2d3748; box-shadow: 0 4px 16px rgba(0,0,0,0.30); }
+  </style>
+</head>
+
+<body class="bg-gray-950 text-gray-100 min-h-screen relative overflow-hidden">
+
+  <!-- Ambient blobs -->
+  <div class="blob w-96 h-96 bg-teal-600  top-[-8rem]  right-[-6rem]"></div>
+  <div class="blob w-72 h-72 bg-cyan-700  bottom-[-6rem] left-[-4rem]"></div>
+
+  <!-- Header -->
+  <header class="absolute top-0 left-0 w-full py-5 px-6 z-20">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <a href="{% url 'accounts:index' %}" class="flex items-center gap-2.5 fade-up">
+        <div class="w-10 h-10 rounded-xl overflow-hidden shadow">
+          <img src="{% static 'img/logo.svg' %}" alt="BIND" class="w-full h-full object-cover">
+        </div>
+        <span class="text-xl font-bold tracking-tight text-white">Bind</span>
+      </a>
+      <button id="themeToggle"
+        class="p-2 rounded-xl border border-gray-700 hover:bg-gray-800 transition-colors"
+        aria-label="Cambiar tema">
+        <!-- sun -->
+        <svg class="w-5 h-5 text-gray-300 block dark:hidden" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        <!-- moon -->
+        <svg class="w-5 h-5 text-gray-300 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M17.293 13.293A8 8 0 016.707 2.707a7 7 0 1010.586 10.586z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="min-h-screen flex items-center justify-center px-4 py-24 relative z-10">
+    <div class="w-full max-w-md">
+
+      <!-- Card -->
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl p-8 fade-up" style="animation-delay:0.1s;">
+
+        <!-- Title -->
+        <div class="text-center mb-7">
+          <h1 class="text-3xl font-bold bg-gradient-to-r from-white to-teal-300 bg-clip-text text-transparent">
+            Crear cuenta
+          </h1>
+          <p class="text-gray-500 text-sm mt-1">Únete a BIND y organiza eventos sin límites</p>
+        </div>
+
+        <!-- Server messages -->
+        {% if messages %}
+          {% for message in messages %}
+          <div class="flex items-start gap-2 bg-red-500/10 border border-red-500/25 text-red-400 text-sm px-4 py-3 rounded-xl mb-5">
+            <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <span>{{ message }}</span>
+          </div>
+          {% endfor %}
+        {% endif %}
+
+        <!-- Google OAuth -->
+        <a href="{% url 'google_login' %}"
+          class="btn-google flex items-center justify-center gap-3 w-full bg-gray-800 border border-gray-700 text-gray-200 text-sm font-medium py-3 rounded-xl mb-5">
+          <svg class="w-5 h-5" viewBox="0 0 48 48" fill="none">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg>
+          Continuar con Google
+        </a>
+
+        <!-- Divider -->
+        <div class="flex items-center gap-3 mb-5">
+          <div class="flex-1 h-px bg-gray-800"></div>
+          <span class="text-gray-600 text-xs font-medium">o regístrate manualmente</span>
+          <div class="flex-1 h-px bg-gray-800"></div>
+        </div>
+
+        <!-- Form -->
+        <form method="post" id="registerForm" class="space-y-4" novalidate>
+          {% csrf_token %}
+
+          <!-- Username -->
+          <div class="relative">
+            <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+            </svg>
+            <input type="text" name="username" id="username"
+              placeholder="Nombre de usuario" required autocomplete="username"
+              value="{{ form.username.value|default:'' }}"
+              class="bind-input">
+          </div>
+
+          <!-- First + Last name (two columns) -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="relative">
+              <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+              </svg>
+              <input type="text" name="first_name" id="first_name"
+                placeholder="Nombre" autocomplete="given-name"
+                value="{{ form.first_name.value|default:'' }}"
+                class="bind-input">
+            </div>
+            <div class="relative">
+              <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+              </svg>
+              <input type="text" name="last_name" id="last_name"
+                placeholder="Apellido" autocomplete="family-name"
+                value="{{ form.last_name.value|default:'' }}"
+                class="bind-input">
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="relative">
+            <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+            </svg>
+            <input type="email" name="email" id="email"
+              placeholder="Correo electrónico (opcional)" autocomplete="email"
+              value="{{ form.email.value|default:'' }}"
+              class="bind-input">
+          </div>
+
+          <!-- Password 1 -->
+          <div class="space-y-2">
+            <div class="relative">
+              <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+              </svg>
+              <input type="password" name="password1" id="password1"
+                placeholder="Contraseña" required autocomplete="new-password"
+                class="bind-input">
+              <button type="button" id="togglePass1" class="eye-btn" aria-label="Mostrar contraseña">
+                <svg id="eye1Open" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <svg id="eye1Closed" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Strength bar -->
+            <div id="barWrap" class="bar-track hidden">
+              <div id="barFill" class="bar-fill w-0"></div>
+            </div>
+
+            <!-- Strength label + hints -->
+            <div id="passHints" class="hidden space-y-1 px-0.5">
+              <div class="flex items-center justify-between">
+                <span id="strengthLabel" class="text-xs font-medium text-gray-500"></span>
+              </div>
+              <div id="hintLen"  class="flex items-center gap-1.5 text-xs text-gray-500">
+                <span id="dotLen"  class="w-1.5 h-1.5 rounded-full bg-gray-600 flex-shrink-0"></span>
+                Mínimo 8 caracteres
+              </div>
+              <div id="hintNum"  class="flex items-center gap-1.5 text-xs text-gray-500">
+                <span id="dotNum"  class="w-1.5 h-1.5 rounded-full bg-gray-600 flex-shrink-0"></span>
+                Números o símbolos (recomendado)
+              </div>
+            </div>
+          </div>
+
+          <!-- Password 2 -->
+          <div class="space-y-2">
+            <div class="relative">
+              <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+              </svg>
+              <input type="password" name="password2" id="password2"
+                placeholder="Confirmar contraseña" required autocomplete="new-password"
+                class="bind-input">
+              <button type="button" id="togglePass2" class="eye-btn" aria-label="Mostrar contraseña">
+                <svg id="eye2Open" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <svg id="eye2Closed" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Match hint -->
+            <div id="matchHintRow" class="hidden flex items-center gap-1.5 px-0.5">
+              <span id="matchIcon" class="text-sm leading-none"></span>
+              <span id="matchText" class="text-xs font-medium"></span>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div class="pt-2">
+            <button type="submit" id="submitBtn"
+              class="btn-primary w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white font-semibold py-3.5 rounded-xl shadow-lg text-sm">
+              Crear cuenta
+            </button>
+          </div>
+        </form>
+
+        <!-- Footer link -->
+        <p class="text-center mt-5 text-xs text-gray-600">
+          ¿Ya tienes cuenta?
+          <a href="{% url 'accounts:login' %}" class="text-teal-400 hover:text-teal-300 font-medium ml-1 transition-colors">
+            Iniciar sesión
+          </a>
+        </p>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // Theme toggle
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const html = document.documentElement;
+      html.classList.toggle('dark');
+      localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Eye toggles
+    function makeEye(btnId, inputId, openId, closedId) {
+      document.getElementById(btnId).addEventListener('click', () => {
+        const inp = document.getElementById(inputId);
+        const show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        document.getElementById(openId).classList.toggle('hidden', show);
+        document.getElementById(closedId).classList.toggle('hidden', !show);
+      });
+    }
+    makeEye('togglePass1', 'password1', 'eye1Open', 'eye1Closed');
+    makeEye('togglePass2', 'password2', 'eye2Open', 'eye2Closed');
+
+    // Strength engine
+    const p1          = document.getElementById('password1');
+    const p2          = document.getElementById('password2');
+    const barWrap     = document.getElementById('barWrap');
+    const barFill     = document.getElementById('barFill');
+    const passHints   = document.getElementById('passHints');
+    const strengthLbl = document.getElementById('strengthLabel');
+    const hintLen     = document.getElementById('hintLen');
+    const dotLen      = document.getElementById('dotLen');
+    const hintNum     = document.getElementById('hintNum');
+    const dotNum      = document.getElementById('dotNum');
+    const matchRow    = document.getElementById('matchHintRow');
+    const matchIcon   = document.getElementById('matchIcon');
+    const matchText   = document.getElementById('matchText');
+
+    const STRENGTH = [
+      { label: 'Muy débil',  bar: '20%',  color: '#ef4444', cls: 'inp-weak',   lblColor: 'text-red-400'    },
+      { label: 'Débil',      bar: '40%',  color: '#ef4444', cls: 'inp-weak',   lblColor: 'text-red-400'    },
+      { label: 'Media',      bar: '60%',  color: '#f59e0b', cls: 'inp-medium', lblColor: 'text-yellow-400' },
+      { label: 'Fuerte',     bar: '80%',  color: '#10b981', cls: 'inp-strong', lblColor: 'text-teal-400'   },
+      { label: 'Muy fuerte', bar: '100%', color: '#10b981', cls: 'inp-strong', lblColor: 'text-teal-400'   },
+    ];
+
+    function score(val) {
+      let s = 0;
+      if (val.length >= 8)  s++;
+      if (val.length >= 12) s++;
+      if (/[A-Z]/.test(val))  s++;
+      if (/[0-9!@#$%^&*()\-_=+\[\]{};:'",.<>/?`~\\|]/.test(val)) s++;
+      return Math.min(s, 4);
+    }
+
+    function clearBorderStates(el) {
+      el.classList.remove('inp-weak', 'inp-medium', 'inp-strong', 'inp-match', 'inp-no-match');
+    }
+
+    function validateP1() {
+      const val = p1.value;
+      clearBorderStates(p1);
+
+      if (!val) {
+        barWrap.classList.add('hidden');
+        passHints.classList.add('hidden');
+        if (p2.value) validateP2();
+        return;
+      }
+
+      barWrap.classList.remove('hidden');
+      passHints.classList.remove('hidden');
+
+      const s    = score(val);
+      const info = STRENGTH[s];
+
+      barFill.style.width           = info.bar;
+      barFill.style.backgroundColor = info.color;
+      p1.classList.add(info.cls);
+
+      strengthLbl.textContent  = info.label;
+      strengthLbl.className    = 'text-xs font-medium ' + info.lblColor;
+
+      const lenOk = val.length >= 8;
+      const numOk = /[0-9!@#$%^&*()\-_=+\[\]{};:'",.<>/?`~\\|]/.test(val);
+
+      hintLen.className = 'flex items-center gap-1.5 text-xs ' + (lenOk ? 'text-teal-400' : 'text-red-400');
+      dotLen.className  = 'w-1.5 h-1.5 rounded-full flex-shrink-0 ' + (lenOk ? 'bg-teal-400' : 'bg-red-400');
+
+      hintNum.className = 'flex items-center gap-1.5 text-xs ' + (numOk ? 'text-teal-400' : 'text-gray-500');
+      dotNum.className  = 'w-1.5 h-1.5 rounded-full flex-shrink-0 ' + (numOk ? 'bg-teal-400' : 'bg-gray-600');
+
+      if (p2.value) validateP2();
+    }
+
+    function validateP2() {
+      const val = p2.value;
+      clearBorderStates(p2);
+
+      if (!val) {
+        matchRow.classList.add('hidden');
+        return;
+      }
+
+      matchRow.classList.remove('hidden');
+      const ok = val === p1.value;
+
+      p2.classList.add(ok ? 'inp-match' : 'inp-no-match');
+      matchIcon.textContent = ok ? '✓' : '✗';
+      matchText.textContent = ok ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
+      matchText.className   = 'text-xs font-medium ' + (ok ? 'text-teal-400' : 'text-red-400');
+    }
+
+    p1.addEventListener('input', validateP1);
+    p2.addEventListener('input', validateP2);
+
+    // Client-side guard before submit
+    document.getElementById('registerForm').addEventListener('submit', e => {
+      if (p1.value.length < 8) {
+        e.preventDefault(); p1.focus(); validateP1(); return;
+      }
+      if (p1.value !== p2.value) {
+        e.preventDefault(); p2.focus(); validateP2(); return;
+      }
+    });
+  </script>
+</body>
+</html>

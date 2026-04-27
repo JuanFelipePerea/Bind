@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}BIND - Proyectos{% endblock %}
+{% block page_title %}Proyectos{% endblock %}
+
+{% block topbar_action %}
+<a href="{% url 'events:event_create' %}" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all flex items-center gap-2 group">
+  <svg class="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+  Nuevo evento
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-8 animate-fade-in">
+
+  <!-- Filtros de estado — activo inequívocamente diferenciado -->
+  <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
+    <a href="?" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all
+      {% if not request.GET.status %}bg-teal-500 text-white shadow-sm shadow-teal-500/20{% else %}glass text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-teal-400/50{% endif %}">
+      Todos
+    </a>
+    <a href="?status=active" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all
+      {% if request.GET.status == 'active' %}bg-teal-500 text-white shadow-sm shadow-teal-500/20{% else %}glass text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-teal-400/50{% endif %}">
+      Activos
+    </a>
+    <a href="?status=draft" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all
+      {% if request.GET.status == 'draft' %}bg-teal-500 text-white shadow-sm shadow-teal-500/20{% else %}glass text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-teal-400/50{% endif %}">
+      Borrador
+    </a>
+    <a href="?status=completed" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all
+      {% if request.GET.status == 'completed' %}bg-teal-500 text-white shadow-sm shadow-teal-500/20{% else %}glass text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-teal-400/50{% endif %}">
+      Completados
+    </a>
+  </div>
+
+  <!-- Grid de eventos -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+    <!-- Tarjeta: crear nuevo — visualmente distinta, no compite con los eventos reales -->
+    <a href="{% url 'events:event_create' %}"
+       class="glass rounded-2xl p-5 border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center gap-4 hover:border-teal-500 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 transition-all group">
+      <div class="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform flex-shrink-0">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      </div>
+      <div>
+        <p class="font-bold text-gray-700 dark:text-gray-200 text-sm">Nuevo evento</p>
+        <p class="text-xs text-gray-400 mt-0.5">Empieza algo hoy</p>
+      </div>
+    </a>
+
+    <!-- Tarjetas de eventos reales — altura natural, sin h-64 fija -->
+    {% for event in events %}
+    <div class="glass rounded-2xl p-5 flex flex-col gap-4 transition-all duration-200 hover:shadow-xl border border-transparent hover:border-teal-500/40 cursor-pointer group"
+         onclick="window.location.href='{% url 'events:event_detail' event.pk %}'">
+
+      <!-- Fila superior: estado + health score + acciones -->
+      <div class="flex justify-between items-start">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full border
+            {% if event.status == 'active' %}bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800
+            {% elif event.status == 'draft' %}bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700
+            {% elif event.status == 'completed' %}bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800
+            {% else %}bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800{% endif %}">
+            {{ event.get_status_display }}
+          </span>
+          {% if event.health_label %}
+          <span class="text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1
+            {% if event.health_score == 100 %}bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400
+            {% elif event.health_score >= 80 %}bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400
+            {% elif event.health_score >= 50 %}bg-teal-100 text-teal-700 dark:bg-slate-700/50 dark:text-teal-300
+            {% elif event.health_score > 0 %}bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400
+            {% else %}bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+            {% if event.health_score == 100 %}
+            <i data-lucide="award" class="w-3.5 h-3.5"></i>
+            {% else %}
+            <span class="w-1.5 h-1.5 rounded-full
+              {% if event.health_score >= 80 %}bg-green-500
+              {% elif event.health_score >= 50 %}bg-teal-500
+              {% elif event.health_score > 0 %}bg-amber-500 animate-pulse
+              {% else %}bg-red-500 animate-pulse{% endif %}">
+            </span>
+            {% endif %}
+            {{ event.health_score }}
+          </span>
+          {% endif %}
+        </div>
+        <!-- Acciones visibles solo en hover -->
+        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <a href="{% url 'events:event_edit' event.pk %}" onclick="event.stopPropagation()"
+             class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors" title="Editar">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </a>
+          <a href="{% url 'events:event_delete' event.pk %}" onclick="event.stopPropagation()"
+             class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Nombre y ubicación -->
+      <div>
+        <h3 class="text-base font-bold text-gray-800 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors leading-snug">{{ event.name }}</h3>
+        {% if event.location %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
+          <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+          {{ event.location }}
+        </p>
+        {% endif %}
+      </div>
+
+      <!-- Fecha + progreso -->
+      <div>
+        {% if event.start_date %}
+        <p class="text-xs text-gray-400 flex items-center gap-1 mb-2">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          {{ event.start_date|date:"d M Y" }}
+        </p>
+        {% endif %}
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-gray-400">Progreso</span>
+          <span class="font-semibold text-gray-600 dark:text-gray-300">{{ event.task_progress|default:"0" }}%</span>
+        </div>
+        <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div class="bg-teal-400 h-1.5 rounded-full" style="width: {{ event.task_progress|default:'0' }}%"></div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="glass rounded-2xl p-8 flex flex-col items-center justify-center text-center border-2 border-dashed border-gray-200 dark:border-gray-700 col-span-1 md:col-span-2 lg:col-span-3">
+      <svg class="w-10 h-10 mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+      <p class="font-semibold text-gray-600 dark:text-gray-400 mb-1 text-sm">Sin eventos en esta categoría</p>
+      <p class="text-xs text-gray-400 mb-4">Cambia el filtro o crea uno nuevo</p>
+      <a href="{% url 'events:event_create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Crear nuevo evento
+      </a>
+    </div>
+    {% endfor %}
+
+  </div>
+
+  <!-- Paginación -->
+  {% if page_obj.has_other_pages %}
+  <div class="flex items-center justify-center gap-3 mt-8 pt-6 border-t border-gray-200/40 dark:border-gray-700/40">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+       class="glass px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-700 transition-all">
+      ← Anterior
+    </a>
+    {% endif %}
+    <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">
+      {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+    </span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+       class="glass px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-700 transition-all">
+      Siguiente →
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if not events %}
+  <div class="text-center py-16">
+    <svg class="w-14 h-14 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+    <p class="font-semibold text-gray-600 dark:text-gray-400 mb-1">No hay proyectos aún</p>
+    <p class="text-sm text-gray-400 mb-5">Crea tu primer evento para comenzar</p>
+    <a href="{% url 'events:event_create' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Crear primer evento
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
