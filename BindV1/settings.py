@@ -30,6 +30,12 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
 
+    # django-debug-toolbar
+    'debug_toolbar',
+
+    # django-silk
+    'silk',
+
     'accounts',
     'events',
     'modules',
@@ -47,6 +53,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    # django-silk (debe ir después de SessionMiddleware)
+    'silk.middleware.SilkyMiddleware',
+    # django-debug-toolbar (debe ir al final)
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'BindV1.urls'
@@ -156,3 +166,21 @@ SOCIALACCOUNT_PROVIDERS = {
         'AUTH_PARAMS': {'access_type': 'online'},
     }
 }
+
+# ---------------------------------------------------------------------------
+# django-debug-toolbar
+# ---------------------------------------------------------------------------
+def show_toolbar(request):
+    return DEBUG
+
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': show_toolbar,
+}
+
+# ---------------------------------------------------------------------------
+# django-silk
+# ---------------------------------------------------------------------------
+SILKY_AUTHENTICATION = True
+SILKY_AUTHORISATION = True
+SILKY_META = True
+SILKY_INTERCEPT_PERCENT = 100
