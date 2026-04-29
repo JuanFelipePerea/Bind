@@ -20,9 +20,3 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    # django-debug-toolbar
-    import debug_toolbar
-    urlpatterns += [path('__debug__/', include(debug_toolbar.urls))]
-
-    # django-silk
-    urlpatterns += [path('silk/', include('silk.urls', namespace='silk'))]

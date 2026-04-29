@@ -16,7 +16,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.7.3/build/css/intlTelInput.min.css">
 
 <style>
-  /* Integrar intl-tel-input con el diseño oscuro de Bind */
   .iti { width: 100%; }
   .iti__tel-input {
     width: 100%;
@@ -132,11 +131,11 @@
                       focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm transition-all">
       </div>
 
-      <!-- Celular con intl-tel-input -->
+      <!-- Celular con intl-tel-input (bandera + código de país) -->
       <div>
         <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Celular</label>
-        <input type="tel" id="phoneInput" placeholder="300 123 4567">
-        <input type="hidden" name="phone" id="phoneHidden" value="{{ profile.phone|default:'' }}">
+        <input type="tel" id="phoneInput" placeholder="300 123 4567" maxlength="15">
+        <input type="hidden" name="phone" id="phoneHidden" value="{{ profile.phone|default:'' }}" maxlength="16">
       </div>
 
       <div>
@@ -180,14 +179,14 @@
 
 </div>
 
-<!-- intl-tel-input JS (incluye utils para formateo) -->
+<!-- intl-tel-input JS -->
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.7.3/build/js/intlTelInputWithUtils.min.js"></script>
 
 <script>
 (function () {
-  // ── Banner preview ────────────────────────────────────────────────────────
-  var avatarInput   = document.getElementById('avatarInput');
-  var bannerPreview = document.getElementById('bannerPreview');
+  // Banner preview al seleccionar imagen
+  var avatarInput    = document.getElementById('avatarInput');
+  var bannerPreview  = document.getElementById('bannerPreview');
   var bannerFallback = document.getElementById('bannerFallback');
 
   avatarInput.addEventListener('change', function () {
@@ -198,22 +197,19 @@
     if (bannerFallback) bannerFallback.style.display = 'none';
   });
 
-  // ── intl-tel-input ────────────────────────────────────────────────────────
+  // intl-tel-input con bandera de Colombia por defecto
   var phoneInput  = document.getElementById('phoneInput');
   var phoneHidden = document.getElementById('phoneHidden');
   var stored      = phoneHidden.value;
 
   var iti = window.intlTelInput(phoneInput, {
-    initialCountry: 'co',          // Colombia por defecto
-    separateDialCode: true,        // muestra +57 separado de la bandera
-    countrySearch: true,           // campo de búsqueda en el dropdown
-    loadUtilsOnInit: false,        // ya están incluidos en intlTelInputWithUtils
-    i18n: {
-      searchPlaceholder: 'Buscar país...',
-    },
+    initialCountry: 'co',
+    separateDialCode: true,
+    countrySearch: true,
+    loadUtilsOnInit: false,
+    i18n: { searchPlaceholder: 'Buscar país...' },
   });
 
-  // Si ya hay un número guardado, cargarlo
   if (stored) {
     if (stored.startsWith('+')) {
       iti.setNumber(stored);
@@ -222,11 +218,12 @@
     }
   }
 
-  // Antes de enviar, escribir el número completo con prefijo en el input oculto
+  // Al enviar, guarda el número completo con prefijo en el campo oculto
   document.getElementById('profileForm').addEventListener('submit', function () {
-    var full = iti.getNumber();          // e.g. "+573226018352"
+    var full = iti.getNumber();
     phoneHidden.value = full || phoneInput.value;
   });
 })();
 </script>
+
 {% endblock %}

@@ -11,5 +11,3 @@ cryptography
 python-docx
 PyPDF2
 gunicorn==23.0.0
-django-debug-toolbar>=4.3.0
-django-silk>=5.1.0
