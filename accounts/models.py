@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.validators import RegexValidator
 
 
 class UserProfile(models.Model):
@@ -26,8 +27,13 @@ class UserProfile(models.Model):
     # Foto de perfil
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
 
-    # Teléfono/celular
-    phone = models.CharField(max_length=20, blank=True, null=True)
+    # Teléfono/celular — E.164 máx 16 chars (+[hasta 15 dígitos])
+    _phone_validator = RegexValidator(
+        regex=r'^\+?\d{7,15}$',
+        message='Ingresa un número válido: entre 7 y 15 dígitos, opcionalmente con + al inicio. '
+                'Colombia: +57 seguido de 10 dígitos (ej. +573001234567).',
+    )
+    phone = models.CharField(max_length=16, blank=True, null=True, validators=[_phone_validator])
 
     # Descripción/bio
     bio = models.TextField(max_length=500, blank=True, null=True)

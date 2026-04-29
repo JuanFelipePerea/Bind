@@ -7,6 +7,7 @@ from django.contrib.messages import get_messages
 from django.core.mail import send_mail
 from django.conf import settings
 import random
+import re
 
 from .models import UserProfile
 
@@ -138,7 +139,7 @@ def register_view(request):
             first_name=first_name, last_name=last_name,
         )
         # UserProfile is created automatically by the post_save signal in models.py
-        login(request, user)
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         messages.success(request, f'¡Bienvenido a Bind, {user.first_name or user.username}!')
         return redirect('events:dashboard')
 
@@ -168,7 +169,17 @@ def profile_edit_view(request):
         request.user.email      = request.POST.get('email', '').strip()
 
         # Datos del UserProfile
-        profile.phone = request.POST.get('phone', '').strip()
+        raw_phone = request.POST.get('phone', '').strip()
+
+        if raw_phone and not re.match(r'^\+?\d{7,15}$', raw_phone):
+            messages.error(
+                request,
+                'Número de teléfono inválido. Usa formato internacional: +573001234567 '
+                '(+ seguido de 7 a 15 dígitos, sin espacios ni guiones).'
+            )
+            return render(request, 'accounts/profile_edit.html', {'profile': profile})
+
+        profile.phone = raw_phone or None
         profile.bio   = request.POST.get('bio', '').strip()
         profile.two_factor_enabled = request.POST.get('two_factor_enabled') == 'on'
 
