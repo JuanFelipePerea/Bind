@@ -234,35 +234,102 @@
 
         <!-- Campana de notificaciones (siempre visible) -->
         <div class="relative" id="notif-wrapper">
-          <button id="notifToggle" class="relative p-2.5 rounded-xl glass hover:bg-white/80 dark:hover:bg-gray-700 transition-colors shadow-sm">
-            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <button id="notifToggle"
+                  class="relative p-2.5 rounded-xl transition-all shadow-sm
+                         bg-gray-100 hover:bg-gray-200 border border-gray-200
+                         dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/10">
+            <svg class="w-5 h-5 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
             {% if messages %}
-            <span id="notifBadge" class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{{ messages|length }}</span>
+            <span id="notifBadge"
+                  class="absolute -top-1 -right-1 w-5 h-5 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm bg-gradient-to-br from-teal-400 to-cyan-500">
+              {{ messages|length }}
+            </span>
             {% endif %}
           </button>
-          <div id="notifPanel" class="hidden absolute right-0 top-12 w-80 glass rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 z-50 overflow-hidden animate-fade-in">
-            <div class="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
-              <span class="text-sm font-bold text-gray-700 dark:text-white">Notificaciones</span>
-              <button id="notifClose" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+
+          <!-- Panel de notificaciones -->
+          <div id="notifPanel"
+               class="hidden absolute right-0 top-12 w-80 z-50 overflow-hidden animate-fade-in rounded-2xl
+                      bg-white dark:bg-gray-900
+                      border border-gray-200 dark:border-gray-700
+                      shadow-2xl dark:shadow-black/60">
+
+            <!-- Encabezado -->
+            <div class="flex items-center justify-between px-4 py-3
+                        bg-gray-50 dark:bg-gray-800
+                        border-b border-gray-200 dark:border-gray-700">
+              <div class="flex items-center gap-2">
+                <div class="w-1.5 h-4 rounded-full bg-gradient-to-b from-teal-400 to-cyan-500"></div>
+                <span class="text-sm font-bold text-gray-800 dark:text-white tracking-wide">Notificaciones</span>
+              </div>
+              <button id="notifClose"
+                      class="w-6 h-6 flex items-center justify-center rounded-lg transition-colors
+                             text-gray-400 hover:text-gray-700 bg-gray-200 hover:bg-gray-300
+                             dark:text-gray-400 dark:hover:text-white dark:bg-white/10 dark:hover:bg-white/20">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
               </button>
             </div>
-            <div class="p-3 space-y-2 max-h-64 overflow-y-auto scrollbar-hide">
+
+            <!-- Cuerpo -->
+            <div class="p-3 space-y-2 max-h-64 overflow-y-auto scrollbar-hide
+                        bg-white dark:bg-gray-900">
               {% if messages %}
                 {% for message in messages %}
-                <div data-message-alert class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm
-                  {% if message.tags == 'success' %}border-l-4 border-teal-500 text-teal-700 dark:text-teal-300 bg-teal-500/10
-                  {% elif message.tags == 'error' %}border-l-4 border-red-500 text-red-700 dark:text-red-300 bg-red-500/10
-                  {% else %}border-l-4 border-blue-500 text-blue-700 dark:text-blue-300 bg-blue-500/10{% endif %}">
-                  {{ message }}
+                <div data-message-alert class="flex items-start gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                  {% if message.tags == 'success' %}
+                    border-l-4 border-teal-500
+                    bg-teal-50 text-teal-800
+                    dark:bg-teal-500/10 dark:text-teal-300
+                  {% elif message.tags == 'error' %}
+                    border-l-4 border-red-500
+                    bg-red-50 text-red-800
+                    dark:bg-red-500/10 dark:text-red-300
+                  {% else %}
+                    border-l-4 border-blue-500
+                    bg-blue-50 text-blue-800
+                    dark:bg-blue-500/10 dark:text-blue-300
+                  {% endif %}">
+                  <svg class="w-4 h-4 mt-0.5 shrink-0
+                    {% if message.tags == 'success' %}text-teal-500
+                    {% elif message.tags == 'error' %}text-red-500
+                    {% else %}text-blue-500{% endif %}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {% if message.tags == 'success' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    {% elif message.tags == 'error' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    {% endif %}
+                  </svg>
+                  <span>{{ message }}</span>
                 </div>
                 {% endfor %}
               {% else %}
-                <div class="flex flex-col items-center justify-center py-8 text-gray-400 gap-2">
-                  <svg class="w-8 h-8 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                  <span class="text-xs">Sin notificaciones</span>
+                <div class="flex flex-col items-center justify-center py-8 gap-3">
+                  <div class="w-12 h-12 rounded-2xl flex items-center justify-center
+                              bg-gray-100 dark:bg-gray-800">
+                    <svg class="w-6 h-6 text-teal-500 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                  </div>
+                  <div class="text-center">
+                    <p class="text-xs font-semibold text-gray-700 dark:text-gray-200">Todo al día</p>
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Sin notificaciones nuevas</p>
+                  </div>
                 </div>
               {% endif %}
+            </div>
+
+            <!-- Footer -->
+            <div class="px-4 py-2.5 text-center
+                        bg-gray-50 dark:bg-gray-800
+                        border-t border-gray-200 dark:border-gray-700">
+              <span class="text-[11px] font-medium text-gray-400 dark:text-gray-500">BIND · Sistema de notificaciones</span>
             </div>
           </div>
         </div>
