@@ -22,5 +22,7 @@ urlpatterns = [
     path('calendar/', views.calendar_view, name='calendar'),
     path('alerts/<int:pk>/dismiss/', views.alert_dismiss, name='alert_dismiss'),
     path('alerts/<int:pk>/action/', views.alert_action, name='alert_action'),
+    path('alerts/feed/', views.alerts_feed, name='alerts_feed'),
+    path('alerts/mark-all-read/', views.alerts_mark_all_read, name='alerts_mark_all_read'),
     path('search/', views.global_search, name='search'),
 ]

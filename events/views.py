@@ -888,6 +888,49 @@ def report_view(request):
 
 
 @login_required
+def alerts_feed(request):
+    alerts = EventAlert.objects.filter(
+        event__owner=request.user,
+        is_dismissed=False,
+    ).select_related('event').order_by(
+        db_models.Case(
+            db_models.When(severity='critical', then=0),
+            db_models.When(severity='warning', then=1),
+            default=2,
+            output_field=db_models.IntegerField(),
+        ),
+        '-created_at'
+    )[:20]
+
+    data = [{
+        'id': a.pk,
+        'title': a.title,
+        'message': a.message,
+        'severity': a.severity,
+        'event_name': a.event.name,
+        'event_pk': a.event.pk,
+        'action_url': a.action_url,
+        'action_label': a.action_label or 'Ver',
+        'is_read': a.is_read,
+        'created_at': a.created_at.strftime('%d %b, %H:%M'),
+    } for a in alerts]
+
+    return JsonResponse({'alerts': data})
+
+
+@login_required
+def alerts_mark_all_read(request):
+    if request.method == 'POST':
+        EventAlert.objects.filter(
+            event__owner=request.user,
+            is_read=False,
+            is_dismissed=False,
+        ).update(is_read=True)
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'error': 'method not allowed'}, status=405)
+
+
+@login_required
 def calendar_view(request):
     """
     Calendario estilo Google Calendar.
