@@ -35,52 +35,6 @@
 {% block content %}
 <div class="h-full flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-950">
 
-  <!-- ── ALERTAS ── -->
-  {% if alerts %}
-  <div class="shrink-0 px-5 pt-3 space-y-1.5">
-    {% for alert in alerts %}
-    <div class="rounded-xl px-4 py-2.5 flex items-center justify-between gap-3
-      {% if alert.severity == 'critical' %}bg-red-500/10 border border-red-500/40
-      {% elif alert.severity == 'warning' %}bg-amber-500/10 border border-amber-500/40
-      {% else %}bg-teal-500/10 border border-teal-500/30{% endif %}">
-      <div class="flex items-center gap-2.5 flex-1 min-w-0">
-        <span class="w-2 h-2 rounded-full flex-shrink-0
-          {% if alert.severity == 'critical' %}bg-red-500 animate-pulse
-          {% elif alert.severity == 'warning' %}bg-amber-500
-          {% else %}bg-teal-500{% endif %}"></span>
-        <div class="min-w-0">
-          <p class="font-bold text-xs
-            {% if alert.severity == 'critical' %}text-red-700 dark:text-red-300
-            {% elif alert.severity == 'warning' %}text-amber-700 dark:text-amber-300
-            {% else %}text-teal-700 dark:text-teal-300{% endif %}">
-            {{ alert.title }}
-          </p>
-          <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">{{ alert.event.name }} · {{ alert.message|truncatechars:60 }}</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2 flex-shrink-0">
-        {% if alert.action_url %}
-        <a href="{% url 'events:alert_action' alert.pk %}"
-           class="text-xs font-bold px-3 py-1 rounded-lg transition-colors
-           {% if alert.severity == 'critical' %}bg-red-500 text-white hover:bg-red-600
-           {% elif alert.severity == 'warning' %}bg-amber-500 text-white hover:bg-amber-600
-           {% else %}bg-teal-500 text-white hover:bg-teal-600{% endif %}">
-          {{ alert.action_label|default:"Resolver" }}
-        </a>
-        {% endif %}
-        <form method="post" action="{% url 'events:alert_dismiss' alert.pk %}">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ request.path }}">
-          <button type="submit" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1" title="Descartar">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
-        </form>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
   <!-- ── HEADER DE MÉTRICAS (fijo, ~72px) ── -->
   <div class="shrink-0 px-5 py-3 border-b border-gray-200/40 dark:border-gray-700/30"
        style="background: linear-gradient(to right, rgba(94,207,190,0.06), rgba(34,211,238,0.04));">
@@ -163,6 +117,36 @@
           <p class="text-[10px] text-gray-300 dark:text-gray-600">Sin tareas urgentes</p>
         </div>
         {% endfor %}
+
+        {% if engine_decisions %}
+        <div class="mt-3 pt-3 border-t border-amber-200/50
+                    dark:border-amber-800/20">
+          <p class="text-[10px] font-bold text-gray-400 uppercase
+                    tracking-widest mb-2">Sugerencias del motor</p>
+          {% for decision in engine_decisions %}
+          <div class="glass p-3 rounded-xl mb-2 border-l-4
+            {% if decision.severity == 'critical' %}border-red-500 bg-red-500/5
+            {% elif decision.severity == 'warning' %}border-amber-500 bg-amber-500/5
+            {% else %}border-teal-500 bg-teal-500/5{% endif %}">
+            <p class="text-xs font-bold
+              {% if decision.severity == 'critical' %}text-red-700 dark:text-red-300
+              {% elif decision.severity == 'warning' %}text-amber-700 dark:text-amber-300
+              {% else %}text-teal-700 dark:text-teal-300{% endif %}
+              leading-snug">{{ decision.title }}</p>
+            <p class="text-[10px] text-gray-400 mt-0.5 leading-snug">
+              {{ decision.message|truncatechars:70 }}
+            </p>
+            {% if decision.action_url %}
+            <a href="{{ decision.action_url }}"
+               class="inline-block mt-1.5 text-[10px] font-bold
+                      text-teal-500 hover:underline">
+              {{ decision.action_label }} →
+            </a>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
     </div>
 
