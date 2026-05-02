@@ -4,6 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Count, Q, Sum, F
@@ -799,6 +800,87 @@ def template_preview_json(request, template_id):
         'checklists': checklists,
         'modules':    list(template.modules.values_list('module_type', flat=True)),
     })
+@login_required
+def template_create(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        if not name:
+            messages.error(request, 'El nombre de la plantilla es obligatorio.')
+            return render(request, 'events/template_form.html', {
+                'category_choices': EventTemplate.CATEGORY_CHOICES,
+                'module_choices': TemplateModule.MODULE_CHOICES,
+            })
+        with transaction.atomic():
+            tmpl = EventTemplate.objects.create(
+                name=name,
+                description=request.POST.get('description', '').strip(),
+                category=request.POST.get('category', 'business'),
+                color=request.POST.get('color', '#3B82F6'),
+                created_by=request.user,
+            )
+            for module_type in request.POST.getlist('modules'):
+                TemplateModule.objects.get_or_create(template=tmpl, module_type=module_type)
+        messages.success(request, f'Plantilla "{tmpl.name}" creada.')
+        return redirect('events:template_list')
+    return render(request, 'events/template_form.html', {
+        'category_choices': EventTemplate.CATEGORY_CHOICES,
+        'module_choices':   TemplateModule.MODULE_CHOICES,
+    })
+
+
+@login_required
+def template_edit(request, pk):
+    tmpl = get_object_or_404(EventTemplate, pk=pk)
+    if tmpl.created_by != request.user:
+        messages.error(request, 'No tienes permiso para editar esta plantilla.')
+        return redirect('events:template_list')
+    active_modules = list(tmpl.modules.values_list('module_type', flat=True))
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        if not name:
+            messages.error(request, 'El nombre de la plantilla es obligatorio.')
+            return render(request, 'events/template_form.html', {
+                'object':           tmpl,
+                'category_choices': EventTemplate.CATEGORY_CHOICES,
+                'module_choices':   TemplateModule.MODULE_CHOICES,
+                'active_modules':   active_modules,
+            })
+        with transaction.atomic():
+            tmpl.name        = name
+            tmpl.description = request.POST.get('description', '').strip()
+            tmpl.category    = request.POST.get('category', tmpl.category)
+            tmpl.color       = request.POST.get('color', tmpl.color)
+            tmpl.save()
+            tmpl.modules.all().delete()
+            for module_type in request.POST.getlist('modules'):
+                TemplateModule.objects.create(template=tmpl, module_type=module_type)
+        messages.success(request, f'Plantilla "{tmpl.name}" actualizada.')
+        return redirect('events:template_list')
+    return render(request, 'events/template_form.html', {
+        'object':           tmpl,
+        'category_choices': EventTemplate.CATEGORY_CHOICES,
+        'module_choices':   TemplateModule.MODULE_CHOICES,
+        'active_modules':   active_modules,
+    })
+
+
+@login_required
+def template_delete(request, pk):
+    tmpl = get_object_or_404(EventTemplate, pk=pk)
+    if tmpl.created_by != request.user:
+        messages.error(request, 'No tienes permiso para eliminar esta plantilla.')
+        return redirect('events:template_list')
+    if request.method == 'POST':
+        name = tmpl.name
+        tmpl.delete()
+        messages.success(request, f'Plantilla "{name}" eliminada.')
+        return redirect('events:template_list')
+    return render(request, 'modules/confirm_delete.html', {
+        'object_name': f'la plantilla "{tmpl.name}"',
+        'cancel_url':  reverse('events:template_list'),
+    })
+
+
 @login_required
 def report_view(request):
     stats = compute_user_stats(request.user)
