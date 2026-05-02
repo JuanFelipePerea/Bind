@@ -134,15 +134,16 @@ DEFAULT_FROM_EMAIL = 'BIND <noreply@bind.local>'
 
 
 # ---------------------------------------------------------------------------
-# Seguridad — producción (Render + HTTPS)
+# Seguridad — solo activo en producción (cuando DEBUG=False)
+# En local con DEBUG=True estas flags se desactivan automáticamente.
 # ---------------------------------------------------------------------------
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Render termina TLS en el proxy
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_SSL_REDIRECT = not DEBUG
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if not DEBUG else None
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
 
 # ---------------------------------------------------------------------------
 # django-allauth
