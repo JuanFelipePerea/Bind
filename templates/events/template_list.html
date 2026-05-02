@@ -46,14 +46,33 @@
       <button type="button"
               onclick="openTemplateModal({{ template.pk }})"
               class="h-40 rounded-xl mb-4 relative overflow-hidden w-full text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500
-        {% if cat == 'business' %}bg-gradient-to-br from-blue-500 to-indigo-600
-        {% elif cat == 'academic' %}bg-gradient-to-br from-gray-600 to-gray-800
-        {% elif cat == 'creative' %}bg-gradient-to-br from-purple-400 to-pink-600
-        {% elif cat == 'marketing' %}bg-gradient-to-br from-orange-400 to-red-500
-        {% elif cat == 'social' %}bg-gradient-to-br from-teal-400 to-cyan-600
-        {% else %}bg-gradient-to-br from-teal-400 to-emerald-600{% endif %}">
+        {% if not template.created_by %}
+          {% if cat == 'business' %}bg-gradient-to-br from-blue-500 to-indigo-600
+          {% elif cat == 'academic' %}bg-gradient-to-br from-gray-600 to-gray-800
+          {% elif cat == 'creative' %}bg-gradient-to-br from-purple-400 to-pink-600
+          {% elif cat == 'marketing' %}bg-gradient-to-br from-orange-400 to-red-500
+          {% elif cat == 'social' %}bg-gradient-to-br from-teal-400 to-cyan-600
+          {% else %}bg-gradient-to-br from-teal-400 to-emerald-600{% endif %}
+        {% endif %}"
+        {% if template.created_by %}
+              style="background: linear-gradient(135deg, {{ template.color }}dd, {{ template.color }}99)"
+        {% endif %}>
+        <!-- Badge de origen -->
+        {% if not template.created_by %}
+        <span class="absolute top-2 left-2 bg-black/30 backdrop-blur-sm
+                     text-white text-[9px] font-bold px-2 py-0.5
+                     rounded-full border border-white/20">
+          ✦ BIND
+        </span>
+        {% else %}
+        <span class="absolute top-2 left-2 bg-black/30 backdrop-blur-sm
+                     text-white text-[9px] font-bold px-2 py-0.5
+                     rounded-full border border-white/20">
+          {{ template.created_by.username }}
+        </span>
+        {% endif %}
         <!-- Módulos -->
-        <div class="absolute inset-3 flex flex-wrap gap-1.5 items-start content-start">
+        <div class="absolute inset-3 mt-5 flex flex-wrap gap-1.5 items-start content-start">
           {% for module in template.modules.all %}
           <span class="bg-white/20 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
             {{ module.get_module_type_display }}
