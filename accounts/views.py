@@ -64,8 +64,10 @@ def login_view(request):
                 return redirect('accounts:2fa_login_verify')
 
             login(request, user)
-            next_url = request.GET.get('next', 'events:dashboard')
-            return redirect(next_url)
+            next_url = request.GET.get('next', '')
+            if next_url and next_url.startswith('/'):
+                return redirect(next_url)
+            return redirect('events:dashboard')
         else:
             messages.error(request, 'Usuario o contraseña incorrectos.')
 

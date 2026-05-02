@@ -3,6 +3,10 @@ Decision Engine — núcleo de razonamiento de BIND.
 Transforma BIND de un CRUD pasivo en un asistente activo de planificación.
 """
 
+from django.core.cache import cache
+
+_CACHE_TTL = 300  # 5 minutos
+
 
 def run_engine_for_user(user) -> dict:
     """
@@ -23,6 +27,11 @@ def run_engine_for_user(user) -> dict:
         }
     }
     """
+    cache_key = f"engine_output_{user.pk}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     from events.models import Event
     from events.engine.context import build_event_context
     from events.engine.scorer import score_event
@@ -66,12 +75,19 @@ def run_engine_for_user(user) -> dict:
     except Exception:
         pass
 
-    return {
+    result = {
         'event_scores': event_scores,
         'event_contexts': event_contexts,
         'all_decisions': all_decisions[:5],
         'dashboard_summary': _build_summary(event_scores, all_decisions),
     }
+    cache.set(cache_key, result, _CACHE_TTL)
+    return result
+
+
+def invalidate_engine_cache(user_pk):
+    """Elimina el caché del engine para un usuario dado. Llámalo desde señales."""
+    cache.delete(f"engine_output_{user_pk}")
 
 
 def _build_summary(scores: dict, decisions: list) -> dict:

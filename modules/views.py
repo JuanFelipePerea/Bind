@@ -399,7 +399,10 @@ def task_toggle_done(request, pk):
     # done → pending; cualquier otro estado → done
     task.status = 'pending' if task.status == 'done' else 'done'
     task.save()
-    return redirect(request.POST.get('next') or 'modules:task_overview')
+    next_url = request.POST.get('next', '')
+    if next_url and next_url.startswith('/'):
+        return redirect(next_url)
+    return redirect('modules:task_overview')
 
 
 # ─────────────────────────────────────────────
@@ -514,7 +517,7 @@ def budget_item_create(request, event_pk):
                 messages.error(request, 'El monto ingresado no es válido.')
 
         next_url = request.POST.get('next', '')
-        if next_url:
+        if next_url and next_url.startswith('/'):
             return redirect(next_url)
         return redirect('modules:budget_detail', event_pk=event.pk)
 

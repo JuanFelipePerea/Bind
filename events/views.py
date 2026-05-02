@@ -6,7 +6,8 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum, F
+from django.db.models.functions import Coalesce
 
 from django.db import models as db_models
 from .models import Event, EventTemplate, EventModule, TemplateModule, EventAlert, EngineMetrics
@@ -79,12 +80,17 @@ def dashboard(request):
 
     stats = compute_user_stats(request.user)
 
-    # Eventos activos con presupuesto definido (para widget de salud presupuestaria)
-    from modules.models import Budget
+    # Eventos activos con presupuesto definido (para widget de salud presupuestaria).
+    # total_spent y total_budget se anotan en SQL para evitar N+1:
+    # budget.total_spent es una @property que hace Sum('items__amount') por cada evento.
     budget_events = (
         Event.objects.filter(owner=request.user, status__in=['active', 'draft'])
         .select_related('budget')
         .filter(budget__isnull=False)
+        .annotate(
+            total_spent=Coalesce(Sum('budget__items__amount'), 0),
+            total_budget=F('budget__total_budget'),
+        )
         .order_by('-updated_at')[:5]
     )
 
