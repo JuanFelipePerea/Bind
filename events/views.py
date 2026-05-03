@@ -7,7 +7,8 @@ from django.http import JsonResponse
 from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Count, Q, Sum, F
+import decimal
+from django.db.models import Count, Q, Sum, F, DecimalField
 from django.db.models.functions import Coalesce
 
 from django.db import models as db_models
@@ -85,12 +86,19 @@ def dashboard(request):
     # total_spent y total_budget se anotan en SQL para evitar N+1:
     # budget.total_spent es una @property que hace Sum('items__amount') por cada evento.
     budget_events = (
-        Event.objects.filter(owner=request.user, status__in=['active', 'draft'])
+        Event.objects.filter(
+            owner=request.user,
+            status__in=['active', 'draft']
+        )
         .select_related('budget')
         .filter(budget__isnull=False)
         .annotate(
-            total_spent=Coalesce(Sum('budget__items__amount'), 0),
-            total_budget=F('budget__total_budget'),
+            total_spent=Coalesce(
+                Sum('budget__items__amount'),
+                decimal.Decimal('0'),
+                output_field=DecimalField(),
+            ),
+            total_budget_val=F('budget__total_budget'),
         )
         .order_by('-updated_at')[:5]
     )
