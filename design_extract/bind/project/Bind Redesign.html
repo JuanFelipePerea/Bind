@@ -1,0 +1,2210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bind — Redesign</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; width: 100%; overflow: hidden; }
+    body { font-family: 'DM Sans', sans-serif; background: #080C14; transition: background .3s, color .3s; }
+
+    /* ── LIGHT MODE ── */
+    body.light { background: #F3F4F8; color: #111827; }
+    body.light .sidebar-el { background: linear-gradient(180deg,#1A2340 0%,#111827 100%); }
+    body.light .topbar-el  { background: rgba(243,244,248,.92); border-bottom-color: rgba(0,0,0,.08); }
+    body.light .topbar-title { color: #111827; }
+    body.light .card { background: #fff; border-color: rgba(0,0,0,.07); }
+    body.light .card:hover { border-color: rgba(79,142,247,.25); }
+    body.light .main-bg { background: #F3F4F8; }
+    body.light .text-muted  { color: rgba(0,0,0,.45) !important; }
+    body.light .text-bright { color: #111827 !important; }
+    body.light .search-input { background: rgba(0,0,0,.06); border-color: rgba(0,0,0,.1); color: #111827; }
+    body.light .search-input::placeholder { color: rgba(0,0,0,.35); }
+    body.light .icon-btn { background: rgba(0,0,0,.06); border-color: rgba(0,0,0,.1); color: rgba(0,0,0,.6); }
+    body.light .filter-bar { background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.08); }
+    body.light .filter-btn-inactive { color: rgba(0,0,0,.45); }
+    body.light .stat-card-bg { background: rgba(0,0,0,.03); }
+    body.light .section-div { background: rgba(0,0,0,.08); }
+
+    /* scrollbar */
+    * { scrollbar-width: thin; scrollbar-color: rgba(99,179,237,0.2) transparent; }
+    *::-webkit-scrollbar { width: 4px; }
+    *::-webkit-scrollbar-thumb { background: rgba(99,179,237,0.25); border-radius: 99px; }
+
+    @keyframes fadeUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    @keyframes shimmer { 0%,100% { opacity:.5 } 50% { opacity:1 } }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+    @keyframes slideRight { from { transform: translateX(-100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+    @keyframes slideLeft { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .fade-up { animation: fadeUp .45s cubic-bezier(.16,1,.3,1) forwards; }
+    .fade-in { animation: fadeIn .3s ease forwards; }
+    .slide-right { animation: slideRight .4s cubic-bezier(.16,1,.3,1) forwards; }
+    .slide-left { animation: slideLeft .4s cubic-bezier(.16,1,.3,1) forwards; }
+
+    .nav-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 10px;
+      font-size: 13.5px; font-weight: 500;
+      color: rgba(255,255,255,.45);
+      cursor: pointer; transition: all .18s ease;
+      text-decoration: none; border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-link:hover { color: rgba(255,255,255,.85); background: rgba(255,255,255,.06); }
+    .nav-link.active {
+      color: #fff;
+      background: rgba(99,179,237,.13);
+      border: 1px solid rgba(99,179,237,.18);
+    }
+    .nav-link.active svg { color: #63B3ED; }
+
+    .card {
+      background: rgba(255,255,255,.035);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 16px;
+      transition: border-color .2s, box-shadow .2s, transform .2s;
+    }
+    .card:hover { border-color: rgba(99,179,237,.2); box-shadow: 0 8px 32px rgba(0,0,0,.25); }
+
+    .card-lift:hover { transform: translateY(-2px); }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; letter-spacing: .02em;
+    }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 18px; border-radius: 10px; border: none; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 600;
+      background: linear-gradient(135deg, #4F8EF7, #6B4FDD);
+      color: #fff; box-shadow: 0 4px 16px rgba(79,142,247,.25);
+      transition: opacity .18s, transform .18s, box-shadow .18s;
+    }
+    .btn-primary:hover { opacity:.9; transform:translateY(-1px); box-shadow:0 6px 24px rgba(79,142,247,.35); }
+
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 14px; border-radius: 10px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
+      color: rgba(255,255,255,.7); transition: all .18s;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.1); color:#fff; }
+
+    .progress-bar {
+      height: 4px; border-radius: 99px;
+      background: rgba(255,255,255,.08); overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, #4F8EF7, #6B4FDD);
+      transition: width .6s cubic-bezier(.16,1,.3,1);
+    }
+
+    .input-field {
+      width: 100%; padding: 12px 16px 12px 44px;
+      background: rgba(255,255,255,.05);
+      border: 1.5px solid rgba(255,255,255,.1);
+      border-radius: 12px; color: #fff; font-family:'DM Sans',sans-serif;
+      font-size: 14px; outline: none;
+      transition: border-color .2s, background .2s;
+    }
+    .input-field::placeholder { color: rgba(255,255,255,.3); }
+    .input-field:focus { border-color: rgba(99,179,237,.5); background: rgba(99,179,237,.06); }
+
+    .stat-ring {
+      position: relative; display: flex; align-items:center; justify-content:center;
+    }
+
+    /* tooltip */
+    [data-tip] { position: relative; }
+    [data-tip]::after {
+      content: attr(data-tip); position: absolute;
+      bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: #1A2233; color:#fff; font-size:11px; padding:4px 8px;
+      border-radius:6px; white-space:nowrap; pointer-events:none;
+      opacity:0; transition:opacity .15s;
+    }
+    [data-tip]:hover::after { opacity:1; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ─── ICONS (inline SVG helpers) ─── */
+const Icon = ({ name, size=16, className='' }) => {
+  const icons = {
+    home: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>,
+    folder: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></>,
+    check: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>,
+    calendar: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>,
+    chart: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>,
+    task: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>,
+    plus: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>,
+    search: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>,
+    bell: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>,
+    chevron: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>,
+    user: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>,
+    lock: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>,
+    eye: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></>,
+    eyeOff: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></>,
+    logout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>,
+    settings: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>,
+    lightning: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M13 10V3L4 14h7v7l9-11h-7z"/>,
+    location: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></>,
+    arrow: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>,
+    grid: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>,
+    list: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 6h16M4 10h16M4 14h16M4 18h16"/>,
+    dot: <circle cx="12" cy="12" r="4" fill="currentColor"/>,
+    star: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>,
+    edit: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>,
+    trash: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>,
+    award: <><circle cx="12" cy="8" r="6" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></>,
+    warning: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>,
+    close: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>,
+    money: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>,
+    people: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>,
+    template: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>,
+    file: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>,
+  };
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill="none" stroke="currentColor" viewBox="0 0 24 24" className={className} style={{flexShrink:0}}>
+      {icons[name]}
+    </svg>
+  );
+};
+
+/* ─── LOGO ─── */
+const BindLogo = ({ size = 28 }) => (
+  <div style={{
+    width: size, height: size,
+    background: 'linear-gradient(135deg, #4F8EF7 0%, #6B4FDD 100%)',
+    borderRadius: 8,
+    display:'flex', alignItems:'center', justifyContent:'center',
+    boxShadow: '0 4px 12px rgba(79,142,247,.35)',
+    flexShrink:0,
+  }}>
+    <svg width={size*0.6} height={size*0.6} viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  </div>
+);
+
+/* ─── NAV ITEM ─── */
+const NavItem = ({ icon, label, active, onClick, indent=false }) => (
+  <button
+    className={`nav-link${active ? ' active' : ''}`}
+    onClick={onClick}
+    style={indent ? { paddingLeft: 32 } : {}}
+  >
+    <Icon name={icon} size={15}/>
+    <span>{label}</span>
+  </button>
+);
+
+/* ─── SIDEBAR ─── */
+const Sidebar = ({ page, setPage, darkMode }) => {
+  const [projectsOpen, setProjectsOpen] = useState(true);
+  const [toolsOpen, setToolsOpen] = useState(false);
+
+  return (
+    <aside style={{
+      width: 220, flexShrink: 0,
+      background: 'linear-gradient(180deg, #0B1120 0%, #080C14 100%)',
+      borderRight: '1px solid rgba(255,255,255,.06)',
+      display: 'flex', flexDirection: 'column',
+      height: '100vh', overflow: 'hidden',
+    }}>
+      {/* Logo */}
+      <div style={{ padding: '22px 20px 12px', display:'flex', alignItems:'center', gap:10 }}>
+        <BindLogo size={32}/>
+        <span style={{ fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>Bind</span>
+        <span style={{
+          marginLeft: 'auto', fontSize: 10, fontWeight: 700,
+          background: 'rgba(79,142,247,.15)', color: '#4F8EF7',
+          border: '1px solid rgba(79,142,247,.25)', borderRadius: 5,
+          padding: '2px 6px', letterSpacing: '.04em',
+        }}>PRO</span>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex:1, padding:'8px 12px', overflowY:'auto', display:'flex', flexDirection:'column', gap:2 }}>
+        <NavItem icon="home" label="Inicio" active={page==='dashboard'} onClick={()=>setPage('dashboard')}/>
+
+        {/* Proyectos accordion */}
+        <div>
+          <button className="nav-link" onClick={() => setProjectsOpen(o=>!o)} style={{ justifyContent:'space-between' }}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <Icon name="folder" size={15}/>
+              <span>Proyectos</span>
+            </div>
+            <svg width={13} height={13} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ transform: projectsOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform .25s', flexShrink:0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          {projectsOpen && (
+            <div style={{ marginTop:2, display:'flex', flexDirection:'column', gap:1 }}>
+              <NavItem icon="list"     label="Todos"      active={page==='events'}    onClick={()=>setPage('events')}    indent/>
+              <NavItem icon="template" label="Plantillas" active={page==='templates'} onClick={()=>setPage('templates')} indent/>
+              <NavItem icon="lightning" label="En curso"  active={page==='encurso'}   onClick={()=>setPage('encurso')}  indent/>
+            </div>
+          )}
+        </div>
+
+        {/* Herramientas */}
+        <div>
+          <button className="nav-link" onClick={() => setToolsOpen(o=>!o)} style={{ justifyContent:'space-between' }}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <Icon name="settings" size={15}/>
+              <span>Herramientas</span>
+            </div>
+            <svg width={13} height={13} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ transform: toolsOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform .25s', flexShrink:0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          {toolsOpen && (
+            <div style={{ marginTop:2, display:'flex', flexDirection:'column', gap:1 }}>
+              <NavItem icon="task"     label="Tareas"     active={page==='tasks'}    onClick={()=>setPage('tasks')}    indent/>
+              <NavItem icon="chart"    label="Reporte"    active={page==='report'}   onClick={()=>setPage('report')}   indent/>
+              <NavItem icon="calendar" label="Calendario" active={page==='calendar'} onClick={()=>setPage('calendar')} indent/>
+            </div>
+          )}
+        </div>
+
+        <div style={{ height:1, background:'rgba(255,255,255,.05)', margin:'8px 4px' }}/>
+
+        <NavItem icon="chart"    label="Analiticas"    active={page==='report'}   onClick={()=>setPage('report')}/>
+        <NavItem icon="settings" label="Configuracion" active={page==='settings'} onClick={()=>setPage('settings')}/>
+      </nav>
+
+      {/* User footer */}
+      <div style={{ padding:'12px 12px 16px', borderTop:'1px solid rgba(255,255,255,.05)' }}>
+        <div style={{
+          display:'flex', alignItems:'center', gap:10,
+          padding:'10px 10px', borderRadius:12,
+          background:'rgba(255,255,255,.04)',
+          border:'1px solid rgba(255,255,255,.06)',
+          cursor:'pointer', transition:'background .18s',
+        }}
+          onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.08)'}
+          onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.04)'}
+        >
+          <div style={{
+            width:32, height:32, borderRadius:'50%',
+            background:'linear-gradient(135deg,#4F8EF7,#6B4FDD)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:13, fontWeight:700, color:'#fff', flexShrink:0,
+          }}>A</div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:13, fontWeight:600, color:'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>Ana García</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>Admin</div>
+          </div>
+          <Icon name="logout" size={14} style={{ color:'rgba(255,255,255,.3)' }}/>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+/* ─── TOPBAR ─── */
+const Topbar = ({ title, action, darkMode, toggleDark, setPage }) => {
+  const [search, setSearch] = useState('');
+  const dim = darkMode ? 'rgba(255,255,255,' : 'rgba(0,0,0,';
+  return (
+    <header className="topbar-el" style={{
+      height: 64, flexShrink:0,
+      display:'flex', alignItems:'center', justifyContent:'space-between',
+      padding:'0 28px',
+      background: darkMode ? 'rgba(8,12,20,.88)' : 'rgba(243,244,248,.92)',
+      backdropFilter:'blur(20px)',
+      borderBottom: darkMode ? '1px solid rgba(255,255,255,.06)' : '1px solid rgba(0,0,0,.08)',
+    }}>
+      <h1 className="topbar-title" style={{ fontSize:17, fontWeight:700, color: darkMode?'#fff':'#111827', letterSpacing:'-0.01em' }}>{title}</h1>
+      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        {/* Search */}
+        <div style={{ position:'relative' }}>
+          <Icon name="search" size={15} style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color: darkMode?'rgba(255,255,255,.3)':'rgba(0,0,0,.35)', pointerEvents:'none' }}/>
+          <input
+            value={search} onChange={e=>setSearch(e.target.value)}
+            placeholder="Buscar..."
+            className="search-input"
+            style={{
+              paddingLeft:36, paddingRight:14, paddingTop:7, paddingBottom:7,
+              background: darkMode?'rgba(255,255,255,.05)':'rgba(0,0,0,.06)',
+              border: darkMode?'1px solid rgba(255,255,255,.08)':'1px solid rgba(0,0,0,.1)',
+              borderRadius:10, color: darkMode?'#fff':'#111827', fontSize:13, outline:'none', width:180,
+              fontFamily:'DM Sans, sans-serif', transition:'border-color .2s, width .3s',
+            }}
+            onFocus={e=>{e.target.style.borderColor='rgba(79,142,247,.45)';e.target.style.width='220px'}}
+            onBlur={e=>{e.target.style.borderColor=darkMode?'rgba(255,255,255,.08)':'rgba(0,0,0,.1)';e.target.style.width='180px'}}
+          />
+        </div>
+        {/* Bell */}
+        <button style={{
+          width:36, height:36, borderRadius:10,
+          border: darkMode?'1px solid rgba(255,255,255,.1)':'1px solid rgba(0,0,0,.1)',
+          background: darkMode?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)',
+          color: darkMode?'rgba(255,255,255,.7)':'rgba(0,0,0,.55)',
+          display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all .18s',
+        }}
+          onMouseEnter={e=>{e.currentTarget.style.background=darkMode?'rgba(255,255,255,.12)':'rgba(0,0,0,.1)'}}
+          onMouseLeave={e=>{e.currentTarget.style.background=darkMode?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)'}}
+        ><Icon name="bell" size={16}/></button>
+
+        {/* Dark/Light toggle */}
+        <button onClick={toggleDark} title={darkMode ? 'Cambiar a claro' : 'Cambiar a oscuro'} style={{
+          width:36, height:36, borderRadius:10,
+          border: darkMode?'1px solid rgba(255,255,255,.1)':'1px solid rgba(0,0,0,.1)',
+          background: darkMode?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)',
+          color: darkMode?'rgba(255,255,255,.7)':'rgba(0,0,0,.55)',
+          display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all .18s',
+        }}
+          onMouseEnter={e=>{e.currentTarget.style.background=darkMode?'rgba(255,255,255,.12)':'rgba(0,0,0,.1)'}}
+          onMouseLeave={e=>{e.currentTarget.style.background=darkMode?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)'}}
+        >
+          {darkMode ? (
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+          ) : (
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+          )}
+        </button>
+
+        {action}
+      </div>
+    </header>
+  );
+};
+
+/* ─── STAT CARD ─── */
+const StatCard = ({ label, value, sub, color, icon, onClick }) => (
+  <div className="card card-lift" onClick={onClick} style={{ padding:'18px 20px', cursor: onClick?'pointer':'default', flex:1 }}>
+    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14 }}>
+      <div style={{
+        width:36, height:36, borderRadius:10,
+        background:color, display:'flex', alignItems:'center', justifyContent:'center',
+        boxShadow:`0 4px 12px ${color}55`,
+      }}>
+        <Icon name={icon} size={17} style={{ color:'#fff' }}/>
+      </div>
+      <span style={{ fontSize:11, color:'rgba(255,255,255,.3)', fontWeight:500 }}>{sub}</span>
+    </div>
+    <div style={{ fontSize:28, fontWeight:700, color:'#fff', letterSpacing:'-0.03em', lineHeight:1 }}>{value}</div>
+    <div style={{ fontSize:12.5, color:'rgba(255,255,255,.55)', marginTop:5, fontWeight:500 }}>{label}</div>
+    {sub && <div style={{ fontSize:11, color:'rgba(255,255,255,.35)', marginTop:2 }}>{sub}</div>}
+  </div>
+);
+
+/* ─── HEALTH BADGE ─── */
+const HealthBadge = ({ score }) => {
+  const cfg =
+    score === 100 ? { bg:'rgba(52,211,153,.12)', color:'#34D399', label:'Perfecto' } :
+    score >= 80   ? { bg:'rgba(52,211,153,.1)',  color:'#6EE7B7', label:'Excelente' } :
+    score >= 50   ? { bg:'rgba(79,142,247,.12)', color:'#4F8EF7', label:'En progreso' } :
+    score > 0     ? { bg:'rgba(251,191,36,.1)',  color:'#FCD34D', label:'En riesgo' } :
+                    { bg:'rgba(248,113,113,.1)', color:'#F87171', label:'Crítico' };
+  return (
+    <span className="badge" style={{ background:cfg.bg, color:cfg.color, fontSize:10.5 }}>
+      <span style={{ width:5, height:5, borderRadius:'50%', background:cfg.color, display:'inline-block', flexShrink:0 }}/>
+      {score >= 0 ? score+'%' : ''} {cfg.label}
+    </span>
+  );
+};
+
+/* ─── STATUS BADGE ─── */
+const StatusBadge = ({ status }) => {
+  const cfg = {
+    active:    { bg:'rgba(52,211,153,.12)', color:'#34D399',  label:'Activo' },
+    draft:     { bg:'rgba(148,163,184,.1)', color:'#94A3B8',  label:'Borrador' },
+    completed: { bg:'rgba(79,142,247,.12)', color:'#60A5FA',  label:'Completado' },
+    cancelled: { bg:'rgba(248,113,113,.1)', color:'#F87171',  label:'Cancelado' },
+  }[status] || { bg:'rgba(148,163,184,.1)', color:'#94A3B8', label: status };
+  return <span className="badge" style={{ background:cfg.bg, color:cfg.color }}>{cfg.label}</span>;
+};
+
+/* ─── TEMPLATES DATA ─── */
+const TEMPLATES = [
+  { id:1, category:'business',  color:'linear-gradient(135deg,#3B82F6,#6366F1)', label:'Negocios',  name:'Congreso Empresarial', description:'Ideal para eventos corporativos y congresos de negocios de gran escala.', tasks:12, checklists:3, modules:['tasks','attendees','budget','files'] },
+  { id:2, category:'academic',  color:'linear-gradient(135deg,#6B7280,#374151)', label:'Académico', name:'Conferencia Académica', description:'Estructura formal para conferencias universitarias y presentaciones de investigación.', tasks:8, checklists:2, modules:['tasks','checklist','files'] },
+  { id:3, category:'creative',  color:'linear-gradient(135deg,#A855F7,#EC4899)', label:'Creativo',  name:'Festival Cultural', description:'Plantilla flexible para festivales de arte, música y eventos culturales.', tasks:15, checklists:4, modules:['tasks','attendees','checklist'] },
+  { id:4, category:'marketing', color:'linear-gradient(135deg,#F97316,#EF4444)', label:'Marketing', name:'Lanzamiento de Producto', description:'Optimizada para lanzamientos de producto y campañas de marketing integradas.', tasks:10, checklists:3, modules:['tasks','attendees','budget'] },
+  { id:5, category:'social',    color:'linear-gradient(135deg,#14B8A6,#06B6D4)', label:'Social',   name:'Evento Comunitario', description:'Para eventos sociales, reuniones comunitarias y actividades vecinales.', tasks:6, checklists:2, modules:['tasks','attendees','checklist'] },
+  { id:6, category:'business',  color:'linear-gradient(135deg,#8B5CF6,#3B82F6)', label:'Negocios', name:'Cumbre de Liderazgo', description:'Diseñada para cumbres ejecutivas, retiros de liderazgo y workshops estratégicos.', tasks:9, checklists:2, modules:['tasks','attendees','budget','files'] },
+];
+
+const CAT_COLORS = {
+  business:  { bg:'rgba(79,142,247,.12)', color:'#4F8EF7', border:'rgba(79,142,247,.2)' },
+  academic:  { bg:'rgba(148,163,184,.1)',  color:'#94A3B8', border:'rgba(148,163,184,.15)' },
+  creative:  { bg:'rgba(168,85,247,.12)',  color:'#A855F7', border:'rgba(168,85,247,.2)' },
+  marketing: { bg:'rgba(249,115,22,.12)',  color:'#F97316', border:'rgba(249,115,22,.2)' },
+  social:    { bg:'rgba(20,184,166,.12)',  color:'#14B8A6', border:'rgba(20,184,166,.2)' },
+};
+
+/* ─── TASKS DATA ─── */
+const ALL_TASKS = [
+  { id:1, title:'Confirmar catering para 340 pax', event:'Congreso Tecnología 2025', eventId:1, priority:'high', status:'pending', due:'2025-06-10' },
+  { id:2, title:'Enviar invitaciones VIP', event:'Congreso Tecnología 2025', eventId:1, priority:'high', status:'in_progress', due:'2025-06-04' },
+  { id:3, title:'Revisar contrato venue Guadalajara', event:'Cumbre Sustentabilidad', eventId:2, priority:'medium', status:'pending', due:'2025-06-06' },
+  { id:4, title:'Contratar equipo de fotografía', event:'Congreso Tecnología 2025', eventId:1, priority:'low', status:'done', due:'2025-05-30' },
+  { id:5, title:'Diseñar materiales impresos', event:'Festival Cultura Viva', eventId:3, priority:'medium', status:'pending', due:'2025-07-15' },
+  { id:6, title:'Coordinar transporte de expositores', event:'Cumbre Sustentabilidad', eventId:2, priority:'high', status:'pending', due:'2025-06-05' },
+  { id:7, title:'Aprobar presupuesto de marketing', event:'Foro Innovación Empresarial', eventId:5, priority:'high', status:'in_progress', due:'2025-06-08' },
+  { id:8, title:'Confirmar lista de ponentes', event:'Foro Innovación Empresarial', eventId:5, priority:'medium', status:'done', due:'2025-05-28' },
+  { id:9, title:'Enviar comunicado a prensa', event:'Congreso Tecnología 2025', eventId:1, priority:'medium', status:'pending', due:'2025-06-12' },
+  { id:10, title:'Revisar layout del auditorio', event:'Cumbre Sustentabilidad', eventId:2, priority:'low', status:'pending', due:'2025-06-20' },
+];
+
+/* ─── EVENTS DATA ─── */
+const EVENTS = [
+  { id:1, name:'Congreso Tecnología 2025', location:'CDMX, México', status:'active', health:87, progress:72, date:'15 Jun 2025', daysLeft:42, budget:{ total:120000, spent:86400, currency:'MXN' }, tasks:18, pendingTasks:5, attendees:340 },
+  { id:2, name:'Cumbre Sustentabilidad', location:'Guadalajara, México', status:'active', health:54, progress:45, date:'28 Jul 2025', daysLeft:85, budget:{ total:80000, spent:32000, currency:'MXN' }, tasks:12, pendingTasks:7, attendees:180 },
+  { id:3, name:'Festival Cultura Viva', location:'Monterrey, México', status:'draft', health:20, progress:15, date:'10 Sep 2025', daysLeft:129, budget:{ total:60000, spent:9000, currency:'MXN' }, tasks:8, pendingTasks:7, attendees:60 },
+  { id:4, name:'Conferencia Salud Digital', location:'Virtual', status:'completed', health:100, progress:100, date:'02 Mar 2025', daysLeft:0, budget:{ total:45000, spent:43200, currency:'MXN' }, tasks:22, pendingTasks:0, attendees:520 },
+  { id:5, name:'Foro Innovación Empresarial', location:'Querétaro, México', status:'active', health:68, progress:60, date:'20 Jun 2025', daysLeft:47, budget:{ total:95000, spent:57000, currency:'MXN' }, tasks:15, pendingTasks:4, attendees:210 },
+  { id:6, name:'Expo Gastronomía', location:'Oaxaca, México', status:'draft', health:0, progress:0, date:'15 Nov 2025', daysLeft:195, budget:null, tasks:0, pendingTasks:0, attendees:0 },
+];
+
+const URGENT_TASKS = [
+  { id:1, title:'Confirmar catering para 340 pax', event:'Congreso Tecnología 2025', priority:'high', due:'Mañana' },
+  { id:2, title:'Enviar invitaciones VIP', event:'Congreso Tecnología 2025', priority:'high', due:'Hoy' },
+  { id:3, title:'Revisar contrato venue Guadalajara', event:'Cumbre Sustentabilidad', priority:'medium', due:'Vie' },
+];
+
+const WEEKLY_ACTIVITY = [
+  { day:'L', count:4 }, { day:'M', count:9 }, { day:'X', count:6 },
+  { day:'J', count:11 }, { day:'V', count:7 }, { day:'S', count:2 }, { day:'D', count:0 },
+];
+
+/* ─── MINI DONUT ─── */
+const MiniDonut = ({ pct, color, size=48 }) => {
+  const r = 18, c = 2 * Math.PI * r;
+  const dash = (pct/100)*c;
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40">
+      <circle cx="20" cy="20" r={r} fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="4"/>
+      <circle cx="20" cy="20" r={r} fill="none" stroke={color} strokeWidth="4"
+        strokeDasharray={`${dash} ${c}`} strokeDashoffset={c/4}
+        strokeLinecap="round" transform="rotate(-90 20 20)" style={{transition:'stroke-dasharray .6s'}}/>
+      <text x="20" y="20" textAnchor="middle" dominantBaseline="middle" fill={color} fontSize="9" fontWeight="700" fontFamily="DM Sans">
+        {pct}%
+      </text>
+    </svg>
+  );
+};
+
+/* ─── DASHBOARD ─── */
+const Dashboard = ({ setPage, setSelectedEvent, accentColor }) => {
+  const activeCount = EVENTS.filter(e=>e.status==='active').length;
+  const totalPending = EVENTS.reduce((s,e)=>s+e.pendingTasks,0);
+  const todayTasks = URGENT_TASKS.filter(t=>t.due==='Hoy').length;
+  const maxActivity = Math.max(...WEEKLY_ACTIVITY.map(d=>d.count));
+
+  return (
+    <div style={{ padding:'24px 28px', overflowY:'auto', flex:1 }} className="fade-up">
+
+      {/* Greeting */}
+      <div style={{ marginBottom:24 }}>
+        <div style={{ fontSize:22, fontWeight:700, color:'#fff', letterSpacing:'-0.02em' }}>
+          Hola, <span style={{ color: accentColor }}>Ana</span> 👋
+        </div>
+        <div style={{ fontSize:13.5, color:'rgba(255,255,255,.4)', marginTop:3 }}>
+          Aquí está lo más importante de esta semana.
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div style={{ display:'flex', gap:14, marginBottom:24 }}>
+        <StatCard label="Eventos activos" value={activeCount} sub="esta semana" color="#4F8EF7" icon="lightning" onClick={()=>setPage('events')}/>
+        <StatCard label="Tareas pendientes" value={totalPending} sub="total" color="#F87171" icon="task"/>
+        <StatCard label="Tareas para hoy" value={todayTasks} sub="urgentes" color="#FCD34D" icon="warning"/>
+        <StatCard label="Asistentes totales" value="1,310" sub="registrados" color="#34D399" icon="people"/>
+      </div>
+
+      {/* Main grid */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1.65fr', gap:16 }}>
+
+        {/* Left: Upcoming + Urgent */}
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+
+          {/* Next event */}
+          {(() => {
+            const next = EVENTS.filter(e=>e.status==='active').sort((a,b)=>a.daysLeft-b.daysLeft)[0];
+            return (
+              <div className="card" style={{ padding:'18px 20px', cursor:'pointer', background:'linear-gradient(135deg, rgba(79,142,247,.08) 0%, rgba(107,79,221,.06) 100%)' }}
+                onClick={()=>{ setSelectedEvent(next); setPage('detail'); }}>
+                <div style={{ fontSize:10.5, fontWeight:700, letterSpacing:'.07em', color:'#4F8EF7', textTransform:'uppercase', marginBottom:10 }}>Próximo evento</div>
+                <div style={{ fontSize:16, fontWeight:700, color:'#fff', marginBottom:6, lineHeight:1.3 }}>{next.name}</div>
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:14 }}>
+                  <Icon name="location" size={12} style={{color:'rgba(255,255,255,.35)'}}/>
+                  <span style={{ fontSize:12, color:'rgba(255,255,255,.4)' }}>{next.location}</span>
+                  <span style={{ marginLeft:'auto', fontSize:12.5, fontWeight:700, color:'#4F8EF7' }}>en {next.daysLeft} días</span>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                  <span style={{ fontSize:11, color:'rgba(255,255,255,.35)' }}>Progreso de tareas</span>
+                  <span style={{ fontSize:12, fontWeight:700, color:'#4F8EF7' }}>{next.progress}%</span>
+                </div>
+                <div className="progress-bar" style={{ height:5 }}>
+                  <div className="progress-fill" style={{ width:`${next.progress}%` }}/>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Urgent tasks */}
+          <div className="card" style={{ flex:1, display:'flex', flexDirection:'column', minHeight:0 }}>
+            <div style={{ padding:'14px 16px', borderBottom:'1px solid rgba(255,255,255,.05)', display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ width:7, height:7, borderRadius:'50%', background:'#FCD34D', display:'inline-block', animation:'pulse 2s infinite' }}/>
+              <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.4)', textTransform:'uppercase', letterSpacing:'.06em' }}>Acción ahora</span>
+            </div>
+            <div style={{ overflowY:'auto', flex:1, padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+              {URGENT_TASKS.map(task => (
+                <div key={task.id} style={{
+                  padding:'11px 13px', borderRadius:10,
+                  background: task.priority==='high' ? 'rgba(248,113,113,.06)' : 'rgba(252,211,77,.05)',
+                  border: `1px solid ${task.priority==='high' ? 'rgba(248,113,113,.15)' : 'rgba(252,211,77,.12)'}`,
+                }}>
+                  <div style={{ fontSize:12.5, fontWeight:600, color:'#fff', marginBottom:4, lineHeight:1.3 }}>{task.title}</div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <span style={{ fontSize:11, color:'rgba(255,255,255,.3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'70%' }}>{task.event}</span>
+                    <span style={{ fontSize:10.5, fontWeight:700, color: task.priority==='high'?'#F87171':'#FCD34D', flexShrink:0 }}>{task.due}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Events list + activity */}
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+
+          {/* Upcoming events */}
+          <div className="card" style={{ overflow:'hidden' }}>
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid rgba(255,255,255,.05)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span style={{ fontSize:13.5, fontWeight:700, color:'rgba(255,255,255,.85)' }}>Próximos eventos</span>
+              <button className="btn-ghost" style={{ fontSize:11.5, padding:'5px 10px' }} onClick={()=>setPage('events')}>Ver todos</button>
+            </div>
+            <div>
+              {EVENTS.filter(e=>e.status==='active').slice(0,3).map((event, idx) => (
+                <div key={event.id}
+                  onClick={()=>{ setSelectedEvent(event); setPage('detail'); }}
+                  style={{
+                    padding:'13px 18px', display:'flex', alignItems:'center', gap:14,
+                    borderBottom: idx<2 ? '1px solid rgba(255,255,255,.04)' : 'none',
+                    cursor:'pointer', transition:'background .15s',
+                  }}
+                  onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.03)'}
+                  onMouseLeave={e=>e.currentTarget.style.background=''}
+                >
+                  <MiniDonut pct={event.progress} color="#4F8EF7" size={42}/>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13.5, fontWeight:600, color:'#fff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:3 }}>{event.name}</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <HealthBadge score={event.health}/>
+                      <span style={{ fontSize:11, color:'rgba(255,255,255,.3)' }}>en {event.daysLeft}d</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign:'right', flexShrink:0 }}>
+                    <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', marginBottom:2 }}>{event.pendingTasks} tareas</div>
+                    <Icon name="arrow" size={14} style={{ color:'rgba(255,255,255,.2)' }}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Activity + Budget row */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+
+            {/* Weekly activity */}
+            <div className="card" style={{ padding:'16px 18px' }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.35)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:14 }}>Actividad semanal</div>
+              <div style={{ display:'flex', alignItems:'flex-end', gap:5, height:56 }}>
+                {WEEKLY_ACTIVITY.map(({ day, count }) => {
+                  const pct = maxActivity > 0 ? (count/maxActivity)*100 : 0;
+                  const isToday = day === 'J';
+                  return (
+                    <div key={day} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, height:'100%', justifyContent:'flex-end' }}>
+                      {count > 0 && (
+                        <span style={{ fontSize:9, fontWeight:700, color: isToday?'#4F8EF7':'rgba(255,255,255,.3)' }}>{count}</span>
+                      )}
+                      <div style={{
+                        width:'100%', borderRadius:4,
+                        height:`${Math.max(pct,4)}%`,
+                        background: isToday ? 'linear-gradient(180deg,#4F8EF7,#6B4FDD)' : 'rgba(255,255,255,.1)',
+                        transition:'height .5s',
+                      }}/>
+                      <span style={{ fontSize:9.5, color: isToday?'#4F8EF7':'rgba(255,255,255,.3)', fontWeight: isToday?700:400 }}>{day}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Budget overview */}
+            <div className="card" style={{ padding:'16px 18px' }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.35)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:12 }}>Presupuesto</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
+                {EVENTS.filter(e=>e.budget && e.status==='active').slice(0,2).map(event => {
+                  const pct = Math.round((event.budget.spent/event.budget.total)*100);
+                  const over = pct >= 85;
+                  return (
+                    <div key={event.id}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                        <span style={{ fontSize:11.5, color:'rgba(255,255,255,.6)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'65%' }}>{event.name.split(' ').slice(0,2).join(' ')}</span>
+                        <span style={{ fontSize:11, fontWeight:700, color: over?'#F87171':'#34D399', flexShrink:0 }}>{pct}%</span>
+                      </div>
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width:`${pct}%`, background: over ? 'linear-gradient(90deg,#F87171,#EF4444)' : 'linear-gradient(90deg,#34D399,#059669)' }}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── EVENT CARD ─── */
+const EventCard = ({ event, onClick }) => {
+  const [hovered, setHovered] = useState(false);
+  const pct = Math.round((event.budget?.spent||0) / (event.budget?.total||1) * 100);
+
+  return (
+    <div
+      className="card"
+      style={{
+        padding:'18px 20px', cursor:'pointer',
+        display:'flex', flexDirection:'column', gap:14,
+        transform: hovered ? 'translateY(-3px)' : 'none',
+        boxShadow: hovered ? '0 16px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(79,142,247,.2)' : '',
+        transition:'transform .2s, box-shadow .2s, border-color .2s',
+      }}
+      onClick={onClick}
+      onMouseEnter={()=>setHovered(true)}
+      onMouseLeave={()=>setHovered(false)}
+    >
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+          <StatusBadge status={event.status}/>
+          <HealthBadge score={event.health}/>
+        </div>
+        <div style={{ display:'flex', gap:4, opacity: hovered?1:0, transition:'opacity .15s' }}>
+          <button style={{ width:28, height:28, borderRadius:8, border:'1px solid rgba(255,255,255,.1)', background:'rgba(255,255,255,.05)', color:'rgba(255,255,255,.5)', display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }} onClick={e=>e.stopPropagation()}>
+            <Icon name="edit" size={13}/>
+          </button>
+          <button style={{ width:28, height:28, borderRadius:8, border:'1px solid rgba(248,113,113,.15)', background:'rgba(248,113,113,.06)', color:'#F87171', display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }} onClick={e=>e.stopPropagation()}>
+            <Icon name="trash" size={13}/>
+          </button>
+        </div>
+      </div>
+
+      {/* Name */}
+      <div>
+        <div style={{ fontSize:15, fontWeight:700, color:'#fff', lineHeight:1.3, marginBottom:5 }}>{event.name}</div>
+        {event.location && (
+          <div style={{ display:'flex', alignItems:'center', gap:5, color:'rgba(255,255,255,.35)', fontSize:12 }}>
+            <Icon name="location" size={12}/>
+            {event.location}
+          </div>
+        )}
+      </div>
+
+      {/* Progress */}
+      <div>
+        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+          <span style={{ fontSize:11, color:'rgba(255,255,255,.35)' }}>Progreso</span>
+          <span style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,.7)' }}>{event.progress}%</span>
+        </div>
+        <div className="progress-bar">
+          <div className="progress-fill" style={{ width:`${event.progress}%` }}/>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:8, borderTop:'1px solid rgba(255,255,255,.05)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:11.5, color:'rgba(255,255,255,.35)' }}>
+          <Icon name="calendar" size={12}/>
+          {event.date}
+        </div>
+        {event.daysLeft > 0 && (
+          <span style={{ fontSize:11, fontWeight:700, color:'#4F8EF7', background:'rgba(79,142,247,.1)', padding:'3px 8px', borderRadius:6 }}>
+            {event.daysLeft}d restantes
+          </span>
+        )}
+        {event.daysLeft === 0 && event.status === 'completed' && (
+          <span style={{ fontSize:11, fontWeight:700, color:'#34D399', background:'rgba(52,211,153,.1)', padding:'3px 8px', borderRadius:6 }}>
+            Completado
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── EVENT LIST PAGE ─── */
+const EventsPage = ({ setPage, setSelectedEvent }) => {
+  const [filter, setFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('grid');
+
+  const filtered = filter === 'all' ? EVENTS : EVENTS.filter(e=>e.status===filter);
+
+  const filters = [
+    { key:'all', label:'Todos' },
+    { key:'active', label:'Activos' },
+    { key:'draft', label:'Borrador' },
+    { key:'completed', label:'Completados' },
+  ];
+
+  return (
+    <div style={{ padding:'24px 28px', overflowY:'auto', flex:1 }} className="fade-up">
+
+      {/* Filter bar + view toggle */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22, gap:12, flexWrap:'wrap' }}>
+        <div style={{ display:'flex', gap:6, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.06)', borderRadius:12, padding:4 }}>
+          {filters.map(f => (
+            <button key={f.key} onClick={()=>setFilter(f.key)} style={{
+              padding:'6px 14px', borderRadius:9, border:'none', cursor:'pointer',
+              fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:600,
+              background: filter===f.key ? 'rgba(79,142,247,.18)' : 'transparent',
+              color: filter===f.key ? '#4F8EF7' : 'rgba(255,255,255,.4)',
+              transition:'all .15s',
+            }}>{f.label}</button>
+          ))}
+        </div>
+        {/* View toggle */}
+        <div style={{ display:'flex', gap:4 }}>
+          {[{m:'grid',i:'grid'},{m:'list',i:'list'}].map(({m,i})=>(
+            <button key={m} onClick={()=>setViewMode(m)} style={{
+              width:34, height:34, borderRadius:9, border:'1px solid rgba(255,255,255,.08)',
+              background: viewMode===m ? 'rgba(79,142,247,.15)' : 'rgba(255,255,255,.04)',
+              color: viewMode===m ? '#4F8EF7' : 'rgba(255,255,255,.35)',
+              display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .15s',
+            }}><Icon name={i} size={15}/></button>
+          ))}
+        </div>
+      </div>
+
+      {/* Grid */}
+      {viewMode === 'grid' ? (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px,1fr))', gap:14 }}>
+          {/* Create new */}
+          <div className="card" style={{
+            padding:'20px', cursor:'pointer', minHeight:180,
+            border:'1.5px dashed rgba(255,255,255,.1)',
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10,
+            transition:'border-color .2s, background .2s',
+          }}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(79,142,247,.35)';e.currentTarget.style.background='rgba(79,142,247,.04)'}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,.1)';e.currentTarget.style.background=''}}
+          >
+            <div style={{ width:40, height:40, borderRadius:12, background:'rgba(79,142,247,.12)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Icon name="plus" size={20} style={{ color:'#4F8EF7' }}/>
+            </div>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontSize:13.5, fontWeight:700, color:'rgba(255,255,255,.7)' }}>Nuevo evento</div>
+              <div style={{ fontSize:12, color:'rgba(255,255,255,.3)', marginTop:2 }}>Empieza algo hoy</div>
+            </div>
+          </div>
+          {filtered.map(event => (
+            <EventCard key={event.id} event={event} onClick={()=>{ setSelectedEvent(event); setPage('detail'); }}/>
+          ))}
+        </div>
+      ) : (
+        /* List view */
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {filtered.map(event => (
+            <div key={event.id} className="card" style={{ padding:'14px 18px', display:'flex', alignItems:'center', gap:16, cursor:'pointer', transition:'border-color .2s' }}
+              onClick={()=>{ setSelectedEvent(event); setPage('detail'); }}
+              onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(79,142,247,.25)'}
+              onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.07)'}
+            >
+              <MiniDonut pct={event.progress} color="#4F8EF7" size={44}/>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{event.name}</div>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <StatusBadge status={event.status}/>
+                  <HealthBadge score={event.health}/>
+                  {event.location && <span style={{ fontSize:11.5, color:'rgba(255,255,255,.3)' }}>{event.location}</span>}
+                </div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:20, flexShrink:0 }}>
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,.8)' }}>{event.tasks}</div>
+                  <div style={{ fontSize:10.5, color:'rgba(255,255,255,.35)' }}>tareas</div>
+                </div>
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:14, fontWeight:700, color: event.pendingTasks>0?'#F87171':'#34D399' }}>{event.pendingTasks}</div>
+                  <div style={{ fontSize:10.5, color:'rgba(255,255,255,.35)' }}>pendientes</div>
+                </div>
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,.8)' }}>{event.attendees}</div>
+                  <div style={{ fontSize:10.5, color:'rgba(255,255,255,.35)' }}>asistentes</div>
+                </div>
+                <Icon name="arrow" size={16} style={{ color:'rgba(255,255,255,.2)' }}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─── TEMPLATES PAGE ─── */
+const TemplatesPage = ({ setPage, setSelectedEvent }) => {
+  const [catFilter, setCatFilter] = useState('all');
+  const [hovered, setHovered] = useState(null);
+  const [selected, setSelected] = useState(null);
+
+  const cats = [
+    { key:'all', label:'Todas' },
+    { key:'business', label:'Negocios' },
+    { key:'academic', label:'Académico' },
+    { key:'creative', label:'Creativo' },
+    { key:'marketing', label:'Marketing' },
+    { key:'social', label:'Social' },
+  ];
+
+  const filtered = catFilter === 'all' ? TEMPLATES : TEMPLATES.filter(t => t.category === catFilter);
+
+  return (
+    <div style={{ padding:'24px 28px', overflowY:'auto', flex:1 }} className="fade-up">
+
+      {/* Filter bar */}
+      <div style={{ display:'flex', gap:6, marginBottom:24, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.06)', borderRadius:12, padding:4, width:'fit-content' }}>
+        {cats.map(c => (
+          <button key={c.key} onClick={()=>setCatFilter(c.key)} style={{
+            padding:'6px 14px', borderRadius:9, border:'none', cursor:'pointer',
+            fontFamily:'DM Sans,sans-serif', fontSize:13, fontWeight:600,
+            background: catFilter===c.key ? 'rgba(79,142,247,.18)' : 'transparent',
+            color: catFilter===c.key ? '#4F8EF7' : 'rgba(255,255,255,.4)',
+            transition:'all .15s',
+          }}>{c.label}</button>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px,1fr))', gap:16 }}>
+
+        {/* Blank template card */}
+        <div className="card" style={{
+          padding:'0', cursor:'pointer', overflow:'hidden',
+          border:'1.5px dashed rgba(255,255,255,.1)',
+          display:'flex', flexDirection:'column',
+          transition:'border-color .2s, background .2s',
+        }}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(79,142,247,.35)';e.currentTarget.style.background='rgba(79,142,247,.04)'}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,.1)';e.currentTarget.style.background=''}}
+        >
+          <div style={{ height:140, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, background:'rgba(255,255,255,.02)' }}>
+            <div style={{ width:44, height:44, borderRadius:12, background:'rgba(79,142,247,.1)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Icon name="plus" size={22} style={{ color:'#4F8EF7' }}/>
+            </div>
+          </div>
+          <div style={{ padding:'16px 18px' }}>
+            <div style={{ fontSize:14.5, fontWeight:700, color:'rgba(255,255,255,.7)', marginBottom:4 }}>En blanco</div>
+            <div style={{ fontSize:12.5, color:'rgba(255,255,255,.35)', marginBottom:14 }}>Comienza desde cero sin estructura predefinida.</div>
+            <button className="btn-primary" style={{ width:'100%', justifyContent:'center', fontSize:13, padding:'9px' }}>
+              Crear evento
+            </button>
+          </div>
+        </div>
+
+        {filtered.map(tpl => {
+          const catCfg = CAT_COLORS[tpl.category] || CAT_COLORS.business;
+          const isHov = hovered === tpl.id;
+          return (
+            <div key={tpl.id} className="card" style={{
+              padding:0, overflow:'hidden', cursor:'pointer',
+              transform: isHov ? 'translateY(-3px)' : 'none',
+              boxShadow: isHov ? '0 16px 40px rgba(0,0,0,.35)' : '',
+              transition:'transform .2s, box-shadow .2s',
+            }}
+              onMouseEnter={()=>setHovered(tpl.id)}
+              onMouseLeave={()=>setHovered(null)}
+            >
+              {/* Color banner */}
+              <div style={{ height:140, background: tpl.color, position:'relative', overflow:'hidden' }}>
+                {/* Module chips */}
+                <div style={{ position:'absolute', top:12, left:12, display:'flex', flexWrap:'wrap', gap:5 }}>
+                  {tpl.modules.map(m => (
+                    <span key={m} style={{ background:'rgba(0,0,0,.3)', color:'rgba(255,255,255,.9)', fontSize:10, fontWeight:600, padding:'3px 8px', borderRadius:20 }}>
+                      {{ tasks:'Tareas', attendees:'Asistentes', checklist:'Checklist', budget:'Presupuesto', files:'Archivos' }[m]}
+                    </span>
+                  ))}
+                </div>
+                {/* Task count */}
+                <div style={{ position:'absolute', bottom:10, right:12, background:'rgba(0,0,0,.35)', color:'#fff', fontSize:10.5, fontWeight:700, padding:'3px 9px', borderRadius:20 }}>
+                  {tpl.tasks} tareas
+                </div>
+                {/* Hover overlay */}
+                {isHov && (
+                  <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <span style={{ color:'#fff', fontWeight:700, fontSize:13, border:'1.5px solid rgba(255,255,255,.6)', padding:'8px 18px', borderRadius:10 }}>Vista previa</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Body */}
+              <div style={{ padding:'16px 18px' }}>
+                <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:8 }}>
+                  <div style={{ fontSize:15, fontWeight:700, color:'#fff', lineHeight:1.3 }}>{tpl.name}</div>
+                  <span style={{ background:catCfg.bg, color:catCfg.color, border:`1px solid ${catCfg.border}`, fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:6, textTransform:'uppercase', letterSpacing:'.04em', flexShrink:0, marginLeft:8 }}>
+                    {tpl.label}
+                  </span>
+                </div>
+                <div style={{ fontSize:12.5, color:'rgba(255,255,255,.4)', marginBottom:14, lineHeight:1.5 }}>{tpl.description}</div>
+
+                <div style={{ display:'flex', gap:8 }}>
+                  <button className="btn-primary" style={{ flex:1, justifyContent:'center', fontSize:12.5, padding:'8px 12px' }}>
+                    <Icon name="lightning" size={13}/> Crear instantáneo
+                  </button>
+                  <button className="btn-ghost" style={{ fontSize:12.5, padding:'8px 12px' }}>
+                    <Icon name="settings" size={14}/>
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/* ─── EN CURSO PAGE ─── */
+const EnCursoPage = ({ setPage, setSelectedEvent }) => {
+  const active    = EVENTS.filter(e => e.status === 'active');
+  const drafts    = EVENTS.filter(e => e.status === 'draft');
+  const completed = EVENTS.filter(e => e.status === 'completed');
+
+  const SectionHeader = ({ icon, label, sub, color }) => (
+    <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
+      <div style={{ width:38, height:38, borderRadius:10, background:`${color}18`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <Icon name={icon} size={18} style={{ color }}/>
+      </div>
+      <div>
+        <div style={{ fontSize:15, fontWeight:700, color:'#fff' }}>{label}</div>
+        <div style={{ fontSize:12, color:'rgba(255,255,255,.35)' }}>{sub}</div>
+      </div>
+      <span style={{ marginLeft:'auto', fontSize:12, fontWeight:700, background:'rgba(255,255,255,.06)', color:'rgba(255,255,255,.4)', padding:'4px 10px', borderRadius:8 }}>
+        {label==='En Progreso' ? active.length : label==='En Revision' ? drafts.length : completed.length}
+      </span>
+    </div>
+  );
+
+  const ActiveCard = ({ event }) => {
+    const [hov, setHov] = useState(false);
+    const urgent = event.daysLeft <= 7 && event.daysLeft > 0;
+    return (
+      <div className="card" style={{
+        padding:'18px 20px', cursor:'pointer',
+        borderLeft:`3px solid ${urgent ? '#F87171' : '#4F8EF7'}`,
+        transform: hov ? 'translateY(-2px)' : 'none',
+        boxShadow: hov ? '0 12px 32px rgba(0,0,0,.3)' : '',
+        transition:'all .2s',
+      }}
+        onClick={()=>{ setSelectedEvent(event); setPage('detail'); }}
+        onMouseEnter={()=>setHov(true)}
+        onMouseLeave={()=>setHov(false)}
+      >
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
+          <span className="badge" style={{ background:'rgba(79,142,247,.12)', color:'#4F8EF7', border:'1px solid rgba(79,142,247,.2)' }}>En progreso</span>
+          <span style={{ fontSize:12, fontWeight:700, color: urgent ? '#F87171' : 'rgba(255,255,255,.4)' }}>
+            {event.daysLeft === 0 ? 'Hoy' : `${event.daysLeft}d restantes`}
+          </span>
+        </div>
+        <div style={{ fontSize:15, fontWeight:700, color:'#fff', marginBottom:6 }}>{event.name}</div>
+        {event.location && (
+          <div style={{ display:'flex', alignItems:'center', gap:5, color:'rgba(255,255,255,.35)', fontSize:12, marginBottom:10 }}>
+            <Icon name="location" size={12}/>{event.location}
+          </div>
+        )}
+        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+          <span style={{ fontSize:11, color:'rgba(255,255,255,.35)' }}>Progreso de tareas</span>
+          <span style={{ fontSize:12, fontWeight:700, color:'#4F8EF7' }}>{event.progress}%</span>
+        </div>
+        <div className="progress-bar">
+          <div className="progress-fill" style={{ width:`${event.progress}%` }}/>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ padding:'24px 28px', overflowY:'auto', flex:1 }} className="fade-up">
+
+      {/* En Progreso */}
+      <div style={{ marginBottom:36 }}>
+        <SectionHeader icon="lightning" label="En Progreso" sub="Eventos activos actualmente" color="#4F8EF7"/>
+        {active.length > 0 ? (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px,1fr))', gap:14 }}>
+            {active.map(e => <ActiveCard key={e.id} event={e}/>)}
+          </div>
+        ) : (
+          <div className="card" style={{ padding:'32px', textAlign:'center', border:'1.5px dashed rgba(255,255,255,.1)' }}>
+            <div style={{ fontSize:13, color:'rgba(255,255,255,.3)' }}>No hay eventos en progreso actualmente</div>
+          </div>
+        )}
+      </div>
+
+      {/* En Revision */}
+      <div style={{ marginBottom:36 }}>
+        <SectionHeader icon="edit" label="En Revision" sub="Borradores pendientes de publicar" color="#FCD34D"/>
+        {drafts.length > 0 ? (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px,1fr))', gap:14 }}>
+            {drafts.map(event => (
+              <div key={event.id} className="card" style={{ padding:'18px 20px', cursor:'pointer', borderLeft:'3px solid #FCD34D' }}
+                onClick={()=>{ setSelectedEvent(event); setPage('detail'); }}>
+                <span className="badge" style={{ background:'rgba(252,211,77,.1)', color:'#FCD34D', marginBottom:10 }}>En revision</span>
+                <div style={{ fontSize:15, fontWeight:700, color:'#fff', marginBottom:6 }}>{event.name}</div>
+                <div style={{ fontSize:12.5, color:'rgba(255,255,255,.35)', marginBottom:12 }}>Sin fecha definida aun</div>
+                <button className="btn-ghost" style={{ fontSize:12, padding:'7px 12px' }}>
+                  <Icon name="edit" size={13}/> Editar
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="card" style={{ padding:'32px', textAlign:'center', border:'1.5px dashed rgba(255,255,255,.1)' }}>
+            <div style={{ fontSize:13, color:'rgba(255,255,255,.3)' }}>No hay borradores pendientes</div>
+          </div>
+        )}
+      </div>
+
+      {/* Completados */}
+      <div>
+        <SectionHeader icon="check" label="Completados" sub="Ultimos eventos finalizados" color="#34D399"/>
+        {completed.length > 0 ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {completed.map(event => (
+              <div key={event.id} className="card" style={{ padding:'14px 18px', display:'flex', alignItems:'center', gap:14, cursor:'pointer', transition:'border-color .2s' }}
+                onClick={()=>{ setSelectedEvent(event); setPage('detail'); }}
+                onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(52,211,153,.25)'}
+                onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.07)'}
+              >
+                <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(52,211,153,.12)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <Icon name="check" size={16} style={{ color:'#34D399' }}/>
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13.5, fontWeight:600, color:'#fff' }}>{event.name}</div>
+                  <div style={{ fontSize:11.5, color:'rgba(255,255,255,.35)', marginTop:2 }}>Finalizado: {event.date}</div>
+                </div>
+                <span className="badge" style={{ background:'rgba(52,211,153,.1)', color:'#34D399', border:'1px solid rgba(52,211,153,.2)' }}>Completado</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="card" style={{ padding:'32px', textAlign:'center', border:'1.5px dashed rgba(255,255,255,.1)' }}>
+            <div style={{ fontSize:13, color:'rgba(255,255,255,.3)' }}>No hay eventos completados aun</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── TASKS PAGE ─── */
+const TasksPage = () => {
+  const [filter, setFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [tasks, setTasks] = useState(ALL_TASKS);
+
+  const statusFilters = [
+    { key:'all', label:'Todas' },
+    { key:'pending', label:'Pendientes' },
+    { key:'in_progress', label:'En progreso' },
+    { key:'done', label:'Completadas' },
+  ];
+
+  const priorityFilters = [
+    { key:'all', label:'Todas' },
+    { key:'high', label:'Alta' },
+    { key:'medium', label:'Media' },
+    { key:'low', label:'Baja' },
+  ];
+
+  const filtered = tasks.filter(t => {
+    const statusOk = filter === 'all' || t.status === filter;
+    const prioOk   = priorityFilter === 'all' || t.priority === priorityFilter;
+    return statusOk && prioOk;
+  });
+
+  const toggleDone = (id) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: t.status==='done' ? 'pending' : 'done' } : t));
+  };
+
+  const counts = {
+    pending:     tasks.filter(t=>t.status==='pending').length,
+    in_progress: tasks.filter(t=>t.status==='in_progress').length,
+    done:        tasks.filter(t=>t.status==='done').length,
+  };
+
+  const prioColor = { high:'#F87171', medium:'#FCD34D', low:'#34D399' };
+  const prioLabel = { high:'Alta', medium:'Media', low:'Baja' };
+  const statusLabel = { pending:'Pendiente', in_progress:'En progreso', done:'Completada' };
+  const statusColor = { pending:'rgba(255,255,255,.35)', in_progress:'#4F8EF7', done:'#34D399' };
+
+  return (
+    <div style={{ padding:'24px 28px', overflowY:'auto', flex:1 }} className="fade-up">
+
+      {/* Summary row */}
+      <div style={{ display:'flex', gap:12, marginBottom:22 }}>
+        {[
+          { label:'Pendientes', count:counts.pending, color:'#F87171', icon:'warning' },
+          { label:'En progreso', count:counts.in_progress, color:'#4F8EF7', icon:'lightning' },
+          { label:'Completadas', count:counts.done, color:'#34D399', icon:'check' },
+        ].map(s => (
+          <div key={s.label} className="card" style={{ flex:1, padding:'14px 18px', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:34, height:34, borderRadius:9, background:`${s.color}18`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Icon name={s.icon} size={16} style={{ color:s.color }}/>
+            </div>
+            <div>
+              <div style={{ fontSize:22, fontWeight:800, color:'#fff', lineHeight:1 }}>{s.count}</div>
+              <div style={{ fontSize:11.5, color:'rgba(255,255,255,.4)', marginTop:3 }}>{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div style={{ display:'flex', gap:10, marginBottom:18, flexWrap:'wrap' }}>
+        <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.06)', borderRadius:10, padding:3 }}>
+          {statusFilters.map(f => (
+            <button key={f.key} onClick={()=>setFilter(f.key)} style={{
+              padding:'5px 12px', borderRadius:8, border:'none', cursor:'pointer',
+              fontFamily:'DM Sans,sans-serif', fontSize:12.5, fontWeight:600,
+              background: filter===f.key ? 'rgba(79,142,247,.18)' : 'transparent',
+              color: filter===f.key ? '#4F8EF7' : 'rgba(255,255,255,.4)',
+              transition:'all .15s',
+            }}>{f.label}</button>
+          ))}
+        </div>
+        <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.06)', borderRadius:10, padding:3 }}>
+          {priorityFilters.map(f => (
+            <button key={f.key} onClick={()=>setPriorityFilter(f.key)} style={{
+              padding:'5px 12px', borderRadius:8, border:'none', cursor:'pointer',
+              fontFamily:'DM Sans,sans-serif', fontSize:12.5, fontWeight:600,
+              background: priorityFilter===f.key ? 'rgba(252,211,77,.15)' : 'transparent',
+              color: priorityFilter===f.key ? '#FCD34D' : 'rgba(255,255,255,.4)',
+              transition:'all .15s',
+            }}>{f.label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Task list */}
+      <div className="card" style={{ overflow:'hidden' }}>
+        {/* Header row */}
+        <div style={{ display:'grid', gridTemplateColumns:'36px 1fr 160px 90px 90px 80px', gap:12, padding:'10px 18px', borderBottom:'1px solid rgba(255,255,255,.05)' }}>
+          {['', 'Tarea', 'Proyecto', 'Prioridad', 'Estado', 'Vence'].map((h,i) => (
+            <div key={i} style={{ fontSize:10.5, fontWeight:700, color:'rgba(255,255,255,.3)', textTransform:'uppercase', letterSpacing:'.06em' }}>{h}</div>
+          ))}
+        </div>
+        {filtered.length === 0 ? (
+          <div style={{ padding:'48px', textAlign:'center', color:'rgba(255,255,255,.3)', fontSize:13 }}>
+            No hay tareas con este filtro
+          </div>
+        ) : filtered.map((task, idx) => (
+          <div key={task.id} style={{
+            display:'grid', gridTemplateColumns:'36px 1fr 160px 90px 90px 80px', gap:12,
+            padding:'12px 18px', alignItems:'center',
+            borderBottom: idx < filtered.length-1 ? '1px solid rgba(255,255,255,.04)' : 'none',
+            opacity: task.status==='done' ? .55 : 1,
+            transition:'background .15s',
+          }}
+            onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.025)'}
+            onMouseLeave={e=>e.currentTarget.style.background=''}
+          >
+            {/* Checkbox */}
+            <div
+              onClick={()=>toggleDone(task.id)}
+              style={{
+                width:20, height:20, borderRadius:'50%', cursor:'pointer',
+                border: task.status==='done' ? '2px solid #34D399' : '2px solid rgba(255,255,255,.15)',
+                background: task.status==='done' ? 'rgba(52,211,153,.15)' : 'transparent',
+                display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                transition:'all .15s',
+              }}
+            >
+              {task.status==='done' && <Icon name="check" size={11} style={{ color:'#34D399' }}/>}
+            </div>
+            {/* Title */}
+            <div>
+              <div style={{ fontSize:13.5, fontWeight:600, color:'#fff', textDecoration:task.status==='done'?'line-through':'' }}>{task.title}</div>
+            </div>
+            {/* Event */}
+            <div style={{ fontSize:12, color:'rgba(255,255,255,.4)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{task.event}</div>
+            {/* Priority */}
+            <span className="badge" style={{ background:`${prioColor[task.priority]}18`, color:prioColor[task.priority], fontSize:11 }}>
+              {prioLabel[task.priority]}
+            </span>
+            {/* Status */}
+            <span style={{ fontSize:12, fontWeight:600, color:statusColor[task.status] }}>{statusLabel[task.status]}</span>
+            {/* Due */}
+            <div style={{ fontSize:11.5, color:'rgba(255,255,255,.35)' }}>
+              {task.due ? task.due.slice(5).replace('-','/') : '—'}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ─── REPORT PAGE ─── */
+const ReportPage = () => {
+  const doneTasks   = ALL_TASKS.filter(t=>t.status==='done').length;
+  const inProgTasks = ALL_TASKS.filter(t=>t.status==='in_progress').length;
+  const pendTasks   = ALL_TASKS.filter(t=>t.status==='pending').length;
+  const totalTasks  = ALL_TASKS.length;
+  const completionRate = Math.round((doneTasks/totalTasks)*100);
+
+  const highTasks   = ALL_TASKS.filter(t=>t.priority==='high').length;
+  const medTasks    = ALL_TASKS.filter(t=>t.priority==='medium').length;
+  const lowTasks    = ALL_TASKS.filter(t=>t.priority==='low').length;
+
+  const activeCount    = EVENTS.filter(e=>e.status==='active').length;
+  const completedCount = EVENTS.filter(e=>e.status==='completed').length;
+  const totalEvents    = EVENTS.length;
+  const totalAttendees = EVENTS.reduce((s,e)=>s+e.attendees,0);
+
+  const weekly = [
+    { day:'L', count:4 }, { day:'M', count:9 }, { day:'X', count:6 },
+    { day:'J', count:11 }, { day:'V', count:7 }, { day:'S', count:2 }, { day:'D', count:0 },
+  ];
+  const maxW = Math.max(...weekly.map(d=>d.count));
+
+  const overdueTasks = ALL_TASKS.filter(t => t.status !== 'done' && t.due < '2025-06-04');
+
+  /* SVG donut for task status */
+  const DonutChart = () => {
+    const r = 52, cx = 60, cy = 60;
+    const circ = 2 * Math.PI * r;
+    const segments = [
+      { val: doneTasks,   color:'#34D399', label:'Completadas' },
+      { val: inProgTasks, color:'#4F8EF7', label:'En progreso' },
+      { val: pendTasks,   color:'rgba(255,255,255,.15)', label:'Pendientes' },
+    ];
+    let offset = circ / 4;
+    return (
+      <svg width={120} height={120} viewBox="0 0 120 120">
+        {segments.map((seg, i) => {
+          const dash = (seg.val/totalTasks)*circ;
+          const el = (
+            <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={seg.color} strokeWidth={10}
+              strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={-offset + circ/4}
+              strokeLinecap="butt" transform={`rotate(-90 ${cx} ${cy})`}
+            />
+          );
+          offset += dash;
+          return el;
+        })}
+        <text x={cx} y={cy-6} textAnchor="middle" fill="#fff" fontSize="18" fontWeight="800" fontFamily="DM Sans">{completionRate}%</text>
+        <text x={cx} y={cy+10} textAnchor="middle" fill="rgba(255,255,255,.4)" fontSize="9" fontFamily="DM Sans">completado</text>
+      </svg>
+    );
+  };
+
+  /* Composition bar for events */
+  const CompositionBar = () => (
+    <div style={{ display:'flex', height:8, borderRadius:99, overflow:'hidden', gap:2 }}>
+      <div style={{ width:`${(activeCount/totalEvents)*100}%`, background:'#4F8EF7', borderRadius:99, transition:'width .5s' }}/>
+      <div style={{ width:`${(completedCount/totalEvents)*100}%`, background:'#34D399', borderRadius:99, transition:'width .5s' }}/>
+      <div style={{ flex:1, background:'rgba(255,255,255,.08)', borderRadius:99 }}/>
+    </div>
+  );
+
+  return (
+    <div style={{ padding:'24px 28px', overflowY:'auto', flex:1 }} className="fade-up">
+
+      {/* KPI row */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:20 }}>
+        {[
+          { label:'Tasa de completado', value:`${completionRate}%`, sub:`${doneTasks}/${totalTasks} tareas`, color:'#34D399', icon:'check' },
+          { label:'Eventos activos', value:activeCount, sub:`de ${totalEvents} en total`, color:'#4F8EF7', icon:'lightning' },
+          { label:'Asistentes totales', value:totalAttendees.toLocaleString(), sub:'registrados', color:'#A855F7', icon:'people' },
+          { label:'Tareas vencidas', value:overdueTasks.length, sub:'requieren atencion', color:'#F87171', icon:'warning' },
+        ].map(kpi => (
+          <div key={kpi.label} className="card" style={{ padding:'18px 20px' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.4)', textTransform:'uppercase', letterSpacing:'.06em' }}>{kpi.label}</div>
+              <div style={{ width:34, height:34, borderRadius:9, background:kpi.color, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 4px 12px ${kpi.color}55` }}>
+                <Icon name={kpi.icon} size={17} style={{ color:'#fff' }}/>
+              </div>
+            </div>
+            <div style={{ fontSize:28, fontWeight:800, color:'#fff', letterSpacing:'-0.03em', lineHeight:1 }}>{kpi.value}</div>
+            <div style={{ fontSize:11.5, color:'rgba(255,255,255,.4)', marginTop:5 }}>{kpi.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Row 2: Activity + Task status */}
+      <div style={{ display:'grid', gridTemplateColumns:'1.6fr 1fr', gap:16, marginBottom:16 }}>
+
+        {/* Weekly activity */}
+        <div className="card" style={{ padding:'20px 22px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
+            <div>
+              <div style={{ fontSize:14, fontWeight:700, color:'#fff' }}>Actividad Semanal</div>
+              <div style={{ fontSize:12, color:'rgba(255,255,255,.35)', marginTop:3 }}>Tareas completadas por dia (ultimos 7 dias)</div>
+            </div>
+          </div>
+          <div style={{ display:'flex', alignItems:'flex-end', gap:6, height:100 }}>
+            {weekly.map(({ day, count }) => {
+              const pct = maxW > 0 ? (count/maxW)*100 : 0;
+              const isToday = day === 'J';
+              return (
+                <div key={day} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:5, height:'100%', justifyContent:'flex-end' }}>
+                  {count > 0 && <span style={{ fontSize:10, fontWeight:700, color: isToday?'#4F8EF7':'rgba(255,255,255,.3)' }}>{count}</span>}
+                  <div style={{
+                    width:'100%', borderRadius:5, minHeight:3,
+                    height:`${Math.max(pct,4)}%`,
+                    background: isToday ? 'linear-gradient(180deg,#4F8EF7,#6B4FDD)' : 'rgba(255,255,255,.09)',
+                    boxShadow: isToday ? '0 4px 16px rgba(79,142,247,.3)' : 'none',
+                    transition:'height .5s',
+                  }}/>
+                  <span style={{ fontSize:10.5, color: isToday?'#4F8EF7':'rgba(255,255,255,.3)', fontWeight: isToday?700:400 }}>{day}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Task status donut */}
+        <div className="card" style={{ padding:'20px 22px' }}>
+          <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:18 }}>Estado de Tareas</div>
+          <div style={{ display:'flex', alignItems:'center', gap:18 }}>
+            <DonutChart/>
+            <div style={{ flex:1, display:'flex', flexDirection:'column', gap:10 }}>
+              {[
+                { label:'Completadas', count:doneTasks,   color:'#34D399' },
+                { label:'En progreso', count:inProgTasks, color:'#4F8EF7' },
+                { label:'Pendientes',  count:pendTasks,   color:'rgba(255,255,255,.25)' },
+              ].map(s => (
+                <div key={s.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                    <span style={{ width:8, height:8, borderRadius:'50%', background:s.color, display:'inline-block' }}/>
+                    <span style={{ fontSize:12, color:'rgba(255,255,255,.5)' }}>{s.label}</span>
+                  </div>
+                  <span style={{ fontSize:13, fontWeight:700, color:'#fff' }}>{s.count}</span>
+                </div>
+              ))}
+              <div style={{ paddingTop:10, borderTop:'1px solid rgba(255,255,255,.06)' }}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,.35)', marginBottom:8, textTransform:'uppercase', letterSpacing:'.05em', fontWeight:700 }}>Por prioridad</div>
+                <div style={{ display:'flex', gap:6 }}>
+                  {[
+                    { label:'Alta', count:highTasks, color:'#F87171' },
+                    { label:'Media', count:medTasks, color:'#FCD34D' },
+                    { label:'Baja', count:lowTasks, color:'#34D399' },
+                  ].map(p => (
+                    <div key={p.label} style={{ flex:1, textAlign:'center', padding:'7px 0', background:`${p.color}10`, borderRadius:8 }}>
+                      <div style={{ fontSize:15, fontWeight:800, color:p.color }}>{p.count}</div>
+                      <div style={{ fontSize:10, color:'rgba(255,255,255,.35)', marginTop:1 }}>{p.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Upcoming events + Overdue tasks */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+
+        {/* Upcoming events */}
+        <div className="card" style={{ padding:'20px 22px' }}>
+          <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:16 }}>Eventos Proximos</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            {EVENTS.filter(e=>e.status==='active').map(event => (
+              <div key={event.id}>
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                  <span style={{ fontSize:13, fontWeight:600, color:'rgba(255,255,255,.75)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'70%' }}>{event.name}</span>
+                  <span style={{
+                    fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:6, flexShrink:0, marginLeft:8,
+                    background: event.daysLeft<=7?'rgba(248,113,113,.12)':'rgba(255,255,255,.06)',
+                    color: event.daysLeft<=7?'#F87171':'rgba(255,255,255,.4)',
+                  }}>{event.daysLeft}d</span>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div className="progress-bar" style={{ flex:1 }}>
+                    <div className="progress-fill" style={{ width:`${event.progress}%` }}/>
+                  </div>
+                  <span style={{ fontSize:11, color:'rgba(255,255,255,.35)', flexShrink:0 }}>{event.progress}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Overdue tasks */}
+        <div className="card" style={{ padding:'20px 22px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
+            <div style={{ fontSize:14, fontWeight:700, color:'#fff' }}>Tareas Vencidas</div>
+            {overdueTasks.length > 0 && (
+              <span style={{ background:'rgba(248,113,113,.15)', color:'#F87171', fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:99, animation:'shimmer 2s infinite' }}>
+                {overdueTasks.length}
+              </span>
+            )}
+          </div>
+          {overdueTasks.length > 0 ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+              {overdueTasks.map(task => (
+                <div key={task.id} style={{
+                  display:'flex', alignItems:'center', gap:10, padding:'10px 12px',
+                  background:'rgba(248,113,113,.06)', border:'1px solid rgba(248,113,113,.12)',
+                  borderRadius:10,
+                }}>
+                  <span style={{ width:6, height:6, borderRadius:'50%', background:'#F87171', flexShrink:0, animation:'pulse 2s infinite' }}/>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:'#fff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{task.title}</div>
+                    <div style={{ fontSize:11, color:'rgba(255,255,255,.35)' }}>{task.event}</div>
+                  </div>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#F87171', flexShrink:0 }}>{task.due.slice(5).replace('-','/')}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:80, gap:6 }}>
+              <Icon name="check" size={24} style={{ color:'#34D399', opacity:.6 }}/>
+              <span style={{ fontSize:13, color:'#34D399', fontWeight:600 }}>Todo al dia</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Row 4: Event status summary */}
+      <div className="card" style={{ padding:'20px 22px' }}>
+        <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:16 }}>Estado General de Eventos</div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:16 }}>
+          {[
+            { label:'Activos',    count:activeCount,    color:'#4F8EF7' },
+            { label:'Completados', count:completedCount, color:'#34D399' },
+            { label:'Borradores', count:EVENTS.filter(e=>e.status==='draft').length, color:'rgba(255,255,255,.4)' },
+            { label:'Total',      count:totalEvents,    color:'rgba(255,255,255,.7)' },
+          ].map(s => (
+            <div key={s.label} style={{ textAlign:'center', padding:'14px', background:'rgba(255,255,255,.03)', borderRadius:12, border:'1px solid rgba(255,255,255,.05)' }}>
+              <div style={{ fontSize:26, fontWeight:800, color:s.color, letterSpacing:'-0.03em' }}>{s.count}</div>
+              <div style={{ fontSize:11, color:'rgba(255,255,255,.35)', marginTop:4, textTransform:'uppercase', letterSpacing:'.05em', fontWeight:700 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <CompositionBar/>
+        <div style={{ display:'flex', gap:16, marginTop:8 }}>
+          {[{ label:'Activos', color:'#4F8EF7' }, { label:'Completados', color:'#34D399' }, { label:'Otros', color:'rgba(255,255,255,.12)' }].map(l => (
+            <div key={l.label} style={{ display:'flex', alignItems:'center', gap:5 }}>
+              <span style={{ width:8, height:8, borderRadius:'50%', background:l.color, display:'inline-block' }}/>
+              <span style={{ fontSize:11.5, color:'rgba(255,255,255,.4)' }}>{l.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── CALENDAR PAGE ─── */
+const CalendarPage = ({ setPage, setSelectedEvent, darkMode }) => {
+  const [currentDate, setCurrentDate] = useState(new Date(2025, 5, 1));
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  const year  = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const dayNames   = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+  const firstDay   = new Date(year, month, 1).getDay();
+  const daysCount  = new Date(year, month + 1, 0).getDate();
+
+  const demoEvents = {
+    4:  [{ id:99, name:'Reunion equipo', status:'active', health:80 }],
+    10: [{ id:1,  name:'Congreso Tecnologia 2025', status:'active', health:87 }],
+    15: [{ id:2,  name:'Cumbre Sustentabilidad', status:'active', health:54 }, { id:98, name:'Entrega materiales', status:'active', health:70 }],
+    20: [{ id:5,  name:'Foro Innovacion', status:'active', health:68 }],
+    28: [{ id:97, name:'Revision general', status:'draft', health:30 }],
+  };
+
+  const today  = new Date();
+  const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysCount; d++) cells.push(d);
+
+  const txt  = darkMode ? '#fff' : '#111827';
+  const txt2 = darkMode ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.45)';
+  const bg   = darkMode ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)';
+  const bgH  = darkMode ? 'rgba(79,142,247,.1)' : 'rgba(79,142,247,.08)';
+  const selectedEvents = selectedDay ? (demoEvents[selectedDay] || []) : [];
+
+  return (
+    <div style={{ padding:'24px 28px', overflowY:'auto', flex:1, display:'flex', flexDirection:'column', gap:20 }} className="fade-up">
+      {/* Month nav */}
+      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+        <button onClick={()=>setCurrentDate(new Date(year, month-1, 1))} className="btn-ghost" style={{ padding:'7px 14px', fontSize:13 }}>← Anterior</button>
+        <h2 style={{ fontSize:18, fontWeight:800, color:txt, letterSpacing:'-0.02em', flex:1, textAlign:'center' }}>{monthNames[month]} {year}</h2>
+        <button onClick={()=>setCurrentDate(new Date(year, month+1, 1))} className="btn-ghost" style={{ padding:'7px 14px', fontSize:13 }}>Siguiente →</button>
+        <button onClick={()=>setCurrentDate(new Date())} className="btn-primary" style={{ fontSize:12.5, padding:'7px 14px' }}>Hoy</button>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 270px', gap:16, flex:1, minHeight:0 }}>
+        {/* Grid */}
+        <div className="card" style={{ padding:'16px', overflow:'hidden' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3, marginBottom:6 }}>
+            {dayNames.map(d => (
+              <div key={d} style={{ textAlign:'center', fontSize:10.5, fontWeight:700, color:txt2, textTransform:'uppercase', letterSpacing:'.05em', padding:'4px 0' }}>{d}</div>
+            ))}
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
+            {cells.map((day, i) => {
+              if (!day) return <div key={`e${i}`} style={{ minHeight:68 }}/>;
+              const evs = demoEvents[day] || [];
+              const isTod = isToday(day);
+              const isSel = selectedDay === day;
+              return (
+                <div key={day} onClick={()=>setSelectedDay(isSel ? null : day)} style={{
+                  minHeight:68, borderRadius:9, padding:'6px 7px', cursor:'pointer',
+                  background: isTod ? 'rgba(79,142,247,.15)' : isSel ? 'rgba(79,142,247,.08)' : bg,
+                  border: isTod ? '1.5px solid rgba(79,142,247,.4)' : isSel ? '1.5px solid rgba(79,142,247,.2)' : '1.5px solid transparent',
+                  transition:'all .15s',
+                }}
+                  onMouseEnter={e=>{ if(!isTod&&!isSel) e.currentTarget.style.background=bgH; }}
+                  onMouseLeave={e=>{ if(!isTod&&!isSel) e.currentTarget.style.background=bg; }}
+                >
+                  <div style={{ fontSize:12.5, fontWeight:isTod?800:600, color:isTod?'#4F8EF7':txt, width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', background:isTod?'rgba(79,142,247,.2)':'transparent', marginBottom:3 }}>{day}</div>
+                  {evs.slice(0,2).map((ev,ei) => (
+                    <div key={ei} style={{ fontSize:9, fontWeight:600, color:'#fff', background:ev.status==='active'?'#4F8EF7':ev.status==='completed'?'#34D399':'#FCD34D', borderRadius:4, padding:'2px 5px', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ev.name}</div>
+                  ))}
+                  {evs.length > 2 && <div style={{ fontSize:9, color:txt2 }}>+{evs.length-2} mas</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Side panel */}
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          <div className="card" style={{ padding:'16px 18px' }}>
+            {selectedDay ? (
+              <>
+                <div style={{ fontSize:13.5, fontWeight:700, color:txt, marginBottom:12 }}>{selectedDay} de {monthNames[month]}</div>
+                {selectedEvents.length > 0 ? (
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    {selectedEvents.map((ev,i) => (
+                      <div key={i} style={{ padding:'10px 12px', borderRadius:10, background:darkMode?'rgba(255,255,255,.04)':'rgba(0,0,0,.03)', border:`1px solid ${ev.status==='active'?'rgba(79,142,247,.2)':'rgba(252,211,77,.2)'}`, cursor:'pointer' }}>
+                        <div style={{ fontSize:12.5, fontWeight:600, color:txt, marginBottom:4 }}>{ev.name}</div>
+                        <HealthBadge score={ev.health}/>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize:12.5, color:txt2, fontStyle:'italic' }}>Sin eventos este dia.</div>
+                )}
+              </>
+            ) : (
+              <div style={{ textAlign:'center', padding:'8px 0', fontSize:12.5, color:txt2 }}>Selecciona un dia para ver sus eventos</div>
+            )}
+          </div>
+          <div className="card" style={{ padding:'16px 18px', flex:1 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:txt2, textTransform:'uppercase', letterSpacing:'.07em', marginBottom:12 }}>Eventos del mes</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {Object.entries(demoEvents).sort((a,b)=>+a[0]-+b[0]).map(([day, evs]) => (
+                <div key={day} style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+                  <div style={{ width:26, height:26, borderRadius:7, background:'rgba(79,142,247,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:'#4F8EF7', flexShrink:0 }}>{day}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    {evs.slice(0,2).map((ev,i) => (
+                      <div key={i} style={{ fontSize:12, fontWeight:600, color:txt, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ev.name}</div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── SETTINGS PAGE ─── */
+const SettingsPage = ({ darkMode, toggleDark }) => {
+  const [notifs,  setNotifs]  = useState(true);
+  const [emails,  setEmails]  = useState(false);
+  const [lang,    setLang]    = useState('es');
+
+  const txt    = darkMode ? '#fff' : '#111827';
+  const txt2   = darkMode ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.5)';
+  const border = darkMode ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.08)';
+
+  const Toggle = ({ val, onChange }) => (
+    <div onClick={()=>onChange(!val)} style={{ width:44, height:24, borderRadius:99, cursor:'pointer', position:'relative', background:val?'#4F8EF7':darkMode?'rgba(255,255,255,.12)':'rgba(0,0,0,.15)', transition:'background .2s', flexShrink:0 }}>
+      <div style={{ width:18, height:18, borderRadius:'50%', background:'#fff', position:'absolute', top:3, left:val?23:3, transition:'left .2s', boxShadow:'0 1px 4px rgba(0,0,0,.25)' }}/>
+    </div>
+  );
+
+  const Section = ({ title, children }) => (
+    <div className="card" style={{ padding:'20px 22px', marginBottom:14 }}>
+      <div style={{ fontSize:11, fontWeight:700, color:'#4F8EF7', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:16 }}>{title}</div>
+      {children}
+    </div>
+  );
+
+  const Row = ({ label, sub, children, last }) => (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'13px 0', borderBottom:last?'none':`1px solid ${border}` }}>
+      <div>
+        <div style={{ fontSize:13.5, fontWeight:600, color:txt }}>{label}</div>
+        {sub && <div style={{ fontSize:12, color:txt2, marginTop:2 }}>{sub}</div>}
+      </div>
+      {children}
+    </div>
+  );
+
+  return (
+    <div style={{ padding:'24px 28px', overflowY:'auto', flex:1 }} className="fade-up">
+      <div style={{ maxWidth:640 }}>
+        <Section title="Apariencia">
+          <Row label="Modo oscuro" sub="Cambia entre tema claro y oscuro"><Toggle val={darkMode} onChange={toggleDark}/></Row>
+          <Row label="Idioma" sub="Idioma de la interfaz" last>
+            <select value={lang} onChange={e=>setLang(e.target.value)} style={{ padding:'6px 12px', borderRadius:8, border:`1px solid ${border}`, background:darkMode?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)', color:txt, fontSize:13, fontFamily:'DM Sans,sans-serif', outline:'none', cursor:'pointer' }}>
+              <option value="es">Espanol</option>
+              <option value="en">English</option>
+            </select>
+          </Row>
+        </Section>
+
+        <Section title="Notificaciones">
+          <Row label="Notificaciones del sistema" sub="Alertas de tareas y eventos"><Toggle val={notifs} onChange={setNotifs}/></Row>
+          <Row label="Correo electronico" sub="Recibir resumenes por email" last><Toggle val={emails} onChange={setEmails}/></Row>
+        </Section>
+
+        <Section title="Cuenta">
+          <Row label="Ana Garcia" sub="ana.garcia@empresa.com">
+            <button className="btn-ghost" style={{ fontSize:12.5, padding:'6px 12px' }}><Icon name="edit" size={13}/> Editar</button>
+          </Row>
+          <Row label="Contrasena" sub="Ultima actualizacion hace 3 meses">
+            <button className="btn-ghost" style={{ fontSize:12.5, padding:'6px 12px' }}>Cambiar</button>
+          </Row>
+          <Row label="Cerrar sesion" sub="" last>
+            <button style={{ padding:'6px 14px', borderRadius:9, border:'1px solid rgba(248,113,113,.2)', background:'rgba(248,113,113,.08)', color:'#F87171', fontSize:12.5, fontWeight:600, fontFamily:'DM Sans,sans-serif', cursor:'pointer' }}>Salir</button>
+          </Row>
+        </Section>
+
+        <Section title="Acerca de">
+          <Row label="Version" sub="" last><span style={{ fontSize:12.5, color:txt2 }}>Bind v2.0.0 — Pro</span></Row>
+        </Section>
+      </div>
+    </div>
+  );
+};
+
+/* ─── EVENT DETAIL PAGE ─── */
+const EventDetail = ({ event, setPage }) => {
+  if (!event) return null;
+  const budgetPct = event.budget ? Math.round((event.budget.spent/event.budget.total)*100) : 0;
+
+  const modules = [
+    { icon:'task', label:'Tareas', color:'#4F8EF7', count: event.tasks, detail:`${event.pendingTasks} pendientes` },
+    { icon:'check', label:'Checklist', color:'#34D399', count:3, detail:'2 completados' },
+    { icon:'file', label:'Archivos', color:'#A78BFA', count:8, detail:'3 recientes' },
+    { icon:'people', label:'Asistentes', color:'#FB923C', count:event.attendees, detail:'registrados' },
+  ];
+
+  return (
+    <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }} className="fade-up">
+
+      {/* Hero banner */}
+      <div style={{
+        padding:'28px 28px 22px',
+        background:'linear-gradient(135deg, rgba(79,142,247,.12) 0%, rgba(107,79,221,.08) 60%, transparent 100%)',
+        borderBottom:'1px solid rgba(255,255,255,.06)',
+        position:'relative', overflow:'hidden',
+      }}>
+        {/* Decorative orbs */}
+        <div style={{ position:'absolute', top:-40, right:-40, width:200, height:200, borderRadius:'50%', background:'radial-gradient(circle,rgba(79,142,247,.12) 0%,transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', bottom:-20, left:200, width:140, height:140, borderRadius:'50%', background:'radial-gradient(circle,rgba(107,79,221,.1) 0%,transparent 70%)', pointerEvents:'none' }}/>
+
+        {/* Back button */}
+        <button onClick={()=>setPage('events')} className="btn-ghost" style={{ marginBottom:16, fontSize:12.5, padding:'6px 12px' }}>
+          ← Proyectos
+        </button>
+
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+          <div>
+            <div style={{ display:'flex', gap:8, marginBottom:10, flexWrap:'wrap' }}>
+              <StatusBadge status={event.status}/>
+              <HealthBadge score={event.health}/>
+            </div>
+            <h1 style={{ fontSize:24, fontWeight:800, color:'#fff', letterSpacing:'-0.025em', marginBottom:8, lineHeight:1.2 }}>{event.name}</h1>
+            {event.location && (
+              <div style={{ display:'flex', alignItems:'center', gap:6, color:'rgba(255,255,255,.4)', fontSize:13 }}>
+                <Icon name="location" size={13}/>
+                {event.location}
+              </div>
+            )}
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <button className="btn-ghost" style={{ fontSize:13 }}>
+              <Icon name="grid" size={15}/> Módulos
+            </button>
+            <button className="btn-ghost" style={{ fontSize:13 }}>
+              <Icon name="edit" size={15}/> Editar
+            </button>
+            <button className="btn-primary" style={{ fontSize:13 }}>
+              <Icon name="plus" size={15}/> Nueva tarea
+            </button>
+          </div>
+        </div>
+
+        {/* Dates + time remaining */}
+        <div style={{ display:'flex', gap:20, marginTop:18, flexWrap:'wrap' }}>
+          <div>
+            <div style={{ fontSize:10.5, color:'rgba(255,255,255,.35)', marginBottom:3, letterSpacing:'.04em', textTransform:'uppercase' }}>Fecha</div>
+            <div style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,.85)' }}>{event.date}</div>
+          </div>
+          {event.daysLeft > 0 && (
+            <div style={{ background:'rgba(79,142,247,.12)', border:'1px solid rgba(79,142,247,.2)', borderRadius:12, padding:'8px 16px' }}>
+              <div style={{ fontSize:10.5, color:'#4F8EF7', marginBottom:2, letterSpacing:'.04em', textTransform:'uppercase' }}>Tiempo restante</div>
+              <div style={{ fontSize:16, fontWeight:800, color:'#4F8EF7' }}>{event.daysLeft} días</div>
+            </div>
+          )}
+
+          {/* Progress bar */}
+          <div style={{ flex:1, minWidth:160 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+              <span style={{ fontSize:10.5, color:'rgba(255,255,255,.35)', textTransform:'uppercase', letterSpacing:'.04em' }}>Progreso de tareas</span>
+              <span style={{ fontSize:13, fontWeight:700, color:'#4F8EF7' }}>{event.progress}%</span>
+            </div>
+            <div className="progress-bar" style={{ height:6, borderRadius:99 }}>
+              <div className="progress-fill" style={{ width:`${event.progress}%` }}/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:20, padding:'22px 28px', flex:1, minHeight:0 }}>
+
+        {/* Left: modules */}
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+
+          {/* Module cards row */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
+            {modules.map(mod => (
+              <div key={mod.label} className="card card-lift" style={{ padding:'14px 16px', cursor:'pointer', textAlign:'center' }}>
+                <div style={{ width:36, height:36, borderRadius:10, background:`${mod.color}15`, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 10px' }}>
+                  <Icon name={mod.icon} size={17} style={{ color:mod.color }}/>
+                </div>
+                <div style={{ fontSize:18, fontWeight:800, color:'#fff', lineHeight:1 }}>{mod.count}</div>
+                <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,.5)', marginTop:3 }}>{mod.label}</div>
+                <div style={{ fontSize:10, color:'rgba(255,255,255,.3)', marginTop:2 }}>{mod.detail}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tasks preview */}
+          <div className="card" style={{ overflow:'hidden' }}>
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid rgba(255,255,255,.05)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <Icon name="task" size={15} style={{ color:'#4F8EF7' }}/>
+                <span style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,.85)' }}>Tareas</span>
+              </div>
+              <button className="btn-ghost" style={{ fontSize:11.5, padding:'5px 10px' }}>Ver todas →</button>
+            </div>
+            {[
+              { title:'Confirmar catering para 340 pax', priority:'high', status:'pending' },
+              { title:'Enviar invitaciones VIP', priority:'high', status:'in_progress' },
+              { title:'Revisar layout de auditorio principal', priority:'medium', status:'pending' },
+              { title:'Contratar equipo de fotografía', priority:'low', status:'done' },
+            ].map((task, i) => (
+              <div key={i} style={{
+                padding:'12px 18px', display:'flex', alignItems:'center', gap:12,
+                borderBottom: i<3 ? '1px solid rgba(255,255,255,.04)' : 'none',
+                opacity: task.status==='done' ? .5 : 1,
+              }}>
+                <div style={{
+                  width:18, height:18, borderRadius:'50%', flexShrink:0, cursor:'pointer',
+                  border: task.status==='done' ? '2px solid #34D399' : '2px solid rgba(255,255,255,.15)',
+                  background: task.status==='done' ? 'rgba(52,211,153,.15)' : 'transparent',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                }}>
+                  {task.status==='done' && <Icon name="check" size={10} style={{ color:'#34D399' }}/>}
+                </div>
+                <span style={{ flex:1, fontSize:13.5, color:'#fff', textDecoration:task.status==='done'?'line-through':'none' }}>{task.title}</span>
+                <span className="badge" style={{
+                  background: task.priority==='high' ? 'rgba(248,113,113,.1)' : task.priority==='medium' ? 'rgba(252,211,77,.1)' : 'rgba(148,163,184,.08)',
+                  color: task.priority==='high' ? '#F87171' : task.priority==='medium' ? '#FCD34D' : '#94A3B8',
+                  fontSize:10,
+                }}>
+                  {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
+                </span>
+              </div>
+            ))}
+            <div style={{ padding:'12px 18px' }}>
+              <button className="btn-primary" style={{ fontSize:12.5, padding:'8px 14px' }}>
+                <Icon name="plus" size={13}/> Nueva tarea
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right sidebar */}
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+
+          {/* Attendees */}
+          <div className="card" style={{ padding:'16px 18px' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+              <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.35)', textTransform:'uppercase', letterSpacing:'.07em' }}>Asistentes</span>
+              <button style={{ fontSize:11, color:'#4F8EF7', background:'none', border:'none', cursor:'pointer', fontFamily:'DM Sans,sans-serif', fontWeight:600 }}>Ver todos →</button>
+            </div>
+            <div style={{ display:'flex', marginBottom:12 }}>
+              {['A','B','C','D','E'].map((l,i) => (
+                <div key={i} style={{
+                  width:32, height:32, borderRadius:'50%',
+                  background:`linear-gradient(135deg, ${['#4F8EF7','#34D399','#F87171','#FCD34D','#A78BFA'][i]}, ${['#6B4FDD','#059669','#DC2626','#D97706','#7C3AED'][i]})`,
+                  border:'2px solid #0B1120', marginLeft: i>0 ? -8 : 0,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:11, fontWeight:700, color:'#fff',
+                }}>{l}</div>
+              ))}
+              <div style={{
+                width:32, height:32, borderRadius:'50%',
+                background:'rgba(255,255,255,.07)', border:'2px solid #0B1120', marginLeft:-8,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:10, fontWeight:700, color:'rgba(255,255,255,.5)',
+              }}>+{event.attendees - 5}</div>
+            </div>
+            <button className="btn-ghost" style={{ width:'100%', justifyContent:'center', fontSize:12 }}>
+              <Icon name="plus" size={13}/> Agregar asistente
+            </button>
+          </div>
+
+          {/* Budget */}
+          {event.budget && (
+            <div className="card" style={{ padding:'16px 18px' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+                <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.35)', textTransform:'uppercase', letterSpacing:'.07em' }}>Presupuesto</span>
+                <button style={{ fontSize:11, color:'#4F8EF7', background:'none', border:'none', cursor:'pointer', fontFamily:'DM Sans,sans-serif', fontWeight:600 }}>Detalle →</button>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:14 }}>
+                {[
+                  { label:'Total', val: (event.budget.total/1000).toFixed(0)+'k', color:'rgba(255,255,255,.7)' },
+                  { label:'Gastado', val: (event.budget.spent/1000).toFixed(0)+'k', color: budgetPct>=80?'#F87171':'rgba(255,255,255,.7)' },
+                  { label:'Restante', val: ((event.budget.total-event.budget.spent)/1000).toFixed(0)+'k', color: budgetPct>=80?'#F87171':'#34D399' },
+                ].map(({ label,val,color }) => (
+                  <div key={label} style={{ textAlign:'center', padding:'8px 0', background:'rgba(255,255,255,.03)', borderRadius:8 }}>
+                    <div style={{ fontSize:13, fontWeight:700, color }}>{val}</div>
+                    <div style={{ fontSize:10, color:'rgba(255,255,255,.3)', marginTop:2 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width:`${budgetPct}%`, background: budgetPct>=80?'linear-gradient(90deg,#F87171,#EF4444)':'linear-gradient(90deg,#34D399,#059669)' }}/>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', marginTop:5 }}>
+                <span style={{ fontSize:10.5, color:'rgba(255,255,255,.3)' }}>{event.budget.currency}</span>
+                <span style={{ fontSize:10.5, fontWeight:700, color: budgetPct>=80?'#F87171':'rgba(255,255,255,.4)' }}>{budgetPct}% usado</span>
+              </div>
+            </div>
+          )}
+
+          {/* Engine scores */}
+          <div className="card" style={{ padding:'16px 18px' }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.35)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:12 }}>Indicadores</div>
+            {[
+              { label:'Salud', val:event.health+'%', color: event.health>=80?'#34D399':event.health>=50?'#4F8EF7':'#F87171' },
+              { label:'Riesgo', val: event.health>=80?'Bajo':event.health>=50?'Medio':'Alto', color: event.health>=80?'#34D399':event.health>=50?'#FCD34D':'#F87171' },
+              { label:'Momentum', val:'Estable', color:'#4F8EF7' },
+            ].map(({ label,val,color }) => (
+              <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom:'1px solid rgba(255,255,255,.04)' }}>
+                <span style={{ fontSize:12.5, color:'rgba(255,255,255,.5)' }}>{label}</span>
+                <span style={{ fontSize:12.5, fontWeight:700, color }}>{val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── LOGIN PAGE ─── */
+const LoginPage = ({ onLogin }) => {
+  const [showPass, setShowPass] = useState(false);
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setTimeout(() => { setLoading(false); onLogin(); }, 1200);
+  };
+
+  return (
+    <div style={{
+      minHeight:'100vh', width:'100%',
+      background:'linear-gradient(135deg, #060910 0%, #0B1120 50%, #080C14 100%)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      position:'relative', overflow:'hidden',
+    }}>
+      {/* Background orbs */}
+      <div style={{ position:'absolute', top:'-10%', right:'-5%', width:'50vw', height:'50vw', maxWidth:600, maxHeight:600, borderRadius:'50%', background:'radial-gradient(circle,rgba(79,142,247,.08) 0%,transparent 65%)', pointerEvents:'none' }}/>
+      <div style={{ position:'absolute', bottom:'-10%', left:'-5%', width:'40vw', height:'40vw', maxWidth:500, maxHeight:500, borderRadius:'50%', background:'radial-gradient(circle,rgba(107,79,221,.07) 0%,transparent 65%)', pointerEvents:'none' }}/>
+      <div style={{ position:'absolute', top:'30%', left:'20%', width:300, height:300, borderRadius:'50%', background:'radial-gradient(circle,rgba(52,211,153,.04) 0%,transparent 65%)', pointerEvents:'none' }}/>
+
+      {/* Grid pattern */}
+      <div style={{
+        position:'absolute', inset:0, pointerEvents:'none',
+        backgroundImage:'linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px)',
+        backgroundSize:'48px 48px',
+      }}/>
+
+      <div className="fade-up" style={{ width:'100%', maxWidth:400, padding:'0 24px', position:'relative', zIndex:1 }}>
+
+        {/* Logo */}
+        <div style={{ textAlign:'center', marginBottom:32 }}>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:12, marginBottom:8 }}>
+            <BindLogo size={40}/>
+            <span style={{ fontSize:26, fontWeight:800, color:'#fff', letterSpacing:'-0.03em' }}>Bind</span>
+          </div>
+          <div style={{ fontSize:13.5, color:'rgba(255,255,255,.35)', marginTop:4 }}>Gestión de eventos inteligente</div>
+        </div>
+
+        {/* Card */}
+        <div style={{
+          background:'rgba(255,255,255,.04)',
+          border:'1px solid rgba(255,255,255,.09)',
+          borderRadius:20,
+          padding:'32px 28px',
+          backdropFilter:'blur(30px)',
+          boxShadow:'0 32px 64px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07)',
+        }}>
+          <h2 style={{ fontSize:20, fontWeight:800, color:'#fff', marginBottom:6, letterSpacing:'-0.02em' }}>Bienvenido de vuelta</h2>
+          <p style={{ fontSize:13.5, color:'rgba(255,255,255,.4)', marginBottom:24 }}>Ingresa a tu cuenta para continuar</p>
+
+          <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            {/* User */}
+            <div style={{ position:'relative' }}>
+              <Icon name="user" size={15} style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,.3)', pointerEvents:'none' }}/>
+              <input
+                type="text" value={user} onChange={e=>setUser(e.target.value)}
+                placeholder="Usuario o correo" className="input-field" required
+              />
+            </div>
+            {/* Password */}
+            <div style={{ position:'relative' }}>
+              <Icon name="lock" size={15} style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,.3)', pointerEvents:'none' }}/>
+              <input
+                type={showPass?'text':'password'} value={pass} onChange={e=>setPass(e.target.value)}
+                placeholder="Contraseña" className="input-field" required
+                style={{ paddingRight:44 }}
+              />
+              <button type="button" onClick={()=>setShowPass(p=>!p)} style={{
+                position:'absolute', right:14, top:'50%', transform:'translateY(-50%)',
+                background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,.35)',
+                padding:0, display:'flex', alignItems:'center',
+              }}>
+                <Icon name={showPass?'eyeOff':'eye'} size={16}/>
+              </button>
+            </div>
+
+            <div style={{ display:'flex', justifyContent:'flex-end' }}>
+              <button type="button" style={{ background:'none', border:'none', cursor:'pointer', fontSize:12.5, color:'rgba(99,179,237,.7)', fontFamily:'DM Sans,sans-serif', fontWeight:500 }}>
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+
+            <button type="submit" className="btn-primary" style={{ width:'100%', justifyContent:'center', padding:'13px', fontSize:14.5, borderRadius:12, marginTop:4 }} disabled={loading}>
+              {loading ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ animation:'spin 1s linear infinite' }}>
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              ) : 'Ingresar'}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div style={{ display:'flex', alignItems:'center', gap:12, margin:'20px 0' }}>
+            <div style={{ flex:1, height:1, background:'rgba(255,255,255,.08)' }}/>
+            <span style={{ fontSize:12, color:'rgba(255,255,255,.3)' }}>o continúa con</span>
+            <div style={{ flex:1, height:1, background:'rgba(255,255,255,.08)' }}/>
+          </div>
+
+          {/* Google */}
+          <button style={{
+            width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+            padding:'12px', borderRadius:12, border:'1px solid rgba(255,255,255,.1)',
+            background:'rgba(255,255,255,.05)', cursor:'pointer', color:'rgba(255,255,255,.75)',
+            fontFamily:'DM Sans,sans-serif', fontSize:14, fontWeight:600,
+            transition:'all .18s',
+          }}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,.09)';e.currentTarget.style.color='#fff'}}
+            onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,.05)';e.currentTarget.style.color='rgba(255,255,255,.75)'}}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Continuar con Google
+          </button>
+        </div>
+
+        <p style={{ textAlign:'center', marginTop:18, fontSize:13, color:'rgba(255,255,255,.3)' }}>
+          ¿No tienes cuenta?{' '}
+          <button style={{ background:'none',border:'none',cursor:'pointer',color:'#4F8EF7',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:700 }}>
+            Registrarse
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+/* ─── APP ROOT ─── */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentColor": "#4F8EF7",
+  "startPage": "login",
+  "showSidebar": true,
+  "cardRadius": 16,
+  "compactMode": false
+}/*EDITMODE-END*/;
+
+const App = () => {
+  const tweaksResult = window.useTweaks ? window.useTweaks(TWEAK_DEFAULTS) : null;
+  const tweaks    = tweaksResult?.tweaks ?? TWEAK_DEFAULTS;
+  const TweaksPanel  = tweaksResult?.TweaksPanel  ?? (({ children }) => null);
+  const TweakSection = tweaksResult?.TweakSection ?? (({ children }) => null);
+  const TweakColor   = tweaksResult?.TweakColor   ?? (() => null);
+  const TweakRadio   = tweaksResult?.TweakRadio   ?? (() => null);
+  const TweakToggle  = tweaksResult?.TweakToggle  ?? (() => null);
+  const TweakSlider  = tweaksResult?.TweakSlider  ?? (() => null);
+
+  const [loggedIn, setLoggedIn]   = useState(tweaks.startPage !== 'login');
+  const [page,     setPage]       = useState(tweaks.startPage !== 'login' ? tweaks.startPage : 'dashboard');
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [darkMode, setDarkMode]   = useState(true);
+
+  const accentColor = tweaks.accentColor;
+
+  // Apply dark/light class to body
+  useEffect(() => {
+    document.body.classList.toggle('light', !darkMode);
+  }, [darkMode]);
+
+  // Inject accent CSS var
+  useEffect(() => {
+    document.documentElement.style.setProperty('--accent', accentColor);
+  }, [accentColor]);
+
+  // Card radius
+  useEffect(() => {
+    const s = document.getElementById('__radius_style') || (() => {
+      const el = document.createElement('style');
+      el.id = '__radius_style'; document.head.appendChild(el); return el;
+    })();
+    s.textContent = `.card { border-radius: ${tweaks.cardRadius}px !important; }`;
+  }, [tweaks.cardRadius]);
+
+  const toggleDark = () => setDarkMode(d => !d);
+
+  if (!loggedIn) {
+    return (
+      <>
+        <LoginPage onLogin={()=>setLoggedIn(true)}/>
+        <TweaksPanel>
+          <TweakSection label="Apariencia">
+            <TweakColor label="Color de acento" tkey="accentColor"/>
+          </TweakSection>
+        </TweaksPanel>
+      </>
+    );
+  }
+
+  const PAGE_TITLES = {
+    dashboard: 'Panel Principal',
+    events:    'Proyectos',
+    templates: 'Plantillas',
+    encurso:   'En Curso',
+    tasks:     'Tareas',
+    report:    'Reporte',
+    calendar:  'Calendario',
+    settings:  'Configuracion',
+    detail:    selectedEvent?.name || 'Detalle',
+  };
+
+  const showNewEventBtn = ['dashboard','events','templates','encurso'].includes(page);
+  const topbarAction = showNewEventBtn ? (
+    <button className="btn-primary" onClick={()=>setPage('events')} style={{ fontSize:13 }}>
+      <Icon name="plus" size={15}/> Nuevo evento
+    </button>
+  ) : null;
+
+  const navSetPage = (p) => { setPage(p); if(p !== 'detail') setSelectedEvent(null); };
+
+  // Card / text colors for dark mode
+  const cardBg   = darkMode ? 'rgba(255,255,255,.035)' : '#fff';
+  const cardBorder = darkMode ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)';
+
+  return (
+    <div style={{ display:'flex', height:'100vh', width:'100%', overflow:'hidden', background: darkMode?'#080C14':'#F3F4F8', transition:'background .3s' }}>
+      {tweaks.showSidebar && (
+        <Sidebar page={page} setPage={navSetPage} darkMode={darkMode}/>
+      )}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0 }}>
+        <Topbar title={PAGE_TITLES[page]||'Bind'} action={topbarAction} darkMode={darkMode} toggleDark={toggleDark} setPage={navSetPage}/>
+
+        <div className="main-bg" style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column', background: darkMode?'#080C14':'#F3F4F8', transition:'background .3s' }}>
+          {page==='dashboard'  && <Dashboard  setPage={navSetPage} setSelectedEvent={setSelectedEvent} accentColor={accentColor} darkMode={darkMode}/>}
+          {page==='events'     && <EventsPage setPage={navSetPage} setSelectedEvent={setSelectedEvent} darkMode={darkMode}/>}
+          {page==='templates'  && <TemplatesPage setPage={navSetPage} setSelectedEvent={setSelectedEvent} darkMode={darkMode}/>}
+          {page==='encurso'    && <EnCursoPage   setPage={navSetPage} setSelectedEvent={setSelectedEvent} darkMode={darkMode}/>}
+          {page==='tasks'      && <TasksPage  darkMode={darkMode}/>}
+          {page==='report'     && <ReportPage darkMode={darkMode}/>}
+          {page==='calendar'   && <CalendarPage  setPage={navSetPage} setSelectedEvent={setSelectedEvent} darkMode={darkMode}/>}
+          {page==='settings'   && <SettingsPage  darkMode={darkMode} toggleDark={toggleDark}/>}
+          {page==='detail'     && <EventDetail event={selectedEvent} setPage={navSetPage} darkMode={darkMode}/>}
+        </div>
+      </div>
+
+      <TweaksPanel>
+        <TweakSection label="Apariencia">
+          <TweakColor label="Color de acento" tkey="accentColor"/>
+          <TweakSlider label="Radio de tarjetas" tkey="cardRadius" min={6} max={24} step={2}/>
+          <TweakToggle label="Mostrar sidebar" tkey="showSidebar"/>
+        </TweakSection>
+        <TweakSection label="Navegacion">
+          <TweakRadio label="Pantalla inicial" tkey="startPage" options={['login','dashboard','events','templates','encurso','tasks','report']}/>
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

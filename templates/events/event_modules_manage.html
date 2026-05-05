@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}BIND - Gestionar Módulos{% endblock %}
+{% block page_title %}Gestionar Módulos{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-8 max-w-2xl mx-auto animate-fade-in">
+
+  <div class="glass rounded-3xl p-8 border border-gray-100 dark:border-gray-700 shadow-sm">
+
+    <!-- Header -->
+    <div class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Módulos del Evento</h2>
+      <p class="text-gray-600 dark:text-gray-400 text-sm">
+        {{ event.name }}
+      </p>
+      <p class="text-gray-500 dark:text-gray-500 text-xs mt-2">
+        Activa o desactiva los módulos que necesitas para este evento. Los módulos desactivados se ocultan pero no se eliminan.
+      </p>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="space-y-3 mb-8">
+        {% for module_type, module_name in all_module_choices %}
+        <label class="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-teal-400 dark:hover:border-teal-600 cursor-pointer transition-all {% if module_type in active_modules %}bg-teal-50/30 dark:bg-teal-900/10{% endif %}">
+          <input type="checkbox" name="modules" value="{{ module_type }}" class="w-5 h-5 rounded border-gray-300 text-teal-500 focus:ring-teal-500" {% if module_type in active_modules %}checked{% endif %}>
+
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <!-- Icono por módulo -->
+              {% if module_type == 'tasks' %}
+                <svg class="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+              {% elif module_type == 'attendees' %}
+                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              {% elif module_type == 'checklist' %}
+                <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              {% elif module_type == 'files' %}
+                <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              {% endif %}
+
+              <span class="font-semibold text-gray-800 dark:text-white">{{ module_name }}</span>
+            </div>
+            <!-- Descripción corta -->
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-7">
+              {% if module_type == 'tasks' %}
+                Gestiona tareas y actividades del evento
+              {% elif module_type == 'attendees' %}
+                Controla invitados y confirmaciones
+              {% elif module_type == 'checklist' %}
+                Listas de verificación y seguimiento
+              {% elif module_type == 'files' %}
+                Archivos y documentos compartidos
+              {% endif %}
+            </p>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+
+      <!-- Botones -->
+      <div class="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <button type="submit"
+          class="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white py-3 rounded-xl font-semibold shadow-lg transition-all hover:scale-[1.01]">
+          Guardar cambios
+        </button>
+        <a href="{% url 'events:event_detail' event.pk %}"
+           class="px-6 py-3 rounded-xl glass hover:bg-white/80 dark:hover:bg-gray-700 transition-all font-medium text-gray-700 dark:text-gray-300">
+          Cancelar
+        </a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

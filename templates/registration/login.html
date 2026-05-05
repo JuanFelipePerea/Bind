@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BIND - Iniciar sesion</title>
+  <script>
+    (() => {
+      const html = document.documentElement;
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (saved === 'dark' || (!saved && prefersDark)) html.classList.add('dark');
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% load static %}
+  {% load socialaccount %}
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { poppins: ['Poppins', 'sans-serif'] } } }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Poppins', sans-serif; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-up { animation: fadeInUp 0.55s ease-out forwards; }
+    .bind-input {
+      width: 100%; padding: 0.875rem 1rem 0.875rem 2.75rem;
+      background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 0.75rem; color: #e2e8f0; font-size: 0.875rem;
+      outline: none; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    .bind-input::placeholder { color: rgba(148,163,184,0.6); }
+    .bind-input:focus { border-color: #818cf8; background: rgba(129,140,248,0.08); box-shadow: 0 0 0 3px rgba(129,140,248,0.15); }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 text-white min-h-screen relative overflow-hidden font-poppins">
+
+  <!-- Ambient blobs -->
+  <div class="absolute w-96 h-96 rounded-full top-[-10rem] right-[-6rem] pointer-events-none" style="background:radial-gradient(circle,rgba(99,102,241,0.25) 0%,transparent 70%);filter:blur(60px);"></div>
+  <div class="absolute w-80 h-80 rounded-full bottom-[-8rem] left-[-4rem] pointer-events-none" style="background:radial-gradient(circle,rgba(59,130,246,0.2) 0%,transparent 70%);filter:blur(60px);"></div>
+
+  <!-- Header -->
+  <header class="absolute top-0 left-0 w-full py-6 px-6 z-20">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <a href="{% url 'accounts:index' %}" class="flex items-center gap-3 fade-up">
+        <div class="w-11 h-11 rounded-xl overflow-hidden shadow-lg">
+          <img src="{% static 'img/logo.svg' %}" alt="BIND" class="w-full h-full object-cover">
+        </div>
+        <span class="text-2xl font-bold text-white tracking-tight">Bind</span>
+      </a>
+      <button id="themeToggle" class="p-2.5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-sm">
+        <svg class="w-5 h-5 text-white block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <svg class="w-5 h-5 text-white hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a7 7 0 1010.586 10.586z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Login form -->
+  <section class="min-h-screen flex items-center justify-center px-6 py-24 relative z-10">
+    <div class="w-full max-w-md">
+
+      <div class="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 shadow-2xl fade-up" style="animation-delay:0.1s;">
+
+        <div class="text-center mb-8">
+          <h2 class="text-4xl font-bold text-white mb-1.5">Iniciar sesion</h2>
+        </div>
+
+        {% if form.errors %}
+        <div class="bg-red-500/15 border border-red-500/30 text-red-300 text-sm px-4 py-3 rounded-xl mb-5">
+          Usuario o contrasena incorrectos. Intenta de nuevo.
+        </div>
+        {% endif %}
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-sm px-4 py-3 rounded-xl mb-5">
+          {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="post" class="space-y-4">
+          {% csrf_token %}
+
+          <!-- Usuario -->
+          <div>
+            <div class="relative">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>
+              <input type="text" name="username" placeholder="Usuario" required autocomplete="username" class="bind-input">
+            </div>
+            <div class="flex justify-end mt-1">
+              <a href="#" class="text-xs text-indigo-300/70 hover:text-indigo-300 transition-colors">Olvide mi usuario</a>
+            </div>
+          </div>
+
+          <!-- Contrasena -->
+          <div>
+            <div class="relative">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+              <input type="password" name="password" id="password" placeholder="Contrasena" required autocomplete="current-password" class="bind-input pr-12">
+              <button type="button" onclick="togglePass()" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors">
+                <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="flex justify-end mt-1">
+              <a href="#" class="text-xs text-indigo-300/70 hover:text-indigo-300 transition-colors">Olvide mi contrasena</a>
+            </div>
+          </div>
+
+          <button type="submit"
+            class="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] mt-2"
+            style="background:linear-gradient(135deg,#6366f1,#3b82f6);box-shadow:0 8px 24px rgba(99,102,241,0.3);">
+            Ingresar
+          </button>
+        </form>
+
+        <div class="flex items-center gap-3 mt-5">
+          <div class="flex-1 h-px bg-white/10"></div>
+          <span class="text-slate-400 text-xs">o</span>
+          <div class="flex-1 h-px bg-white/10"></div>
+        </div>
+
+        <a href="{% provider_login_url 'google' %}"
+           class="mt-4 w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-700 font-medium py-3.5 px-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all text-sm">
+          <svg viewBox="0 0 24 24" class="w-5 h-5 flex-shrink-0">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continuar con google
+        </a>
+
+      </div>
+
+      <div class="text-center mt-5 fade-up" style="animation-delay:0.25s;">
+        <p class="text-slate-400 text-sm">
+          No tienes cuenta?
+          <a href="{% url 'accounts:register' %}" class="text-indigo-400 font-semibold hover:text-indigo-300 transition-colors ml-1">Registro</a>
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+    function togglePass() {
+      const inp = document.getElementById('password');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+  </script>
+</body>
+</html>

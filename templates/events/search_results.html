@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}BIND - Búsqueda: {{ q }}{% endblock %}
+{% block page_title %}Búsqueda{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-8">
+
+  <!-- Header de búsqueda -->
+  <div class="mb-6">
+    <form method="get" action="{% url 'events:search' %}" class="flex gap-3">
+      <div class="relative flex-1 max-w-xl">
+        <input type="text" name="q" value="{{ q }}" placeholder="Buscar eventos, tareas, asistentes..."
+               autofocus
+               class="w-full pl-10 pr-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm text-gray-800 dark:text-white transition-all">
+        <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+      </div>
+      <button type="submit"
+              class="px-5 py-3 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl text-sm transition-colors">
+        Buscar
+      </button>
+    </form>
+  </div>
+
+  {% if too_short %}
+  <div class="glass rounded-2xl p-12 text-center">
+    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    </svg>
+    <p class="text-gray-500 dark:text-gray-400 font-medium">Escribe al menos 2 caracteres para buscar.</p>
+  </div>
+
+  {% elif total == 0 %}
+  <div class="glass rounded-2xl p-12 text-center">
+    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-gray-500 dark:text-gray-400 font-medium">Sin resultados para "<strong>{{ q }}</strong>"</p>
+    <p class="text-sm text-gray-400 mt-1">Prueba con otra búsqueda o verifica el nombre.</p>
+  </div>
+
+  {% else %}
+  <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+    {{ total }} resultado{% if total != 1 %}s{% endif %} para "<strong class="text-gray-700 dark:text-gray-200">{{ q }}</strong>"
+  </p>
+
+  <div class="space-y-8">
+
+    <!-- Eventos -->
+    {% if events_results %}
+    <div>
+      <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+        </svg>
+        Eventos ({{ events_results|length }})
+      </h3>
+      <div class="space-y-2">
+        {% for event in events_results %}
+        <a href="{% url 'events:event_detail' event.pk %}"
+           class="glass p-4 rounded-xl flex items-center gap-4 hover:bg-white/80 dark:hover:bg-gray-700/50 transition-colors group block">
+          <div class="w-9 h-9 rounded-lg bg-teal-500/20 flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-gray-800 dark:text-white group-hover:text-teal-500 transition-colors truncate">
+              {{ event.name }}
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">
+              {{ event.get_status_display }}
+              {% if event.start_date %} · {{ event.start_date|date:"d M Y" }}{% endif %}
+              {% if event.location %} · {{ event.location }}{% endif %}
+            </p>
+          </div>
+          <svg class="w-4 h-4 text-gray-400 group-hover:text-teal-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Tareas -->
+    {% if tasks_results %}
+    <div>
+      <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+        </svg>
+        Tareas ({{ tasks_results|length }})
+      </h3>
+      <div class="space-y-2">
+        {% for task in tasks_results %}
+        <a href="{% url 'modules:task_edit' task.event.pk task.pk %}"
+           class="glass p-4 rounded-xl flex items-center gap-4 hover:bg-white/80 dark:hover:bg-gray-700/50 transition-colors group block border-l-4
+             {% if task.priority == 'high' %}border-l-red-400{% elif task.priority == 'medium' %}border-l-yellow-400{% else %}border-l-green-400{% endif %}">
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-gray-800 dark:text-white group-hover:text-teal-500 transition-colors truncate
+              {% if task.status == 'done' %}line-through text-gray-400{% endif %}">
+              {{ task.title }}
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">
+              {{ task.event.name }} · {{ task.get_priority_display }} · {{ task.get_status_display }}
+              {% if task.due_date %} · Vence: {{ task.due_date|date:"d M" }}{% endif %}
+            </p>
+          </div>
+          <svg class="w-4 h-4 text-gray-400 group-hover:text-teal-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Asistentes -->
+    {% if attendees_results %}
+    <div>
+      <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Asistentes ({{ attendees_results|length }})
+      </h3>
+      <div class="space-y-2">
+        {% for attendee in attendees_results %}
+        <a href="{% url 'modules:attendee_list' attendee.event.pk %}"
+           class="glass p-4 rounded-xl flex items-center gap-4 hover:bg-white/80 dark:hover:bg-gray-700/50 transition-colors group block">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            {{ attendee.name|first|upper }}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-gray-800 dark:text-white group-hover:text-teal-500 transition-colors truncate">
+              {{ attendee.name }}
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">
+              {{ attendee.event.name }}
+              {% if attendee.email %} · {{ attendee.email }}{% endif %}
+              · {{ attendee.get_status_display }}
+            </p>
+          </div>
+          <svg class="w-4 h-4 text-gray-400 group-hover:text-teal-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

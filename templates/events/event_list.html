@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}BIND - Proyectos{% endblock %}
+{% block page_title %}Proyectos{% endblock %}
+
+{% block topbar_action %}
+<a href="{% url 'events:event_create' %}" class="btn-primary" style="font-size:13px;padding:8px 16px;">
+  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+  Nuevo evento
+</a>
+{% endblock %}
+
+{% block content %}
+<div style="padding:24px;background:#080C14;min-height:100%;">
+
+  <!-- Filtros -->
+  <div style="display:flex;gap:8px;margin-bottom:24px;overflow-x:auto;padding-bottom:4px;">
+    {% for label, value in filters %}
+    <a href="?{% if value %}status={{ value }}{% endif %}" style="
+      padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;
+      white-space:nowrap;text-decoration:none;transition:all .18s;
+      {% if request.GET.status == value or not request.GET.status and not value %}
+        background:linear-gradient(135deg,#4F8EF7,#6B4FDD);color:#fff;box-shadow:0 4px 12px rgba(79,142,247,.25);
+      {% else %}
+        background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.55);
+      {% endif %}
+    "
+    onmouseover="{% if not (request.GET.status == value or not request.GET.status and not value) %}this.style.background='rgba(255,255,255,.09)';this.style.color='rgba(255,255,255,.85)'{% endif %}"
+    onmouseout="{% if not (request.GET.status == value or not request.GET.status and not value) %}this.style.background='rgba(255,255,255,.05)';this.style.color='rgba(255,255,255,.55)'{% endif %}">
+      {{ label }}
+    </a>
+    {% empty %}
+    <a href="?" style="padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;background:linear-gradient(135deg,#4F8EF7,#6B4FDD);color:#fff;">Todos</a>
+    <a href="?status=active" style="padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.55);">Activos</a>
+    <a href="?status=draft" style="padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.55);">Borrador</a>
+    <a href="?status=completed" style="padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.55);">Completados</a>
+    {% endfor %}
+  </div>
+
+  <!-- Grid de eventos -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+
+    <!-- Crear nuevo -->
+    <a href="{% url 'events:event_create' %}" style="
+      display:flex;align-items:center;gap:14px;
+      padding:20px;border-radius:16px;text-decoration:none;
+      border:1.5px dashed rgba(79,142,247,.2);
+      background:rgba(79,142,247,.03);
+      transition:all .2s;
+    "
+      onmouseover="this.style.borderColor='rgba(79,142,247,.45)';this.style.background='rgba(79,142,247,.07)'"
+      onmouseout="this.style.borderColor='rgba(79,142,247,.2)';this.style.background='rgba(79,142,247,.03)'">
+      <div style="width:40px;height:40px;border-radius:12px;background:rgba(79,142,247,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .18s;">
+        <svg width="18" height="18" fill="none" stroke="#4F8EF7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      </div>
+      <div>
+        <p style="font-weight:700;color:rgba(255,255,255,.8);font-size:14px;">Nuevo evento</p>
+        <p style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;">Empieza algo hoy</p>
+      </div>
+    </a>
+
+    {% for event in events %}
+    <div class="bind-card bind-card-lift" style="padding:20px;cursor:pointer;display:flex;flex-direction:column;gap:14px;position:relative;"
+         onclick="window.location.href='{% url 'events:event_detail' event.pk %}'">
+
+      <!-- Status + health + acciones -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span class="bind-badge" style="
+            {% if event.status == 'active' %}background:rgba(52,211,153,.1);color:#34D399;
+            {% elif event.status == 'draft' %}background:rgba(148,163,184,.08);color:#94A3B8;
+            {% elif event.status == 'completed' %}background:rgba(79,142,247,.1);color:#60A5FA;
+            {% else %}background:rgba(248,113,113,.1);color:#F87171;{% endif %}
+          ">
+            <span style="width:4px;height:4px;border-radius:50%;background:currentColor;display:inline-block;"></span>
+            {{ event.get_status_display }}
+          </span>
+          {% if event.health_label %}
+          <span class="bind-badge" style="font-size:10px;
+            {% if event.health_score == 100 %}background:rgba(52,211,153,.1);color:#34D399;
+            {% elif event.health_score >= 50 %}background:rgba(79,142,247,.1);color:#4F8EF7;
+            {% elif event.health_score > 0 %}background:rgba(251,191,36,.08);color:#FCD34D;
+            {% else %}background:rgba(248,113,113,.1);color:#F87171;{% endif %}
+          ">{{ event.health_score }}</span>
+          {% endif %}
+        </div>
+        <div style="display:flex;gap:4px;opacity:0;transition:opacity .18s;" class="card-actions">
+          <a href="{% url 'events:event_edit' event.pk %}" onclick="event.stopPropagation()" style="
+            width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+            background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);text-decoration:none;transition:all .18s;
+          " onmouseover="this.style.background='rgba(255,255,255,.12)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,.06)';this.style.color='rgba(255,255,255,.5)'">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </a>
+          <a href="{% url 'events:event_delete' event.pk %}" onclick="event.stopPropagation()" style="
+            width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+            background:rgba(248,113,113,.08);color:rgba(248,113,113,.6);text-decoration:none;transition:all .18s;
+          " onmouseover="this.style.background='rgba(248,113,113,.15)';this.style.color='#F87171'" onmouseout="this.style.background='rgba(248,113,113,.08)';this.style.color='rgba(248,113,113,.6)'">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Nombre y ubicacion -->
+      <div>
+        <h3 style="font-size:15px;font-weight:700;color:#fff;line-height:1.3;transition:color .18s;" class="event-name">{{ event.name }}</h3>
+        {% if event.location %}
+        <p style="font-size:12px;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:4px;margin-top:4px;">
+          <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          {{ event.location }}
+        </p>
+        {% endif %}
+      </div>
+
+      <!-- Fecha + progreso -->
+      <div>
+        {% if event.start_date %}
+        <p style="font-size:11px;color:rgba(255,255,255,.35);display:flex;align-items:center;gap:4px;margin-bottom:8px;">
+          <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          {{ event.start_date|date:"d M Y" }}
+        </p>
+        {% endif %}
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;">
+          <span style="color:rgba(255,255,255,.35);">Progreso</span>
+          <span style="font-weight:600;color:rgba(255,255,255,.6);">{{ event.task_progress|default:"0" }}%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:{{ event.task_progress|default:'0' }}%;"></div></div>
+      </div>
+
+    </div>
+    {% empty %}
+    <div style="grid-column:1/-1;text-align:center;padding:48px 24px;border:1.5px dashed rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);">
+      <svg width="40" height="40" fill="none" stroke="rgba(255,255,255,.15)" viewBox="0 0 24 24" style="margin:0 auto 14px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+      <p style="font-size:14px;font-weight:600;color:rgba(255,255,255,.4);margin-bottom:5px;">Sin eventos en esta categoria</p>
+      <p style="font-size:12px;color:rgba(255,255,255,.25);margin-bottom:16px;">Cambia el filtro o crea uno nuevo</p>
+      <a href="{% url 'events:event_create' %}" class="btn-primary" style="font-size:13px;">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Crear evento
+      </a>
+    </div>
+    {% endfor %}
+
+  </div>
+
+  <!-- Paginacion -->
+  {% if page_obj.has_other_pages %}
+  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:32px;padding-top:24px;border-top:1px solid rgba(255,255,255,.05);">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn-ghost" style="font-size:13px;">
+      Anterior
+    </a>
+    {% endif %}
+    <span style="font-size:13px;color:rgba(255,255,255,.4);">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn-ghost" style="font-size:13px;">
+      Siguiente
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+  .bind-card:hover .card-actions { opacity: 1 !important; }
+  .bind-card:hover .event-name { color: #4F8EF7 !important; }
+</style>
+{% endblock %}

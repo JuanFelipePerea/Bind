@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+{% load engine_tags %}
+{% block title %}BIND - Dashboard{% endblock %}
+{% block page_title %}Panel Principal{% endblock %}
+
+{% block topbar_action %}
+<a href="{% url 'events:event_create' %}" class="btn-primary" style="font-size:13px;padding:8px 16px;">
+  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+  Nuevo evento
+</a>
+{% endblock %}
+
+{% block content %}
+<div style="height:100%;display:flex;flex-direction:column;overflow:auto;padding:24px;gap:20px;background:#080C14;">
+
+  <!-- ALERTS -->
+  {% if alerts %}
+  <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+    {% for alert in alerts %}
+    <div style="
+      border-radius:12px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+      {% if alert.severity == 'critical' %}background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);
+      {% elif alert.severity == 'warning' %}background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);
+      {% else %}background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);{% endif %}
+    ">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+        <span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;
+          {% if alert.severity == 'critical' %}background:#F87171;
+          {% elif alert.severity == 'warning' %}background:#FCD34D;
+          {% else %}background:#4F8EF7;{% endif %}"></span>
+        <div style="min-width:0;">
+          <p style="font-weight:700;font-size:12px;{% if alert.severity == 'critical' %}color:#FCA5A5;{% elif alert.severity == 'warning' %}color:#FDE68A;{% else %}color:#93C5FD;{% endif %}">{{ alert.title }}</p>
+          <p style="font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ alert.event.name }} · {{ alert.message|truncatechars:60 }}</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        {% if alert.action_url %}
+        <a href="{% url 'events:alert_action' alert.pk %}" style="
+          font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;color:#fff;text-decoration:none;
+          {% if alert.severity == 'critical' %}background:#EF4444;{% elif alert.severity == 'warning' %}background:#F59E0B;{% else %}background:#4F8EF7;{% endif %}
+        ">{{ alert.action_label|default:"Resolver" }}</a>
+        {% endif %}
+        <form method="post" action="{% url 'events:alert_dismiss' alert.pk %}">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+          <button type="submit" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);padding:2px;transition:color .18s;"
+                  onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.3)'">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- GREETING -->
+  <div style="flex-shrink:0;">
+    <h1 style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.02em;">
+      Hola, <span style="background:linear-gradient(135deg,#4F8EF7,#6B4FDD);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">{{ user.get_full_name|default:user.username }}</span>!
+    </h1>
+    <p style="font-size:13px;color:rgba(255,255,255,.4);margin-top:3px;">Aqui tienes lo que esta pasando esta semana.</p>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div style="flex:1;display:grid;grid-template-columns:5fr 7fr;gap:20px;min-height:0;">
+
+    <!-- LEFT COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:16px;overflow:hidden;">
+
+      <!-- Resumen semana -->
+      <div class="bind-card" style="padding:20px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <h3 style="font-weight:700;color:#fff;font-size:14px;">Resumen de la semana</h3>
+          <div style="display:flex;gap:2px;opacity:.6;">
+            <svg width="14" height="14" fill="#A855F7" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <svg width="10" height="10" fill="#7C3AED" style="margin-top:4px;" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+          <a href="{% url 'events:event_list' %}" style="
+            border:1px solid rgba(79,142,247,.2);border-radius:12px;padding:12px 8px;text-align:center;
+            background:rgba(79,142,247,.06);text-decoration:none;transition:border-color .18s;display:block;
+          " onmouseover="this.style.borderColor='rgba(79,142,247,.5)'" onmouseout="this.style.borderColor='rgba(79,142,247,.2)'">
+            <p style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.03em;line-height:1;">{{ active_events_count|default:"0" }}</p>
+            <p style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;line-height:1.2;">Eventos activos</p>
+          </a>
+          <a href="{% url 'modules:task_overview' %}" style="
+            border:1px solid {% if pending_tasks > 0 %}rgba(248,113,113,.3){% else %}rgba(79,142,247,.2){% endif %};border-radius:12px;padding:12px 8px;text-align:center;
+            background:{% if pending_tasks > 0 %}rgba(248,113,113,.06){% else %}rgba(79,142,247,.06){% endif %};text-decoration:none;display:block;transition:border-color .18s;
+          ">
+            <p style="font-size:22px;font-weight:700;color:{% if pending_tasks > 0 %}#F87171{% else %}#fff{% endif %};letter-spacing:-0.03em;line-height:1;">{{ pending_tasks|default:"0" }}</p>
+            <p style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;line-height:1.2;">Tareas faltantes</p>
+          </a>
+          <a href="{% url 'modules:task_overview' %}" style="
+            border:1px solid rgba(79,142,247,.2);border-radius:12px;padding:12px 8px;text-align:center;
+            background:rgba(79,142,247,.06);text-decoration:none;display:block;transition:border-color .18s;
+          " onmouseover="this.style.borderColor='rgba(79,142,247,.5)'" onmouseout="this.style.borderColor='rgba(79,142,247,.2)'">
+            <p style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.03em;line-height:1;">{{ tasks_today|default:"0" }}</p>
+            <p style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;line-height:1.2;">Tareas hoy</p>
+          </a>
+        </div>
+
+        {% if featured_event %}
+        <div style="background:rgba(107,79,221,.1);border:1px solid rgba(107,79,221,.2);border-radius:12px;padding:14px;margin-bottom:14px;">
+          <p style="font-size:10px;font-weight:700;color:#A78BFA;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Proximo evento</p>
+          <p style="font-weight:700;color:#fff;font-size:14px;line-height:1.3;">{{ featured_event.name }}</p>
+          {% if featured_event.days_until is not None %}
+          <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+            <svg width="12" height="12" fill="none" stroke="#A78BFA" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p style="font-size:13px;color:#A78BFA;font-weight:600;">Dentro de {{ featured_event.days_until }} dias</p>
+          </div>
+          {% endif %}
+          {% if featured_event.task_progress is not None %}
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px;">
+              <span style="color:rgba(255,255,255,.4);">Progreso de tareas</span>
+              <span style="font-weight:700;color:#4F8EF7;">{{ featured_event.task_progress }}%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:{{ featured_event.task_progress }}%;"></div></div>
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div style="background:rgba(79,142,247,.04);border:1px dashed rgba(79,142,247,.15);border-radius:12px;padding:16px;margin-bottom:14px;text-align:center;">
+          <p style="font-size:13px;color:rgba(255,255,255,.3);margin-bottom:8px;">Sin eventos proximos</p>
+          <a href="{% url 'events:event_create' %}" style="font-size:12px;font-weight:600;color:#4F8EF7;text-decoration:none;">+ Crear evento</a>
+        </div>
+        {% endif %}
+
+        <a href="{% url 'events:report' %}" style="
+          display:inline-flex;align-items:center;gap:5px;
+          font-size:13px;font-weight:500;color:rgba(79,142,247,.8);text-decoration:none;transition:color .18s;
+        " onmouseover="this.style.color='#4F8EF7'" onmouseout="this.style.color='rgba(79,142,247,.8)'">
+          Ver estadisticas de mi semana
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+      <!-- Accion Ahora -->
+      <div class="bind-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+        <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <span style="width:7px;height:7px;background:#FCD34D;border-radius:50%;box-shadow:0 0 6px rgba(252,211,77,.5);animation:pulse 2s infinite;"></span>
+          <h4 style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.08em;text-transform:uppercase;">Accion Ahora</h4>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;">
+          {% for task in urgent_tasks %}
+          <div style="padding:12px;border-radius:12px;border:1px solid rgba(252,211,77,.15);background:rgba(252,211,77,.05);transition:border-color .18s;"
+               onmouseover="this.style.borderColor='rgba(252,211,77,.3)'" onmouseout="this.style.borderColor='rgba(252,211,77,.15)'">
+            <p style="font-size:12px;font-weight:600;color:#fff;line-height:1.4;margin-bottom:6px;">{{ task.title }}</p>
+            {% if task.event %}
+            <p style="font-size:10px;color:rgba(252,211,77,.5);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ task.event.name }}</p>
+            {% endif %}
+            <form method="post" action="{% url 'modules:task_toggle_done' task.pk %}">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit" style="
+                width:100%;font-size:11px;padding:5px 10px;
+                border:1px solid rgba(79,142,247,.3);border-radius:999px;
+                color:#4F8EF7;background:transparent;cursor:pointer;transition:all .18s;
+                font-family:'DM Sans',sans-serif;font-weight:500;
+              " onmouseover="this.style.background='rgba(79,142,247,.1)'" onmouseout="this.style.background='transparent'">
+                Marcar como hecha
+              </button>
+            </form>
+          </div>
+          {% empty %}
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:28px 0;gap:10px;text-align:center;">
+            <svg width="32" height="32" fill="none" stroke="rgba(79,142,247,.3)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p style="font-size:12px;color:rgba(255,255,255,.3);">Todo en orden</p>
+            <p style="font-size:11px;color:rgba(255,255,255,.2);">Sin tareas urgentes</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+    <!-- END LEFT COLUMN -->
+
+    <!-- RIGHT COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:16px;overflow-y:auto;">
+
+      <!-- Proximos eventos -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 style="font-size:13px;font-weight:700;color:rgba(255,255,255,.7);">Proximos eventos</h3>
+          <a href="{% url 'events:event_list' %}" style="font-size:12px;color:#4F8EF7;text-decoration:none;font-weight:500;transition:color .18s;"
+             onmouseover="this.style.color='#93C5FD'" onmouseout="this.style.color='#4F8EF7'">Ver todos</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          {% for event in upcoming_events %}
+          <div class="bind-card bind-card-lift" style="padding:16px;display:flex;gap:14px;">
+            <div style="width:52px;height:52px;border-radius:12px;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="24" height="24" fill="none" stroke="#4F8EF7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                <h4 style="font-weight:700;color:#fff;font-size:14px;line-height:1.3;">{{ event.name }}</h4>
+                {% if event.days_until is not None %}
+                <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:3px 10px;flex-shrink:0;">
+                  {{ event.days_until }} dia{{ event.days_until|pluralize }}
+                </span>
+                {% endif %}
+              </div>
+
+              {% with score=engine_output.event_scores|get_item:event.pk %}{% if score %}
+              <div style="margin:6px 0;">
+                {% if score.health_score == 100 %}
+                <span class="bind-badge" style="background:rgba(52,211,153,.1);color:#34D399;font-size:10px;">
+                  <span style="width:5px;height:5px;border-radius:50%;background:#34D399;display:inline-block;"></span> Completado
+                </span>
+                {% elif score.health_score < 50 %}
+                <span class="bind-badge" style="background:rgba(251,191,36,.08);color:#FCD34D;font-size:10px;">
+                  <span style="width:5px;height:5px;border-radius:50%;background:#FCD34D;display:inline-block;"></span> En riesgo
+                </span>
+                {% else %}
+                <span class="bind-badge" style="background:rgba(79,142,247,.1);color:#4F8EF7;font-size:10px;">
+                  <span style="width:5px;height:5px;border-radius:50%;background:#4F8EF7;display:inline-block;"></span> En progreso · {{ score.health_score }}%
+                </span>
+                {% endif %}
+              </div>
+              {% endif %}{% endwith %}
+
+              {% if event.location %}
+              <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:rgba(255,255,255,.4);margin-bottom:6px;">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                {{ event.location }}
+              </div>
+              {% endif %}
+
+              <a href="{% url 'events:event_detail' event.pk %}" style="
+                display:inline-flex;align-items:center;gap:4px;
+                font-size:12px;font-weight:600;color:#4F8EF7;text-decoration:none;transition:color .18s;
+              " onmouseover="this.style.color='#93C5FD'" onmouseout="this.style.color='#4F8EF7'">
+                Ir al evento
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </a>
+            </div>
+          </div>
+          {% empty %}
+          <div style="padding:32px;text-align:center;border:1px dashed rgba(79,142,247,.15);border-radius:16px;background:rgba(79,142,247,.03);">
+            <svg width="36" height="36" fill="none" stroke="rgba(79,142,247,.3)" viewBox="0 0 24 24" style="margin:0 auto 12px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <p style="font-size:13px;color:rgba(255,255,255,.3);margin-bottom:12px;">Sin eventos proximos</p>
+            <a href="{% url 'events:event_create' %}" class="btn-primary" style="font-size:12px;padding:7px 14px;">
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Crear evento
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Estado de proyectos -->
+      {% if recent_events %}
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 style="font-size:13px;font-weight:700;color:rgba(255,255,255,.7);">Estado de proyectos</h3>
+          <a href="{% url 'events:event_list' %}" style="font-size:12px;color:#4F8EF7;text-decoration:none;font-weight:500;"
+             onmouseover="this.style.color='#93C5FD'" onmouseout="this.style.color='#4F8EF7'">Ver todos</a>
+        </div>
+        <div class="bind-card" style="overflow:hidden;">
+          {% for event in recent_events %}{% with score=engine_output.event_scores|get_item:event.pk %}{% if score %}
+          <a href="{% url 'events:event_detail' event.pk %}" style="
+            display:flex;align-items:center;gap:12px;padding:12px 16px;
+            border-bottom:1px solid rgba(255,255,255,.04);text-decoration:none;transition:background .18s;
+          " onmouseover="this.style.background='rgba(79,142,247,.05)'" onmouseout="this.style.background='transparent'">
+            <div style="
+              width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+              font-size:11px;font-weight:700;flex-shrink:0;
+              {% if score.health_score == 100 %}background:rgba(52,211,153,.12);color:#34D399;
+              {% elif score.health_score >= 50 %}background:rgba(79,142,247,.12);color:#4F8EF7;
+              {% elif score.health_score > 0 %}background:rgba(251,191,36,.1);color:#FCD34D;
+              {% else %}background:rgba(248,113,113,.1);color:#F87171;{% endif %}
+            ">
+              {% if score.health_score == 100 %}<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              {% else %}{{ score.health_score }}{% endif %}
+            </div>
+            <div style="flex:1;min-width:0;">
+              <p style="font-size:12px;font-weight:600;color:rgba(255,255,255,.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ event.name }}</p>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                <div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:{{ score.health_score }}%;{% if score.health_score < 30 %}background:#F87171;{% elif score.health_score < 50 %}background:#FCD34D;{% elif score.health_score == 100 %}background:#34D399;{% endif %}"></div></div>
+                <span style="font-size:10px;
+                  {% if score.health_score == 100 %}color:#34D399;font-weight:700;
+                  {% elif score.health_score >= 50 %}color:#4F8EF7;
+                  {% elif score.health_score > 0 %}color:#FCD34D;
+                  {% else %}color:#F87171;font-weight:700;{% endif %}">
+                  {% if score.health_score == 100 %}Perfecto{% elif score.health_score >= 80 %}Excelente{% elif score.health_score >= 50 %}Bueno{% elif score.health_score > 0 %}En riesgo{% else %}Critico{% endif %}
+                </span>
+              </div>
+            </div>
+            <svg width="12" height="12" fill="none" stroke="rgba(255,255,255,.2)" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+          {% endif %}{% endwith %}{% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Bottom row: Presupuestos + Actividad -->
+      <div style="display:grid;grid-template-columns:{% if budget_events %}1fr 1fr{% else %}1fr{% endif %};gap:16px;">
+
+        {% if budget_events %}
+        <div class="bind-card" style="padding:16px;">
+          <h4 style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;">Presupuestos</h4>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            {% for event in budget_events %}{% with b=event.budget %}
+            <div {% if b.usage_percentage >= 85 %}style="border-left:3px solid #F87171;padding-left:8px;"{% endif %}>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <p style="font-size:12px;font-weight:600;color:rgba(255,255,255,.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;">{{ event.name }}</p>
+                <a href="{% url 'modules:budget_detail' event.pk %}" style="font-size:10px;color:#4F8EF7;text-decoration:none;flex-shrink:0;">Ver</a>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:{{ b.usage_percentage|default:0 }}%;{% if b.usage_percentage >= 85 %}background:#F87171;{% elif b.usage_percentage >= 60 %}background:#FCD34D;{% endif %}"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.35);margin-top:4px;">
+                <span>{{ b.usage_percentage }}% usado</span>
+                <span style="{% if b.remaining < 0 %}color:#F87171;{% else %}color:#4F8EF7;{% endif %}font-weight:600;">{{ b.remaining|floatformat:0 }} {{ b.currency }}</span>
+              </div>
+            </div>
+            {% endwith %}{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="bind-card" style="padding:16px;">
+          <h4 style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;">Actividad semanal</h4>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:80px;">
+            {% for label, count, pct in weekly_activity %}
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;position:relative;">
+              {% if count > 0 %}<span style="position:absolute;top:-16px;font-size:9px;font-weight:700;color:#4F8EF7;">{{ count }}</span>{% endif %}
+              <div style="width:100%;border-radius:4px 4px 0 0;transition:height .5s;min-height:2px;height:{{ pct }}%;
+                {% if label == today_label %}background:linear-gradient(180deg,#4F8EF7,#6B4FDD);{% else %}background:rgba(255,255,255,.08);{% endif %}"></div>
+              <span style="font-size:8px;font-weight:{% if label == today_label %}700{% else %}400{% endif %};color:{% if label == today_label %}#4F8EF7{% else %}rgba(255,255,255,.3){% endif %};">{{ label }}</span>
+            </div>
+            {% empty %}
+            <div style="width:100%;display:flex;align-items:center;justify-content:center;">
+              <p style="font-size:12px;color:rgba(255,255,255,.3);">Sin actividad</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+    <!-- END RIGHT COLUMN -->
+
+  </div>
+</div>
+{% endblock %}
