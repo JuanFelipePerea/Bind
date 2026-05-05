@@ -758,65 +758,79 @@ def global_search(request):
 
 @login_required
 def template_create(request):
+    active_modules = []
+    form_data = {}
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
+        active_modules = request.POST.getlist('modules')
+        form_data = {
+            'name': name,
+            'description': request.POST.get('description', ''),
+            'category': request.POST.get('category', 'business'),
+            'color': request.POST.get('color', '#3B82F6'),
+        }
         if not name:
             messages.error(request, 'El nombre es obligatorio.')
-            return render(request, 'events/template_form.html', {
-                'category_choices': EventTemplate.CATEGORY_CHOICES,
-                'module_choices': TemplateModule.MODULE_CHOICES,
-                'post': request.POST,
-            })
-        template = EventTemplate.objects.create(
-            name=name,
-            description=request.POST.get('description', '').strip(),
-            category=request.POST.get('category', 'business'),
-            color=request.POST.get('color', '#3B82F6'),
-            created_by=request.user,
-        )
-        selected_modules = request.POST.getlist('modules')
-        for mod in selected_modules:
-            TemplateModule.objects.get_or_create(template=template, module_type=mod)
-        messages.success(request, f'Plantilla "{template.name}" creada.')
-        return redirect('events:template_list')
+        else:
+            tmpl = EventTemplate.objects.create(
+                created_by=request.user, **form_data
+            )
+            for mod in active_modules:
+                TemplateModule.objects.get_or_create(template=tmpl, module_type=mod)
+            messages.success(request, f'Plantilla "{tmpl.name}" creada.')
+            return redirect('events:template_list')
     return render(request, 'events/template_form.html', {
         'category_choices': EventTemplate.CATEGORY_CHOICES,
         'module_choices': TemplateModule.MODULE_CHOICES,
+        'active_modules': active_modules,
+        'form_data': form_data,
     })
 
 
 @login_required
 def template_edit(request, template_id):
-    template = get_object_or_404(EventTemplate, pk=template_id)
-    if template.created_by != request.user and not request.user.is_staff:
+    tmpl = get_object_or_404(EventTemplate, pk=template_id)
+    if tmpl.created_by != request.user and not request.user.is_staff:
         messages.error(request, 'No tienes permiso para editar esta plantilla.')
         return redirect('events:template_list')
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
+        active_modules = request.POST.getlist('modules')
         if not name:
             messages.error(request, 'El nombre es obligatorio.')
             return render(request, 'events/template_form.html', {
-                'template': template,
+                'template': tmpl,
                 'category_choices': EventTemplate.CATEGORY_CHOICES,
                 'module_choices': TemplateModule.MODULE_CHOICES,
-                'post': request.POST,
+                'active_modules': active_modules,
+                'form_data': {
+                    'name': name,
+                    'description': request.POST.get('description', ''),
+                    'category': request.POST.get('category', tmpl.category),
+                    'color': request.POST.get('color', tmpl.color),
+                },
             })
-        template.name = name
-        template.description = request.POST.get('description', '').strip()
-        template.category = request.POST.get('category', template.category)
-        template.color = request.POST.get('color', template.color)
-        template.save()
-        selected_modules = set(request.POST.getlist('modules'))
-        template.modules.all().delete()
-        for mod in selected_modules:
-            TemplateModule.objects.create(template=template, module_type=mod)
-        messages.success(request, f'Plantilla "{template.name}" actualizada.')
+        tmpl.name = name
+        tmpl.description = request.POST.get('description', '').strip()
+        tmpl.category = request.POST.get('category', tmpl.category)
+        tmpl.color = request.POST.get('color', tmpl.color)
+        tmpl.save()
+        tmpl.modules.all().delete()
+        for mod in set(active_modules):
+            TemplateModule.objects.create(template=tmpl, module_type=mod)
+        messages.success(request, f'Plantilla "{tmpl.name}" actualizada.')
         return redirect('events:template_list')
     return render(request, 'events/template_form.html', {
-        'template': template,
+        'template': tmpl,
         'category_choices': EventTemplate.CATEGORY_CHOICES,
         'module_choices': TemplateModule.MODULE_CHOICES,
-        'active_modules': list(template.modules.values_list('module_type', flat=True)),
+        'active_modules': list(tmpl.modules.values_list('module_type', flat=True)),
+        'form_data': {
+            'name': tmpl.name,
+            'description': tmpl.description,
+            'category': tmpl.category,
+            'color': tmpl.color,
+        },
     })
 
 
