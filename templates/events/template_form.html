@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}BIND - {% if template %}Editar{% else %}Nueva{% endif %} Plantilla{% endblock %}
+{% block page_title %}{% if template %}Editar Plantilla{% else %}Nueva Plantilla{% endif %}{% endblock %}
+
+{% block topbar_action %}
+<a href="{% url 'events:template_list' %}" class="glass px-5 py-2.5 rounded-xl font-semibold text-sm shadow hover:bg-white/80 dark:hover:bg-gray-700 transition-all flex items-center gap-2 text-gray-800 dark:text-white">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+  Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-8 max-w-2xl mx-auto animate-fade-in">
+  <div class="glass rounded-3xl p-8 border border-gray-100 dark:border-gray-700 shadow-sm">
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium
+      {% if msg.tags == 'error' %}bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800
+      {% else %}bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-800{% endif %}">
+      {{ msg }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- Nombre -->
+      <div class="mb-5">
+        <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Nombre *</label>
+        <input type="text" name="name" required maxlength="100"
+               value="{{ post.name|default:template.name|default:'' }}"
+               placeholder="Ej. Conferencia académica"
+               class="w-full px-4 py-3 rounded-xl bg-white/60 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors text-sm">
+      </div>
+
+      <!-- Descripción -->
+      <div class="mb-5">
+        <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Descripción</label>
+        <textarea name="description" rows="3" maxlength="500"
+                  placeholder="Describe brevemente para qué sirve esta plantilla…"
+                  class="w-full px-4 py-3 rounded-xl bg-white/60 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors text-sm resize-none">{{ post.description|default:template.description|default:'' }}</textarea>
+      </div>
+
+      <!-- Categoría + Color -->
+      <div class="grid grid-cols-2 gap-4 mb-5">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Categoría</label>
+          <select name="category"
+                  class="w-full px-4 py-3 rounded-xl bg-white/60 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white focus:outline-none focus:border-teal-500 transition-colors text-sm">
+            {% for val, label in category_choices %}
+            <option value="{{ val }}"
+              {% if post.category == val or template.category == val %}selected{% elif not post and not template and val == 'business' %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Color</label>
+          <div class="flex items-center gap-3">
+            <input type="color" name="color"
+                   value="{{ post.color|default:template.color|default:'#3B82F6' }}"
+                   class="h-11 w-14 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 cursor-pointer p-1">
+            <span class="text-xs text-gray-400">Representativo en listados</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Módulos -->
+      <div class="mb-8">
+        <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3">Módulos por defecto</label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {% for val, label in module_choices %}
+          <label class="flex items-center gap-2.5 cursor-pointer group">
+            <input type="checkbox" name="modules" value="{{ val }}"
+                   {% if post %}{% if val in post.getlist('modules') %}checked{% endif %}
+                   {% elif active_modules %}{% if val in active_modules %}checked{% endif %}
+                   {% endif %}
+                   class="w-4 h-4 rounded accent-teal-500">
+            <span class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="flex gap-3">
+        <button type="submit"
+                class="flex-1 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-semibold rounded-xl shadow hover:opacity-90 transition-opacity text-sm">
+          {% if template %}Guardar cambios{% else %}Crear plantilla{% endif %}
+        </button>
+        <a href="{% url 'events:template_list' %}"
+           class="px-6 py-3 glass hover:bg-white/80 dark:hover:bg-gray-700 rounded-xl font-medium text-gray-700 dark:text-gray-300 transition-all text-sm text-center">
+          Cancelar
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

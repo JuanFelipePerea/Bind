@@ -757,6 +757,84 @@ def global_search(request):
 
 
 @login_required
+def template_create(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        if not name:
+            messages.error(request, 'El nombre es obligatorio.')
+            return render(request, 'events/template_form.html', {
+                'category_choices': EventTemplate.CATEGORY_CHOICES,
+                'module_choices': TemplateModule.MODULE_CHOICES,
+                'post': request.POST,
+            })
+        template = EventTemplate.objects.create(
+            name=name,
+            description=request.POST.get('description', '').strip(),
+            category=request.POST.get('category', 'business'),
+            color=request.POST.get('color', '#3B82F6'),
+            created_by=request.user,
+        )
+        selected_modules = request.POST.getlist('modules')
+        for mod in selected_modules:
+            TemplateModule.objects.get_or_create(template=template, module_type=mod)
+        messages.success(request, f'Plantilla "{template.name}" creada.')
+        return redirect('events:template_list')
+    return render(request, 'events/template_form.html', {
+        'category_choices': EventTemplate.CATEGORY_CHOICES,
+        'module_choices': TemplateModule.MODULE_CHOICES,
+    })
+
+
+@login_required
+def template_edit(request, template_id):
+    template = get_object_or_404(EventTemplate, pk=template_id)
+    if template.created_by != request.user and not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para editar esta plantilla.')
+        return redirect('events:template_list')
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        if not name:
+            messages.error(request, 'El nombre es obligatorio.')
+            return render(request, 'events/template_form.html', {
+                'template': template,
+                'category_choices': EventTemplate.CATEGORY_CHOICES,
+                'module_choices': TemplateModule.MODULE_CHOICES,
+                'post': request.POST,
+            })
+        template.name = name
+        template.description = request.POST.get('description', '').strip()
+        template.category = request.POST.get('category', template.category)
+        template.color = request.POST.get('color', template.color)
+        template.save()
+        selected_modules = set(request.POST.getlist('modules'))
+        template.modules.all().delete()
+        for mod in selected_modules:
+            TemplateModule.objects.create(template=template, module_type=mod)
+        messages.success(request, f'Plantilla "{template.name}" actualizada.')
+        return redirect('events:template_list')
+    return render(request, 'events/template_form.html', {
+        'template': template,
+        'category_choices': EventTemplate.CATEGORY_CHOICES,
+        'module_choices': TemplateModule.MODULE_CHOICES,
+        'active_modules': list(template.modules.values_list('module_type', flat=True)),
+    })
+
+
+@login_required
+def template_delete(request, template_id):
+    template = get_object_or_404(EventTemplate, pk=template_id)
+    if template.created_by != request.user and not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para eliminar esta plantilla.')
+        return redirect('events:template_list')
+    if request.method == 'POST':
+        name = template.name
+        template.delete()
+        messages.success(request, f'Plantilla "{name}" eliminada.')
+        return redirect('events:template_list')
+    return render(request, 'events/template_confirm_delete.html', {'template': template})
+
+
+@login_required
 def template_list(request):
     category = request.GET.get('category', '')
     templates = EventTemplate.objects.prefetch_related(
