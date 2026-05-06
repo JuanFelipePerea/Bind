@@ -353,9 +353,21 @@ def file_create(request, event_pk):
                 if file_obj.file_type == 'other' and auto_type != 'other':
                     file_obj.file_type = auto_type
 
-            file_obj.save()
-            messages.success(request, f'Archivo "{file_obj.name}" subido correctamente.')
-            return redirect('modules:file_list', event_pk=event.pk)
+            try:
+                file_obj.save()
+                messages.success(
+                    request,
+                    f'Archivo "{file_obj.name}" subido correctamente.'
+                )
+                return redirect('modules:file_list', event_pk=event.pk)
+            except Exception:
+                messages.error(
+                    request,
+                    'No se pudo subir el archivo. '
+                    'Verifica tu conexión e intenta de nuevo.'
+                )
+                return render(request, 'modules/file_form.html',
+                              {'event': event, 'form': form})
     else:
         form = FileForm()
 
