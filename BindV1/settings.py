@@ -101,6 +101,10 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Django 6.0 admin CSS references icon-debug.svg which doesn't resolve during
+# collectstatic. This tells WhiteNoise to warn instead of crashing.
+WHITENOISE_MANIFEST_STRICT = False
+
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
     'API_KEY':    os.environ.get('CLOUDINARY_API_KEY', ''),
@@ -112,13 +116,13 @@ STORAGES = {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "BindV1.storage.ManifestStorage",
     },
 }
 
 # django-cloudinary-storage accede a settings.STATICFILES_STORAGE, que Django 6.0
 # eliminó de global_settings.py. Este shim evita el AttributeError en el startup.
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_STORAGE = "BindV1.storage.ManifestStorage"
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
