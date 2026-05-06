@@ -253,6 +253,67 @@ Responde con JSON: {{"narrative": "<máximo 2 oraciones motivadoras>"}}
     return generate_structured_data(prompt, system_instruction=_BYNIX_SYSTEM)
 
 
+# ─── Contexto enriquecido del evento para Bynix ─────────────────────────────
+
+def build_event_context(event) -> dict:
+    """Construye un contexto completo del evento para Bynix (presupuesto, asistentes, fechas)."""
+    from django.utils import timezone
+    from modules.models import Task, Attendee
+
+    today = timezone.now().date()
+    tasks = list(event.tasks.all())
+    total = len(tasks)
+    done = sum(1 for t in tasks if t.status == 'done')
+    overdue = [
+        t for t in tasks
+        if t.due_date and t.due_date < today
+        and t.status != 'done'
+    ]
+    pending_high = [
+        t for t in tasks
+        if t.priority == 'high' and t.status != 'done'
+    ]
+
+    days_until = None
+    if event.start_date:
+        days_until = (event.start_date.date() - today).days
+
+    attendees = event.attendees.all()
+    attendees_list = list(attendees)
+    confirmed = sum(1 for a in attendees_list if a.status == 'confirmed')
+    pending_att = sum(1 for a in attendees_list if a.status == 'pending')
+
+    budget_info = None
+    try:
+        b = event.budget
+        budget_info = {
+            'total': float(b.total_budget),
+            'gastado': float(b.total_spent),
+            'restante': float(b.remaining),
+            'porcentaje_usado': b.usage_percentage,
+            'moneda': b.currency,
+        }
+    except Exception:
+        pass
+
+    return {
+        'nombre': event.name,
+        'descripcion': event.description[:500] if event.description else '',
+        'estado': event.get_status_display(),
+        'dias_restantes': days_until,
+        'ubicacion': event.location or 'No definida',
+        'progreso_tareas': f"{done}/{total} ({int(done/total*100) if total else 0}%)",
+        'tareas_vencidas': [t.title for t in overdue[:5]],
+        'tareas_alta_prioridad_pendientes': [t.title for t in pending_high[:5]],
+        'asistentes': {
+            'total': len(attendees_list),
+            'confirmados': confirmed,
+            'pendientes': pending_att,
+        },
+        'presupuesto': budget_info,
+    }
+
+
 # ─── Agente operativo por evento · Bynix ────────────────────────────────────
 
 _BYNIX_AGENT_SYSTEM = """
@@ -285,23 +346,30 @@ Con acción de creación:
 def get_event_assistant_response(query: str, event_context: dict, history: list = None) -> dict:
     """
     Genera una respuesta de Bynix a una consulta sobre un evento específico.
-    Puede incluir una acción sugerida (CREATE_STRUCTURE) si detecta intención de crear.
+    Puede incluir una acción sugerida si detecta intención de crear contenido.
 
-    event_context: {nombre, progreso, tareas_urgentes, alertas}
+    event_context: resultado de build_event_context(event) con campos enriquecidos.
     history: lista de dicts {role: 'user'|'assistant', content: str} — últimas interacciones.
     Devuelve {"response": "...", "action": null | {...}}.
     Raises RuntimeError si el servicio falla.
     """
-    tasks_text = "\n".join(
-        f"  - [{t['prioridad'].upper()}] {t['titulo']}"
-        + (f" (vence: {t['vence']})" if t.get("vence") else "")
-        for t in event_context.get("tareas_urgentes", [])
+    overdue_text = "\n".join(
+        f"  - {t}" for t in event_context.get("tareas_vencidas", [])
     ) or "  (ninguna)"
 
-    alerts_text = "\n".join(
-        f"  - [{a['severidad'].upper()}] {a['mensaje']}"
-        for a in event_context.get("alertas", [])
+    high_text = "\n".join(
+        f"  - {t}" for t in event_context.get("tareas_alta_prioridad_pendientes", [])
     ) or "  (ninguna)"
+
+    asistentes = event_context.get("asistentes", {})
+    presupuesto = event_context.get("presupuesto")
+    budget_text = ""
+    if presupuesto:
+        pct = presupuesto.get("porcentaje_usado", 0)
+        budget_text = (
+            f"\n- Presupuesto: {presupuesto.get('gastado')} / "
+            f"{presupuesto.get('total')} {presupuesto.get('moneda')} ({pct}% usado)"
+        )
 
     history_block = ""
     if history:
@@ -314,17 +382,20 @@ def get_event_assistant_response(query: str, event_context: dict, history: list 
     prompt = f"""
 {history_block}Contexto del evento:
 - Nombre: {event_context.get('nombre', 'Sin nombre')}
-- Progreso de tareas: {event_context.get('progreso', 0)}%
-- Tareas urgentes (pendientes / en progreso):
-{tasks_text}
-- Alertas activas:
-{alerts_text}
+- Estado: {event_context.get('estado', '')} | Días restantes: {event_context.get('dias_restantes', 'N/A')}
+- Ubicación: {event_context.get('ubicacion', 'No definida')}
+- Progreso de tareas: {event_context.get('progreso_tareas', '0/0 (0%)')}
+- Tareas vencidas:
+{overdue_text}
+- Tareas de alta prioridad pendientes:
+{high_text}
+- Asistentes: {asistentes.get('total', 0)} total, {asistentes.get('confirmados', 0)} confirmados, {asistentes.get('pendientes', 0)} pendientes{budget_text}
 
 Consulta del usuario: {query}
 
 Responde con JSON exacto según tu análisis:
-Sin acción: {{"response": "<respuesta accionable en español, máx 3 oraciones>", "action": null}}
-Con creación: {{"response": "<confirmación entusiasta>", "action": {{"type": "CREATE_STRUCTURE", "label": "<qué crearás>", "description": "<descripción del usuario>", "confirm_text": "<¿Deseas que cree...? Ofreciendo también presupuesto si aplica>", "suggest_budget": true/false}}}}
+Sin acción: {{"response": "<respuesta accionable en español, máx 3-4 oraciones>", "action": null}}
+Con creación: {{"response": "<confirmación entusiasta>", "action": {{"type": "CREATE_STRUCTURE", "label": "<qué crearás>", "description": "<descripción del usuario>", "confirm_text": "<¿Deseas que cree...?>", "suggest_budget": true/false}}}}
     """.strip()
 
     result = generate_structured_data(prompt, system_instruction=_BYNIX_AGENT_SYSTEM)

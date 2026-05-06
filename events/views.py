@@ -976,42 +976,8 @@ def event_assistant_chat(request, pk):
     if not query:
         return JsonResponse({'error': 'La consulta está vacía'}, status=400)
 
-    urgent_tasks = event.tasks.filter(
-        status__in=['pending', 'in_progress'],
-    ).order_by(
-        db_models.Case(
-            db_models.When(priority='high', then=0),
-            db_models.When(priority='medium', then=1),
-            default=2,
-            output_field=db_models.IntegerField(),
-        ),
-        'due_date',
-    )[:5]
-
-    active_alerts = EventAlert.objects.filter(
-        event=event, is_dismissed=False,
-    ).order_by('severity')[:3]
-
-    total_tasks = event.tasks.count()
-    done_tasks  = event.tasks.filter(status='done').count()
-    progress    = int((done_tasks / total_tasks) * 100) if total_tasks > 0 else 0
-
-    event_context = {
-        'nombre':  event.name,
-        'progreso': progress,
-        'tareas_urgentes': [
-            {
-                'titulo':   t.title,
-                'prioridad': t.priority,
-                'vence':    str(t.due_date) if t.due_date else None,
-            }
-            for t in urgent_tasks
-        ],
-        'alertas': [
-            {'mensaje': a.message, 'severidad': a.severity}
-            for a in active_alerts
-        ],
-    }
+    from events.services.ai_service import build_event_context
+    event_context = build_event_context(event)
 
     # Cargar y preparar historial de sesión (máx 10 interacciones = 20 entradas)
     bynix_history = request.session.get('bynix_history', {})
