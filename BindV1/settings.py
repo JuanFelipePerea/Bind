@@ -146,7 +146,9 @@ DEFAULT_FROM_EMAIL = f'BIND <{os.environ.get("EMAIL_HOST_USER", "noreply@bind.lo
 ACCOUNT_SIGNUP_FIELDS = ['email*']
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_EMAIL_VERIFICATION = 'none'
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = os.environ.get(
+    'ACCOUNT_HTTP_PROTOCOL', 'https'
+)
 
 # ── Social auth ──────────────────────────────────────────────────────────────
 # AUTO_SIGNUP=True salta el formulario /3rdparty/signup/ cuando el provider
