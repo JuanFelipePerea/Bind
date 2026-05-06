@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}BIND - Presupuesto: {{ event.name }}{% endblock %}
+{% block page_title %}Presupuesto{% endblock %}
+
+{% block topbar_action %}
+<a href="{% url 'events:event_detail' event.pk %}"
+   class="glass px-4 py-2 rounded-xl text-sm font-medium hover:bg-white/80 dark:hover:bg-gray-700 transition-all text-gray-700 dark:text-gray-200 flex items-center gap-2">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+  </svg>
+  {{ event.name }}
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-8">
+
+  {% if messages %}
+  <div class="mb-6 space-y-2">
+    {% for message in messages %}
+    <div class="glass px-4 py-3 rounded-xl text-sm
+      {% if message.tags == 'error' %}border-l-4 border-red-500 text-red-700 dark:text-red-300
+      {% else %}border-l-4 border-teal-500 text-teal-700 dark:text-teal-300{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- A) Header con 3 números grandes -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <div class="glass p-6 rounded-2xl text-center">
+      <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Presupuesto Total</p>
+      <p class="text-3xl font-bold text-gray-800 dark:text-white">
+        {{ budget.total_budget|floatformat:0 }}
+      </p>
+      <p class="text-sm text-gray-400 mt-1">{{ budget.currency }}</p>
+    </div>
+    <div class="glass p-6 rounded-2xl text-center">
+      <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Gastado</p>
+      <p class="text-3xl font-bold {% if usage_percentage >= 80 %}text-red-500{% else %}text-gray-800 dark:text-white{% endif %}">
+        {{ total_spent|floatformat:0 }}
+      </p>
+      <p class="text-sm text-gray-400 mt-1">{{ budget.currency }} · {{ usage_percentage }}%</p>
+    </div>
+    <div class="glass p-6 rounded-2xl text-center">
+      <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Restante</p>
+      <p class="text-3xl font-bold {% if remaining < 0 %}text-red-500{% else %}text-teal-500{% endif %}">
+        {{ remaining|floatformat:0 }}
+      </p>
+      <p class="text-sm text-gray-400 mt-1">{{ budget.currency }}</p>
+    </div>
+  </div>
+
+  <!-- Barra de progreso del presupuesto -->
+  <div class="glass p-4 rounded-2xl mb-8">
+    <div class="flex justify-between text-xs mb-2">
+      <span class="text-gray-500 dark:text-gray-400 font-medium">Uso del presupuesto</span>
+      <span class="font-bold {% if usage_percentage >= 80 %}text-red-500{% else %}text-teal-600 dark:text-teal-400{% endif %}">
+        {{ usage_percentage }}%
+      </span>
+    </div>
+    <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div class="h-1.5 rounded-full transition-all duration-500
+        {% if usage_percentage >= 80 %}bg-red-500
+        {% elif usage_percentage >= 60 %}bg-amber-400
+        {% else %}bg-teal-400{% endif %}"
+           style="width: {{ usage_percentage|default:0 }}%"></div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+    <!-- B+C) Formularios de edición y nuevo ítem -->
+    <div class="space-y-6">
+
+      <!-- B) Editar presupuesto total -->
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <h3 class="font-bold text-sm text-gray-500 dark:text-gray-400 uppercase mb-4">Ajustar Presupuesto</h3>
+        <form method="post" action="{% url 'modules:budget_update' event.pk %}">
+          {% csrf_token %}
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Presupuesto total</label>
+              <input type="number" name="total_budget" step="0.01" min="0"
+                     value="{{ budget.total_budget }}"
+                     class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Moneda</label>
+              <input type="text" name="currency" maxlength="3"
+                     value="{{ budget.currency }}"
+                     class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                     placeholder="COP">
+            </div>
+            <button type="submit"
+                    class="w-full py-2 px-4 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl text-sm transition-colors">
+              Actualizar
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- C) Agregar gasto/ingreso -->
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <h3 class="font-bold text-sm text-gray-500 dark:text-gray-400 uppercase mb-4">Agregar ítem</h3>
+        <form method="post" action="{% url 'modules:budget_item_create' event.pk %}">
+          {% csrf_token %}
+          <div class="space-y-3">
+            <input type="text" name="name" required placeholder="Nombre del ítem"
+                   class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+            <input type="number" name="amount" step="0.01" min="0" required placeholder="Monto"
+                   class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+            <select name="item_type"
+                    class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+              {% for val, label in type_choices %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <select name="category"
+                    class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+              {% for val, label in category_choices %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            {% if event_tasks %}
+            <select name="related_task"
+                    class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+              <option value="">— Tarea asociada (opcional) —</option>
+              {% for task in event_tasks %}
+              <option value="{{ task.pk }}">{{ task.title|truncatechars:40 }}</option>
+              {% endfor %}
+            </select>
+            {% endif %}
+            <input type="date" name="due_date"
+                   class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+              <input type="checkbox" name="paid"
+                     class="rounded border-gray-300 text-teal-500 focus:ring-teal-500">
+              Pagado
+            </label>
+            <button type="submit"
+                    class="w-full py-2 px-4 bg-gray-800 dark:bg-white text-white dark:text-gray-900 font-semibold rounded-xl text-sm hover:opacity-80 transition-opacity">
+              Agregar
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- D+E) Tabla de ítems -->
+    <div class="lg:col-span-2 space-y-6">
+
+      <!-- Gastos -->
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-red-400 inline-block"></span>
+            Gastos
+          </h3>
+          <span class="text-sm font-bold text-red-500">{{ total_expenses|floatformat:0 }} {{ budget.currency }}</span>
+        </div>
+        {% if expenses %}
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-xs text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700">
+                <th class="text-left pb-2">Nombre</th>
+                <th class="text-left pb-2">Categoría</th>
+                <th class="text-left pb-2 hidden sm:table-cell">Tarea</th>
+                <th class="text-right pb-2">Monto</th>
+                <th class="text-center pb-2">Pagado</th>
+                <th class="pb-2"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
+              {% for item in expenses %}
+              <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/20">
+                <td class="py-2 text-gray-800 dark:text-white font-medium">{{ item.name }}</td>
+                <td class="py-2 text-gray-500">{{ item.get_category_display }}</td>
+                <td class="py-2 hidden sm:table-cell">
+                  {% if item.related_task %}
+                  <a href="{% url 'modules:task_edit' event.pk item.related_task.pk %}"
+                     class="text-xs text-teal-500 hover:underline">
+                    ↗ {{ item.related_task.title|truncatechars:20 }}
+                  </a>
+                  {% else %}
+                  <span class="text-xs text-gray-400">—</span>
+                  {% endif %}
+                </td>
+                <td class="py-2 text-right font-mono text-gray-800 dark:text-white">{{ item.amount|floatformat:0 }}</td>
+                <td class="py-2 text-center">
+                  {% if item.paid %}
+                  <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                  {% else %}
+                  <span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
+                  {% endif %}
+                </td>
+                <td class="py-2 text-right">
+                  <form method="post" action="{% url 'modules:budget_item_delete' event.pk item.pk %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="text-red-400 hover:text-red-600 transition-colors text-xs">✕</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm text-center py-4">Sin gastos registrados.</p>
+        {% endif %}
+      </div>
+
+      <!-- Ingresos -->
+      <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-green-400 inline-block"></span>
+            Ingresos
+          </h3>
+          <span class="text-sm font-bold text-green-500">{{ total_incomes|floatformat:0 }} {{ budget.currency }}</span>
+        </div>
+        {% if incomes %}
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-xs text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700">
+                <th class="text-left pb-2">Nombre</th>
+                <th class="text-left pb-2">Categoría</th>
+                <th class="text-left pb-2 hidden sm:table-cell">Tarea</th>
+                <th class="text-right pb-2">Monto</th>
+                <th class="text-center pb-2">Pagado</th>
+                <th class="pb-2"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
+              {% for item in incomes %}
+              <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/20">
+                <td class="py-2 text-gray-800 dark:text-white font-medium">{{ item.name }}</td>
+                <td class="py-2 text-gray-500">{{ item.get_category_display }}</td>
+                <td class="py-2 hidden sm:table-cell">
+                  {% if item.related_task %}
+                  <a href="{% url 'modules:task_edit' event.pk item.related_task.pk %}"
+                     class="text-xs text-teal-500 hover:underline">
+                    ↗ {{ item.related_task.title|truncatechars:20 }}
+                  </a>
+                  {% else %}
+                  <span class="text-xs text-gray-400">—</span>
+                  {% endif %}
+                </td>
+                <td class="py-2 text-right font-mono text-gray-800 dark:text-white">{{ item.amount|floatformat:0 }}</td>
+                <td class="py-2 text-center">
+                  {% if item.paid %}
+                  <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                  {% else %}
+                  <span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
+                  {% endif %}
+                </td>
+                <td class="py-2 text-right">
+                  <form method="post" action="{% url 'modules:budget_item_delete' event.pk item.pk %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="text-red-400 hover:text-red-600 transition-colors text-xs">✕</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm text-center py-4">Sin ingresos registrados.</p>
+        {% endif %}
+      </div>
+
+      <!-- E) Balance neto -->
+      <div class="glass p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center text-sm">
+          <span class="text-gray-500 font-medium">Total gastos</span>
+          <span class="font-mono text-red-500">- {{ total_expenses|floatformat:0 }} {{ budget.currency }}</span>
+        </div>
+        <div class="flex justify-between items-center text-sm mt-1">
+          <span class="text-gray-500 font-medium">Total ingresos</span>
+          <span class="font-mono text-green-500">+ {{ total_incomes|floatformat:0 }} {{ budget.currency }}</span>
+        </div>
+        <div class="border-t border-gray-100 dark:border-gray-700 mt-2 pt-2 flex justify-between items-center">
+          <span class="font-bold text-gray-800 dark:text-white">Balance neto</span>
+          <span class="font-bold font-mono {% if net_balance >= 0 %}text-teal-500{% else %}text-red-500{% endif %}">
+            {{ net_balance|floatformat:0 }} {{ budget.currency }}
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

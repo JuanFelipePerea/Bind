@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BIND - Tu espacio de productividad</title>
+
+  <!-- Prevenir flash blanco al cargar -->
+  <script>
+    (() => {
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (saved === 'dark' || (!saved && prefersDark)) document.documentElement.classList.add('dark');
+    })();
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300&display=swap" rel="stylesheet">
+  <link rel="shortcut icon" href="{% static 'img/logo.svg' %}" type="image/svg+xml">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { 'poppins': ['Poppins', 'sans-serif'] },
+          colors: {
+            'bind-purple': '#8B67BA',
+            'bind-blue': '#3A8DF2',
+            'bind-cyan': '#65DFBB',
+            'bind-indigo': '#7B8FCC',
+            'bind-pink': '#E8B4C0',
+            'surface': '#FFFFFF',
+            'bg-soft': '#F4F6FB',
+          },
+          animation: {
+            'float': 'float 8s ease-in-out infinite',
+            'float-slow': 'float 12s ease-in-out infinite reverse',
+            'fade-up': 'fadeUp 0.7s ease-out forwards',
+            'shimmer': 'shimmer 3s ease-in-out infinite',
+          },
+          keyframes: {
+            float: { '0%,100%': { transform: 'translateY(0px) rotate(0deg)' }, '50%': { transform: 'translateY(-24px) rotate(2deg)' } },
+            fadeUp: { 'from': { opacity: '0', transform: 'translateY(32px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } },
+            shimmer: { '0%,100%': { opacity: '0.6' }, '50%': { opacity: '1' } },
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Poppins', sans-serif; }
+    
+    /* Gradiente de texto */
+    .text-gradient {
+      background: linear-gradient(135deg, #8B67BA 0%, #3A8DF2 50%, #65DFBB 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    /* Glassmorphism card */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    .dark .glass-card {
+      background: rgba(30, 30, 50, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Fade-in para secciones */
+    .reveal { opacity: 0; transform: translateY(40px); transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* Nav blur */
+    .nav-blur {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+    .dark .nav-blur {
+      background: rgba(10, 10, 20, 0.85);
+    }
+
+    /* Decorative mesh gradient */
+    .mesh-bg {
+      background: 
+        radial-gradient(ellipse at 20% 20%, rgba(139,103,186,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(58,141,242,0.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(101,223,187,0.08) 0%, transparent 60%);
+    }
+    .dark .mesh-bg {
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(139,103,186,0.25) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(58,141,242,0.2) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(101,223,187,0.1) 0%, transparent 60%);
+    }
+
+    /* Botón hover glow */
+    .btn-glow:hover {
+      box-shadow: 0 0 30px rgba(139, 103, 186, 0.5), 0 0 60px rgba(58, 141, 242, 0.2);
+    }
+
+    /* Feature card hover */
+    .feature-card {
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .feature-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 24px 48px rgba(0,0,0,0.12);
+    }
+    .dark .feature-card:hover {
+      box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+    }
+
+    /* Stat counter */
+    .stat-number {
+      background: linear-gradient(135deg, #8B67BA, #3A8DF2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  </style>
+</head>
+
+<body class="bg-bg-soft dark:bg-gray-950 text-gray-800 dark:text-gray-100 transition-colors duration-500">
+
+  <!-- ===== NAVBAR ===== -->
+  <header class="nav-blur fixed w-full top-0 z-50 border-b border-gray-200/50 dark:border-white/5 transition-colors duration-300">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      
+      <!-- Logo -->
+      <a href="{% url 'events:dashboard' %}" class="flex items-center space-x-2.5 group">
+        <div class="w-9 h-9 rounded-xl overflow-hidden shadow-md group-hover:shadow-bind-purple/30 transition-shadow">
+          <img src="{% static 'img/logo.svg' %}" alt="BIND Logo" class="w-full h-full object-cover">
+        </div>
+        <span class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">BIND</span>
+      </a>
+
+      <!-- Nav links (desktop) -->
+      <nav class="hidden md:flex items-center gap-8">
+        <a href="#inicio" class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-bind-purple dark:hover:text-bind-cyan transition-colors">Inicio</a>
+        <a href="#funcionalidades" class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-bind-purple dark:hover:text-bind-cyan transition-colors">Funcionalidades</a>
+        <a href="#nosotros" class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-bind-purple dark:hover:text-bind-cyan transition-colors">Nosotros</a>
+        <a href="#contacto" class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-bind-purple dark:hover:text-bind-cyan transition-colors">Contacto</a>
+      </nav>
+
+      <!-- Acciones -->
+      <div class="flex items-center gap-3">
+        <!-- Toggle tema -->
+        <button id="themeToggle" aria-label="Cambiar tema"
+          class="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
+          <svg class="w-4.5 h-4.5 text-gray-600 dark:text-gray-300 block dark:hidden" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/>
+          </svg>
+          <svg class="w-4.5 h-4.5 text-gray-300 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a7 7 0 1010.586 10.586z"/>
+          </svg>
+        </button>
+
+        <a href="{% url 'accounts:login' %}" class="hidden sm:block text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-bind-purple dark:hover:text-bind-cyan transition-colors px-3 py-2">
+          Iniciar sesión
+        </a>
+        <a href="{% url 'accounts:register' %}" class="btn-glow bg-gradient-to-r from-bind-purple to-bind-blue text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all duration-300 hover:scale-105">
+          Comenzar gratis
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <section id="inicio" class="mesh-bg pt-32 pb-24 px-6 min-h-screen flex items-center relative overflow-hidden">
+    
+    <!-- Orbes decorativos flotantes -->
+    <div class="absolute top-32 left-10 w-64 h-64 rounded-full bg-bind-purple/10 dark:bg-bind-purple/20 blur-3xl animate-float pointer-events-none"></div>
+    <div class="absolute bottom-20 right-10 w-80 h-80 rounded-full bg-bind-blue/10 dark:bg-bind-blue/20 blur-3xl animate-float-slow pointer-events-none"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-bind-cyan/5 dark:bg-bind-cyan/10 blur-3xl pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto w-full">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+        
+        <!-- Texto Hero -->
+        <div class="space-y-8 animate-fade-up">
+          <!-- Badge -->
+          <div class="inline-flex items-center gap-2 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 rounded-full px-4 py-2 shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-bind-cyan animate-pulse"></span>
+            <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 tracking-wide uppercase">Gestión de eventos inteligente</span>
+          </div>
+
+          <h1 class="text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.05] text-gray-900 dark:text-white">
+            Organiza todo.<br>
+            <span class="text-gradient">Con BIND.</span>
+          </h1>
+
+          <p class="text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-lg">
+            La plataforma modular que unifica la gestión de eventos, tareas, asistentes y archivos en un solo espacio. Simple, potente y adaptable a tu flujo.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4">
+            <a href="{% url 'accounts:register' %}" class="btn-glow bg-gradient-to-r from-bind-purple to-bind-blue text-white font-semibold px-8 py-4 rounded-xl text-base transition-all duration-300 hover:scale-105 text-center shadow-lg shadow-bind-purple/25">
+              Crear cuenta gratis
+            </a>
+            <a href="{% url 'accounts:login' %}" class="flex items-center justify-center gap-2 border-2 border-gray-200 dark:border-white/15 text-gray-700 dark:text-gray-300 font-semibold px-8 py-4 rounded-xl text-base hover:border-bind-purple dark:hover:border-bind-cyan hover:text-bind-purple dark:hover:text-bind-cyan transition-all duration-300">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Ver demo
+            </a>
+          </div>
+
+          <!-- Estadísticas rápidas -->
+          <div class="flex flex-wrap gap-8 pt-4 border-t border-gray-200 dark:border-white/10">
+            <div>
+              <p class="stat-number text-3xl font-bold">5+</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Módulos integrados</p>
+            </div>
+            <div>
+              <p class="stat-number text-3xl font-bold">100%</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Personalizable</p>
+            </div>
+            <div>
+              <p class="stat-number text-3xl font-bold">∞</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Escalable</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mockup UI animado -->
+        <div class="relative animate-fade-up" style="animation-delay: 0.2s;">
+          <!-- Tarjeta principal -->
+          <div class="glass-card rounded-3xl p-6 shadow-2xl animate-float">
+            <!-- Header de la app -->
+            <div class="flex items-center justify-between mb-6">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-bind-purple to-bind-blue flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <span class="font-semibold text-sm text-gray-800 dark:text-white">Evento: Tech Summit</span>
+              </div>
+              <span class="text-xs bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 px-2.5 py-1 rounded-full font-medium">Activo</span>
+            </div>
+            <!-- Progreso -->
+            <div class="space-y-3 mb-6">
+              <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>Tareas completadas</span><span class="font-semibold text-gray-700 dark:text-gray-200">8/12</span>
+              </div>
+              <div class="h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                <div class="h-full w-2/3 bg-gradient-to-r from-bind-purple to-bind-blue rounded-full"></div>
+              </div>
+            </div>
+            <!-- Mini módulos -->
+            <div class="grid grid-cols-3 gap-3">
+              <div class="bg-bind-purple/10 dark:bg-bind-purple/20 rounded-xl p-3 text-center">
+                <p class="text-lg font-bold text-bind-purple">48</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Asistentes</p>
+              </div>
+              <div class="bg-bind-blue/10 dark:bg-bind-blue/20 rounded-xl p-3 text-center">
+                <p class="text-lg font-bold text-bind-blue">12</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Archivos</p>
+              </div>
+              <div class="bg-bind-cyan/10 dark:bg-bind-cyan/20 rounded-xl p-3 text-center">
+                <p class="text-lg font-bold text-bind-cyan">3</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Días</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjeta flotante 1 -->
+          <div class="glass-card absolute -top-6 -right-6 rounded-2xl p-4 shadow-xl animate-float-slow">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-bind-cyan to-bind-blue flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-gray-700 dark:text-white">Tarea lista</p>
+                <p class="text-xs text-gray-400">Venue confirmado ✓</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjeta flotante 2 -->
+          <div class="glass-card absolute -bottom-4 -left-6 rounded-2xl p-4 shadow-xl animate-float" style="animation-delay: 2s;">
+            <div class="flex items-center gap-2">
+              <div class="flex -space-x-2">
+                <div class="w-7 h-7 rounded-full bg-bind-purple flex items-center justify-center text-white text-xs font-bold border-2 border-white dark:border-gray-800">S</div>
+                <div class="w-7 h-7 rounded-full bg-bind-blue flex items-center justify-center text-white text-xs font-bold border-2 border-white dark:border-gray-800">A</div>
+                <div class="w-7 h-7 rounded-full bg-bind-cyan flex items-center justify-center text-white text-xs font-bold border-2 border-white dark:border-gray-800">J</div>
+              </div>
+              <p class="text-xs text-gray-600 dark:text-gray-300 font-medium">+3 colaborando</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FUNCIONALIDADES ===== -->
+  <section id="funcionalidades" class="py-24 px-6 bg-white dark:bg-gray-900 transition-colors duration-300">
+    <div class="max-w-7xl mx-auto">
+      
+      <!-- Header sección -->
+      <div class="text-center mb-16 reveal">
+        <span class="inline-block text-xs font-bold text-bind-purple dark:text-bind-cyan uppercase tracking-widest mb-4">Módulos</span>
+        <h2 class="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          Todo lo que necesitas,<br><span class="text-gradient">en un solo lugar</span>
+        </h2>
+        <p class="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">Cada módulo de BIND está diseñado para integrarse perfectamente con los demás, creando un ecosistema de productividad cohesivo.</p>
+      </div>
+
+      <!-- Grid de funcionalidades -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Card 1: Eventos -->
+        <div class="feature-card glass-card rounded-2xl p-7 reveal" style="transition-delay: 0.05s;">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-bind-purple to-bind-indigo flex items-center justify-center mb-5 shadow-lg shadow-bind-purple/25">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Gestión de Eventos</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Crea, planifica y monitorea eventos completos con fechas, ubicaciones y estados en tiempo real.</p>
+          <div class="mt-5 flex items-center gap-1 text-bind-purple dark:text-bind-cyan text-xs font-semibold">
+            <span>Explorar módulo</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+
+        <!-- Card 2: Tareas -->
+        <div class="feature-card glass-card rounded-2xl p-7 reveal" style="transition-delay: 0.1s;">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-bind-blue to-bind-cyan flex items-center justify-center mb-5 shadow-lg shadow-bind-blue/25">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Tareas & Checklists</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Organiza actividades con prioridades, responsables y fechas límite. Checklists integrados por evento.</p>
+          <div class="mt-5 flex items-center gap-1 text-bind-blue text-xs font-semibold">
+            <span>Explorar módulo</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+
+        <!-- Card 3: Asistentes -->
+        <div class="feature-card glass-card rounded-2xl p-7 reveal" style="transition-delay: 0.15s;">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-bind-cyan to-bind-blue flex items-center justify-center mb-5 shadow-lg shadow-bind-cyan/25">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Control de Asistentes</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Registra, filtra y gestiona participantes. Seguimiento de confirmaciones y roles por evento.</p>
+          <div class="mt-5 flex items-center gap-1 text-bind-cyan text-xs font-semibold">
+            <span>Explorar módulo</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+
+        <!-- Card 4: Archivos -->
+        <div class="feature-card glass-card rounded-2xl p-7 reveal" style="transition-delay: 0.2s;">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-bind-indigo to-bind-purple flex items-center justify-center mb-5 shadow-lg shadow-bind-indigo/25">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Gestión de Archivos</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Centraliza documentos, imágenes y recursos vinculados a cada evento. Organización por carpetas.</p>
+          <div class="mt-5 flex items-center gap-1 text-bind-indigo text-xs font-semibold">
+            <span>Explorar módulo</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+
+        <!-- Card 5: Plantillas -->
+        <div class="feature-card glass-card rounded-2xl p-7 reveal" style="transition-delay: 0.25s;">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-bind-pink to-bind-purple flex items-center justify-center mb-5 shadow-lg shadow-bind-pink/25">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Plantillas Modulares</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Reutiliza estructuras de eventos anteriores. Crea tus propias plantillas y acelera la planificación.</p>
+          <div class="mt-5 flex items-center gap-1 text-bind-pink text-xs font-semibold">
+            <span>Explorar módulo</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+
+        <!-- Card 6: Reportes (CTA) -->
+        <div class="feature-card rounded-2xl p-7 bg-gradient-to-br from-bind-purple via-bind-blue to-bind-cyan reveal" style="transition-delay: 0.3s;">
+          <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2">Reportes & Analytics</h3>
+          <p class="text-sm text-white/75 leading-relaxed">Dashboards con métricas de rendimiento, asistencia y progreso para tomar mejores decisiones.</p>
+          <a href="{% url 'accounts:register' %}" class="mt-5 inline-flex items-center gap-1 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all">
+            Comenzar ahora
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== NOSOTROS / FILOSOFÍA ===== -->
+  <section id="nosotros" class="py-24 px-6 mesh-bg transition-colors duration-300">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+        <!-- Texto -->
+        <div class="reveal space-y-6">
+          <span class="inline-block text-xs font-bold text-bind-purple dark:text-bind-cyan uppercase tracking-widest">Filosofía BIND</span>
+          <h2 class="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white leading-tight">
+            Menos complejidad.<br><span class="text-gradient">Más resultado.</span>
+          </h2>
+          <p class="text-gray-500 dark:text-gray-400 leading-relaxed">
+            BIND nació de una idea simple: los gestores de eventos eran demasiado complicados o demasiado limitados. Diseñamos una plataforma modular donde cada pieza encaja perfectamente, sin funcionalidades que nunca usarás.
+          </p>
+          <p class="text-gray-500 dark:text-gray-400 leading-relaxed">
+            Construido con Django + HTMX + TailwindCSS, BIND prioriza la velocidad, la claridad y la adaptabilidad. Cada módulo es independiente pero cohesivo, permitiéndote crecer a tu propio ritmo.
+          </p>
+          <blockquote class="border-l-4 border-bind-purple pl-5 py-1">
+            <p class="text-gray-700 dark:text-gray-300 italic">"La productividad no es hacer más cosas. Es hacer las cosas correctas de manera eficiente."</p>
+            <cite class="text-sm text-gray-400 dark:text-gray-500 mt-2 block not-italic">— Equipo BIND</cite>
+          </blockquote>
+        </div>
+
+        <!-- Tarjetas del equipo / valores -->
+        <div class="grid grid-cols-2 gap-4 reveal" style="transition-delay: 0.2s;">
+          <div class="glass-card rounded-2xl p-5">
+            <div class="text-3xl mb-3">
+              <svg class="w-8 h-8 text-bind-purple" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M13 2L3 14h7l-1 8L21 10h-7l-1-8z" fill="currentColor"/>
+              </svg>
+            </div>
+            <h4 class="font-bold text-gray-900 dark:text-white mb-1 text-sm">Velocidad</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Interfaces instantáneas gracias a HTMX y optimizaciones de backend.</p>
+          </div>
+          <div class="glass-card rounded-2xl p-5 mt-6">
+            <div class="text-3xl mb-3">
+              <svg class="w-8 h-8 text-teal-500" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3 13.5V21h7.5L21 10.5 13.5 3 3 13.5z" fill="currentColor"/>
+              </svg>
+            </div>
+            <h4 class="font-bold text-gray-900 dark:text-white mb-1 text-sm">Modularidad</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Activa solo los módulos que necesitas. Sin bloat, sin desorden.</p>
+          </div>
+          <div class="glass-card rounded-2xl p-5">
+            <div class="text-3xl mb-3">
+              <svg class="w-8 h-8 text-amber-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 10V8a6 6 0 1112 0v2h1a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h1z" fill="currentColor"/>
+              </svg>
+            </div>
+            <h4 class="font-bold text-gray-900 dark:text-white mb-1 text-sm">Seguridad</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Autenticación robusta y control de acceso por roles y proyectos.</p>
+          </div>
+          <div class="glass-card rounded-2xl p-5 mt-6">
+            <div class="text-3xl mb-3">
+              <svg class="w-8 h-8 text-indigo-500" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M2 22s4-1 6-3 3-6 3-6 3 0 6-3 3-6 3-6l-6 3-6 6-3 6z" fill="currentColor"/>
+              </svg>
+            </div>
+            <h4 class="font-bold text-gray-900 dark:text-white mb-1 text-sm">Escalabilidad</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Desde pequeños proyectos hasta grandes eventos con cientos de asistentes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CTA FINAL ===== -->
+  <section class="py-24 px-6 bg-white dark:bg-gray-900 transition-colors duration-300">
+    <div class="max-w-4xl mx-auto text-center reveal">
+      <div class="glass-card rounded-3xl p-12 md:p-16 relative overflow-hidden shadow-2xl">
+        <!-- Orbe decorativo -->
+        <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-bind-purple/10 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-bind-blue/10 blur-3xl pointer-events-none"></div>
+
+        <span class="inline-block text-xs font-bold text-bind-purple dark:text-bind-cyan uppercase tracking-widest mb-4">Empieza hoy</span>
+        <h2 class="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+          Tu primer evento<br>a un clic de distancia
+        </h2>
+        <p class="text-gray-500 dark:text-gray-400 mb-10 max-w-lg mx-auto">
+          Únete a BIND y descubre cómo la gestión modular puede transformar la manera en que planificas y ejecutas tus eventos.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="{% url 'accounts:register' %}" class="btn-glow bg-gradient-to-r from-bind-purple to-bind-blue text-white font-semibold px-10 py-4 rounded-xl text-base transition-all duration-300 hover:scale-105 shadow-lg shadow-bind-purple/25">
+            Crear cuenta gratis
+          </a>
+          <a href="{% url 'accounts:login' %}" class="border-2 border-gray-200 dark:border-white/15 text-gray-700 dark:text-gray-300 font-semibold px-10 py-4 rounded-xl text-base hover:border-bind-purple dark:hover:border-bind-cyan hover:text-bind-purple dark:hover:text-bind-cyan transition-all duration-300">
+            Ya tengo cuenta
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer id="contacto" class="bg-gray-950 text-gray-400 py-12 px-6">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid md:grid-cols-4 gap-8 mb-10">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-8 h-8 rounded-lg overflow-hidden"><img src="{% static 'img/logo.svg' %}" alt="BIND" class="w-full h-full object-cover"></div>
+            <span class="font-bold text-white text-lg">BIND</span>
+          </div>
+          <p class="text-sm leading-relaxed max-w-xs">Tu plataforma modular de gestión de eventos. Simple, potente y diseñada para crecer contigo.</p>
+        </div>
+        <div>
+          <h4 class="text-white font-semibold mb-4 text-sm">Plataforma</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#funcionalidades" class="hover:text-white transition-colors">Funcionalidades</a></li>
+            <li><a href="#nosotros" class="hover:text-white transition-colors">Nosotros</a></li>
+            <li><a href="{% url 'accounts:register' %}" class="hover:text-white transition-colors">Crear cuenta</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-white font-semibold mb-4 text-sm">Legal</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#" class="hover:text-white transition-colors">Privacidad</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Términos</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Contacto</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-white/10 pt-8 text-center text-xs">
+        <p>&copy; 2025 BIND Project — COSFA 11-B. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // === TEMA ===
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // === SCROLL REVEAL ===
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(el => {
+        if (el.isIntersecting) { el.target.classList.add('visible'); }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // === SMOOTH SCROLL ===
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  </script>
+
+</body>
+</html>

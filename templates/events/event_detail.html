@@ -1,0 +1,843 @@
+{% extends "base.html" %}
+{% block title %}BIND - {{ event.name }}{% endblock %}
+{% block page_title %}{{ event.name }}{% endblock %}
+
+{% block topbar_action %}
+<div class="flex items-center gap-2">
+  <a href="{% url 'events:event_modules_manage' event.pk %}" class="glass px-4 py-2 rounded-xl text-sm font-medium hover:bg-white/80 dark:hover:bg-gray-700 transition-all text-gray-700 dark:text-gray-200 flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+    Módulos
+  </a>
+  <a href="{% url 'events:event_edit' event.pk %}" class="glass px-4 py-2 rounded-xl text-sm font-medium hover:bg-white/80 dark:hover:bg-gray-700 transition-all text-gray-700 dark:text-gray-200 flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+    Editar
+  </a>
+  <a href="{% url 'events:event_delete' event.pk %}" class="glass px-4 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+    Eliminar
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-8 animate-fade-in">
+
+  <!-- Header del evento — compacto, información densa -->
+  <div class="bg-gradient-to-r from-teal-600 to-cyan-700 rounded-2xl p-6 text-white shadow-lg mb-6 relative overflow-hidden">
+    <div class="absolute right-0 top-0 w-48 h-48 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl pointer-events-none"></div>
+    <div class="relative z-10">
+
+      <!-- Badges + responsable -->
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          {% if event.template %}
+          <span class="bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide">{{ event.template.get_category_display }}</span>
+          {% endif %}
+          <span class="bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide">{{ event.get_status_display }}</span>
+        </div>
+        <!-- Responsable inline — no necesita card propia -->
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-full bg-white/30 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {{ event.owner.username|first|upper }}
+          </div>
+          <span class="text-xs text-white/80">{{ event.owner.get_full_name|default:event.owner.username }}</span>
+        </div>
+      </div>
+
+      <h1 class="text-3xl font-bold mb-2 leading-tight">{{ event.name }}</h1>
+
+      {% if event.location %}
+      <p class="opacity-80 flex items-center gap-1.5 text-sm mb-3">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        {{ event.location }}
+      </p>
+      {% endif %}
+
+      <!-- Fechas + días restantes en línea -->
+      <div class="flex items-center gap-4 flex-wrap mb-4">
+        {% if event.start_date %}
+        <div>
+          <p class="text-xs opacity-75">Inicio</p>
+          <p class="font-semibold text-sm">{{ event.start_date|date:"d M Y" }}</p>
+        </div>
+        {% endif %}
+        {% if event.end_date %}
+        <div>
+          <p class="text-xs opacity-75">Fin</p>
+          <p class="font-semibold text-sm">{{ event.end_date|date:"d M Y" }}</p>
+        </div>
+        {% endif %}
+        {% if days_until is not None %}
+        <div class="ml-auto text-right">
+          <p class="text-xs opacity-75">Tiempo restante</p>
+          <p class="font-bold text-lg bg-white/20 px-3 py-0.5 rounded-lg inline-block">
+            {% if days_until == 0 %}Hoy{% elif days_until < 0 %}Finalizado{% else %}{{ days_until }} día{{ days_until|pluralize }}{% endif %}
+          </p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Barra de progreso -->
+      {% if task_progress is not None %}
+      <div>
+        <div class="flex justify-between text-xs mb-1.5">
+          <span class="opacity-80">Progreso de tareas</span>
+          <span class="font-bold">{{ task_progress }}%</span>
+        </div>
+        <div class="w-full bg-white/20 rounded-full h-2">
+          <div class="bg-white h-2 rounded-full transition-all" style="width: {{ task_progress }}%"></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Engine indicators — compactos -->
+      {% if engine_score %}
+      <div class="flex items-center gap-2 mt-3 flex-wrap">
+        <div class="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5">
+          <span class="text-xs text-white/85">Salud</span>
+          <span class="text-sm font-bold">{{ engine_score.health_score }}/100</span>
+          <span class="text-xs px-1.5 py-0.5 rounded-full font-bold
+            {% if engine_score.health_score == 100 %}bg-teal-500/30 text-teal-100
+            {% elif engine_score.health_score >= 80 %}bg-green-500/30 text-green-200
+            {% elif engine_score.health_score >= 50 %}bg-white/20 text-white
+            {% elif engine_score.health_score > 0 %}bg-amber-500/30 text-amber-200
+            {% else %}bg-red-500/30 text-red-200{% endif %}">
+            {% if engine_score.health_score == 100 %}<i data-lucide="award" class="w-3 h-3 inline-block mr-0.5"></i>Perfecto{% elif engine_score.health_score >= 80 %}Excelente{% elif engine_score.health_score >= 50 %}Bueno{% elif engine_score.health_score > 0 %}En riesgo{% else %}Crítico{% endif %}
+          </span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5">
+          <span class="text-xs text-white/85">Riesgo</span>
+          <span class="text-xs font-bold px-1.5 py-0.5 rounded-full
+            {% if engine_score.risk_label == 'critical' %}bg-red-500/30 text-red-200
+            {% elif engine_score.risk_label == 'high' %}bg-amber-500/30 text-amber-200
+            {% elif engine_score.risk_label == 'medium' %}bg-yellow-500/30 text-yellow-200
+            {% else %}bg-white/20 text-white{% endif %}">
+            {% if engine_score.risk_label == 'critical' %}Crítico{% elif engine_score.risk_label == 'high' %}Alto{% elif engine_score.risk_label == 'medium' %}Medio{% else %}Bajo{% endif %}
+          </span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5">
+          <span class="text-xs text-white/85">Momentum</span>
+          <span class="text-xs font-bold text-white">{% if engine_score.momentum_label == 'accelerating' %}Acelerando{% elif engine_score.momentum_label == 'stalled' %}Estancado{% elif engine_score.momentum_label == 'slowing' %}Desacelerando{% else %}Estable{% endif %}</span>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Columna izquierda: módulos -->
+    <div class="lg:col-span-2 space-y-5">
+
+      <!-- Descripción — peso terciario si existe -->
+      {% if event.description %}
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Descripción</h3>
+        <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{{ event.description }}</p>
+      </div>
+      {% endif %}
+
+      <!-- Módulo: Tareas — módulo primario -->
+      {% if 'tasks' in active_modules %}
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
+            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            Tareas
+          </h3>
+          <a href="{% url 'modules:task_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
+        </div>
+        <div class="space-y-2 mb-4">
+          {% for task in tasks_preview %}
+          <div class="flex items-center gap-3 p-3 rounded-xl border-l-4
+            {% if task.priority == 'high' %}border-red-400 bg-red-500/5{% elif task.priority == 'medium' %}border-yellow-400 bg-yellow-500/5{% else %}border-green-400 bg-green-500/5{% endif %}
+            {% if task.status == 'done' %}opacity-50{% endif %}">
+            <span class="flex-1 text-sm {% if task.status == 'done' %}text-gray-400 line-through{% else %}text-gray-800 dark:text-white{% endif %}">{{ task.title }}</span>
+            <span class="text-xs px-2 py-0.5 rounded font-medium
+              {% if task.status == 'done' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300
+              {% elif task.status == 'in_progress' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300
+              {% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% endif %}">
+              {{ task.get_status_display }}
+            </span>
+          </div>
+          {% empty %}
+          <p class="text-gray-400 text-sm text-center py-3">Sin tareas aún.</p>
+          {% endfor %}
+        </div>
+        <!-- CTA primario del módulo -->
+        <button type="button" onclick="openAside('_tplTaskCreate', 'Nueva tarea')"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold rounded-xl transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Nueva tarea
+        </button>
+      </div>
+      {% endif %}
+
+      <!-- Módulo: Checklist -->
+      {% if 'checklist' in active_modules %}
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            Checklists
+          </h3>
+          <div class="flex items-center gap-3">
+            <button type="button" onclick="openAside('_tplChecklistCreate', 'Nueva checklist')"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500/90 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Nueva
+            </button>
+            <a href="{% url 'modules:checklist_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
+          </div>
+        </div>
+        <div class="space-y-3">
+          {% for checklist in checklists_preview %}
+          <div class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+            <div class="flex justify-between items-center mb-1.5">
+              <span class="text-sm font-medium text-gray-800 dark:text-white">{{ checklist.title }}</span>
+              <span class="text-xs font-bold text-gray-500">{{ checklist.progress }}%</span>
+            </div>
+            <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div class="bg-teal-400 h-1.5 rounded-full transition-all" style="width: {{ checklist.progress }}%"></div>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-gray-400 text-sm text-center py-3">Sin checklists.
+            <button type="button" onclick="openAside('_tplChecklistCreate', 'Nueva checklist')" class="text-teal-500 hover:underline">Crear una</button>
+          </p>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Módulo: Archivos -->
+      {% if 'files' in active_modules %}
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
+            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Archivos
+          </h3>
+          <a href="{% url 'modules:file_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todos →</a>
+        </div>
+        {% if files_preview %}
+        <div class="space-y-2">
+          {% for file in files_preview %}
+          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+            <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            </div>
+            <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ file.name }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm text-center py-3">Sin archivos.
+          <a href="{% url 'modules:file_create' event.pk %}" class="text-teal-500 hover:underline">Agregar uno</a>
+        </p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Columna derecha — solo datos únicos: asistentes + presupuesto -->
+    <div class="space-y-5">
+
+      <!-- Asistentes -->
+      {% if 'attendees' in active_modules %}
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Asistentes</h3>
+          <a href="{% url 'modules:attendee_list' event.pk %}" class="text-xs text-teal-500 hover:underline font-semibold">Ver todos →</a>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-3">
+          {% for attendee in attendees_preview %}
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-xs font-bold" title="{{ attendee.name }}">
+            {{ attendee.name|first|upper }}
+          </div>
+          {% empty %}
+          <p class="text-gray-400 text-sm">Sin asistentes.
+            <a href="{% url 'modules:attendee_create' event.pk %}" class="text-teal-500 hover:underline">Agregar</a>
+          </p>
+          {% endfor %}
+        </div>
+        {% if attendees_preview %}
+        <a href="{% url 'modules:attendee_create' event.pk %}" class="inline-flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-semibold hover:underline">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Agregar asistente
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Presupuesto -->
+      {% if event.budget %}
+      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Presupuesto</h3>
+          <a href="{% url 'modules:budget_detail' event.pk %}" class="text-xs text-teal-500 hover:underline font-semibold">Ver detalle →</a>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div class="text-center">
+            <p class="text-xs text-gray-400 mb-0.5">Planificado</p>
+            <p class="font-bold text-gray-800 dark:text-white text-sm">{{ event.budget.total_budget|floatformat:0 }}</p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-gray-400 mb-0.5">Gastado</p>
+            <p class="font-bold text-sm {% if event.budget.usage_percentage >= 80 %}text-red-500{% else %}text-gray-800 dark:text-white{% endif %}">{{ event.budget.total_spent|floatformat:0 }}</p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-gray-400 mb-0.5">Restante</p>
+            <p class="font-bold text-sm {% if event.budget.remaining < 0 %}text-red-500{% else %}text-teal-500{% endif %}">{{ event.budget.remaining|floatformat:0 }}</p>
+          </div>
+        </div>
+        <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div class="h-1.5 rounded-full {% if event.budget.usage_percentage >= 80 %}bg-red-500{% else %}bg-teal-400{% endif %}"
+               style="width: {{ event.budget.usage_percentage|default:0 }}%"></div>
+        </div>
+        <p class="text-xs text-gray-400 mt-1.5 text-right">{{ event.budget.currency }} · {{ event.budget.usage_percentage }}% usado</p>
+      </div>
+      {% else %}
+      <div class="glass p-5 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+        <p class="text-xs text-gray-400 mb-2">Sin presupuesto definido</p>
+        <a href="{% url 'modules:budget_detail' event.pk %}" class="text-xs font-bold text-teal-500 hover:underline">Crear presupuesto →</a>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ ASIDE TEMPLATES (hidden, cloned by openAside) ══════════════════════ -->
+<div id="_tplTaskCreate" class="hidden">
+  <form method="post" action="{% url 'modules:task_create' event.pk %}">
+    {% csrf_token %}
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Título *</label>
+        <input type="text" name="title" required placeholder="¿Qué hay que hacer?"
+               style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;transition:border-color .2s"
+               onfocus="this.style.borderColor='rgba(20,184,166,.5)'"
+               onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Descripción</label>
+        <textarea name="description" rows="3" placeholder="Detalles opcionales…"
+                  style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;resize:none;transition:border-color .2s"
+                  onfocus="this.style.borderColor='rgba(20,184,166,.5)'"
+                  onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Prioridad</label>
+          <select name="priority"
+                  style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none">
+            <option value="low">Baja</option>
+            <option value="medium" selected>Media</option>
+            <option value="high">Alta</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Estado</label>
+          <select name="status"
+                  style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none">
+            <option value="pending" selected>Pendiente</option>
+            <option value="in_progress">En progreso</option>
+            <option value="done">Completada</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Fecha límite</label>
+        <input type="date" name="due_date"
+               style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;transition:border-color .2s"
+               onfocus="this.style.borderColor='rgba(20,184,166,.5)'"
+               onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <button type="submit"
+              style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#14b8a6,#06b6d4);color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(20,184,166,.3);transition:opacity .2s">
+        Crear tarea
+      </button>
+    </div>
+  </form>
+</div>
+
+<div id="_tplChecklistCreate" class="hidden">
+  <form method="post" action="{% url 'modules:checklist_create' event.pk %}">
+    {% csrf_token %}
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style="color:#9ca3af">Título del checklist *</label>
+        <input type="text" name="title" required placeholder="Ej: Lista de materiales, Preparativos…"
+               style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:14px;outline:none;transition:border-color .2s"
+               onfocus="this.style.borderColor='rgba(59,130,246,.5)'"
+               onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <p style="font-size:12px;color:#6b7280">Podrás agregar ítems después de crear el checklist.</p>
+      <button type="submit"
+              style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,.3);transition:opacity .2s">
+        Crear checklist
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- ══ BYNIX — AGENTE OPERATIVO ══════════════════════════════════════════════ -->
+{% load static %}
+<style>
+  #bynix-panel { transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+  #bynix-panel.bynix-hidden  { transform: translateX(100%); pointer-events: none; }
+  #bynix-panel.bynix-visible { transform: translateX(0);    pointer-events: auto; }
+  #bynix-backdrop { transition: opacity 0.3s ease; opacity: 0; pointer-events: none; }
+  #bynix-backdrop.bynix-active { opacity: 1; pointer-events: auto; }
+  #bynix-bubble {
+    transition: transform 0.2s ease, opacity 0.25s ease;
+    box-shadow: 0 4px 24px rgba(124,58,237,.45), 0 2px 8px rgba(0,0,0,.15);
+  }
+  #bynix-bubble:hover { transform: scale(1.08); }
+  #bynix-bubble:active { transform: scale(0.95); }
+  #bynix-bubble.bynix-bubble-hidden { opacity: 0; pointer-events: none; transform: scale(0.75); }
+  @keyframes bynix-pulse-ring {
+    0%   { box-shadow: 0 0 0 0   rgba(124,58,237,.5),  0 4px 24px rgba(124,58,237,.4); }
+    70%  { box-shadow: 0 0 0 12px rgba(124,58,237,0),  0 4px 24px rgba(219,39,119,.3); }
+    100% { box-shadow: 0 0 0 0   rgba(124,58,237,0),   0 4px 24px rgba(124,58,237,.4); }
+  }
+  #bynix-bubble:not(.bynix-bubble-hidden) { animation: bynix-pulse-ring 2.6s ease-in-out infinite; }
+  @keyframes bynix-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .bynix-shimmer-bar {
+    background: linear-gradient(90deg, rgba(124,58,237,.18) 0%, rgba(219,39,119,.28) 50%, rgba(124,58,237,.18) 100%);
+    background-size: 200% 100%;
+    animation: bynix-shimmer 1.6s ease-in-out infinite;
+    border-radius: 9999px;
+  }
+  #bynix-top-bar {
+    background: linear-gradient(90deg,#7C3AED,#DB2777,#7C3AED);
+    background-size: 200% 100%;
+    animation: bynix-shimmer 5s linear infinite;
+  }
+  @keyframes bynix-glow {
+    0%,100% { box-shadow: 0 0 0 0 rgba(124,58,237,.3); }
+    50%      { box-shadow: 0 0 16px 3px rgba(124,58,237,.12); }
+  }
+  .bynix-action-glow { animation: bynix-glow 2.8s ease-in-out infinite; }
+  #bynix-content::-webkit-scrollbar { width: 3px; }
+  #bynix-content::-webkit-scrollbar-thumb { background: rgba(124,58,237,.35); border-radius: 9999px; }
+  #bynix-input { scrollbar-width: none; resize: none; }
+  #bynix-input::-webkit-scrollbar { display: none; }
+  #bynix-input::placeholder { color: rgba(255,255,255,.28); }
+  #bynix-input:focus { outline: none; border-color: rgba(124,58,237,.6) !important; }
+</style>
+
+<div id="bynix-backdrop" class="fixed inset-0 z-40"
+     style="backdrop-filter:blur(3px);background:rgba(0,0,0,.5);"
+     onclick="bynixClose()"></div>
+
+<button id="bynix-bubble" onclick="bynixToggle()" title="Abrir Bynix — Agente Operativo"
+        class="fixed z-40 bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center"
+        style="background:#ffffff;">
+  <img src="{% static 'img/logo-ia.png' %}" alt="Bynix" class="w-12 h-12 object-contain select-none" draggable="false">
+</button>
+
+<div id="bynix-panel" class="bynix-hidden fixed right-0 top-0 z-50 flex flex-col"
+     style="width:min(420px,100vw);height:100vh;height:100dvh;background:#0e0e14;
+            border-left:1px solid rgba(124,58,237,.18);box-shadow:-16px 0 60px rgba(0,0,0,.75);">
+
+  <div id="bynix-top-bar" style="height:3px;flex-shrink:0;"></div>
+
+  <div class="flex items-center justify-between px-5 py-4"
+       style="flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05);">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+           style="background:#ffffff;box-shadow:0 2px 14px rgba(124,58,237,.35);">
+        <img src="{% static 'img/logo-ia.png' %}" alt="Bynix" class="w-8 h-8 object-contain select-none" draggable="false">
+      </div>
+      <div>
+        <p class="font-bold text-white text-base leading-none tracking-tight">Bynix</p>
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:.18em;
+                  color:rgba(255,255,255,.32);margin-top:4px;">Agente Operativo</p>
+      </div>
+    </div>
+    <button onclick="bynixClose()" class="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
+            style="color:rgba(255,255,255,.35);"
+            onmouseover="this.style.background='rgba(255,255,255,.06)';this.style.color='rgba(255,255,255,.7)';"
+            onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,.35)';">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <div id="bynix-content" class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+
+    <div id="bynix-welcome">
+      <p class="text-sm leading-relaxed mb-4" style="color:rgba(255,255,255,.55);">
+        Soy <span class="font-bold text-white">Bynix</span>, tu agente operativo.
+        Analizo el estado de tu evento en tiempo real y puedo ejecutar acciones en tu nombre.
+      </p>
+      <div class="rounded-xl overflow-hidden text-xs"
+           style="border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);">
+        <div class="px-3.5 py-2.5" style="border-bottom:1px solid rgba(255,255,255,.06);">
+          <p style="font-weight:700;text-transform:uppercase;letter-spacing:.18em;font-size:9px;
+                    background:linear-gradient(90deg,#7C3AED,#DB2777);-webkit-background-clip:text;
+                    -webkit-text-fill-color:transparent;background-clip:text;">Capacidades</p>
+        </div>
+        <ul style="color:rgba(255,255,255,.45);">
+          <li class="flex items-start gap-2.5 px-3.5 py-2" style="border-bottom:1px solid rgba(255,255,255,.04);">
+            <span style="color:#7C3AED;margin-top:1px;flex-shrink:0;">✦</span>
+            <span>Analizar progreso, salud y alertas del evento en tiempo real</span>
+          </li>
+          <li class="flex items-start gap-2.5 px-3.5 py-2" style="border-bottom:1px solid rgba(255,255,255,.04);">
+            <span style="color:#7C3AED;margin-top:1px;flex-shrink:0;">✦</span>
+            <span>Priorizar tareas según urgencia, prioridad y fechas límite</span>
+          </li>
+          <li class="flex items-start gap-2.5 px-3.5 py-2" style="border-bottom:1px solid rgba(255,255,255,.04);">
+            <span style="color:#7C3AED;margin-top:1px;flex-shrink:0;">✦</span>
+            <span>Crear tareas y checklists de un solo golpe con Quick Capture</span>
+          </li>
+          <li class="flex items-start gap-2.5 px-3.5 py-2">
+            <span style="color:#7C3AED;margin-top:1px;flex-shrink:0;">✦</span>
+            <span>Detectar cuellos de botella y recomendar el siguiente paso</span>
+          </li>
+        </ul>
+      </div>
+      <p class="text-center mt-3" style="font-size:10px;color:rgba(255,255,255,.22);">
+        Cada consulta consume <strong style="color:rgba(255,255,255,.38);">10 créditos</strong>
+      </p>
+    </div>
+
+    <div id="bynix-response-area" class="hidden">
+      <p id="bynix-response-text" class="text-sm leading-relaxed" style="color:rgba(255,255,255,.78);"></p>
+    </div>
+
+    <div id="bynix-skeleton" class="hidden space-y-3 pt-1">
+      <div class="bynix-shimmer-bar" style="height:12px;width:100%;"></div>
+      <div class="bynix-shimmer-bar" style="height:12px;width:83%;"></div>
+      <div class="bynix-shimmer-bar" style="height:12px;width:67%;"></div>
+    </div>
+
+    <div id="bynix-action-card" class="hidden bynix-action-glow rounded-2xl overflow-hidden"
+         style="border:1px solid rgba(124,58,237,.45);background:rgba(124,58,237,.07);">
+      <div class="px-4 py-4">
+        <div class="flex items-start gap-3 mb-3.5">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+               style="background:linear-gradient(135deg,#7C3AED,#DB2777);">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p id="bynix-action-label" class="text-sm font-bold text-white leading-snug"></p>
+            <p id="bynix-action-confirm" class="text-xs mt-1.5 leading-relaxed"
+               style="color:rgba(255,255,255,.5);"></p>
+          </div>
+        </div>
+        <div id="bynix-action-executing" class="hidden text-center py-1 space-y-2">
+          <div class="bynix-shimmer-bar" style="height:8px;width:100%;"></div>
+          <p style="font-size:11px;color:rgba(255,255,255,.35);">Preparando estructura…</p>
+        </div>
+        <div id="bynix-action-buttons" class="flex gap-2">
+          <button onclick="bynixExecuteAction()"
+                  class="flex-1 py-2.5 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90 active:scale-95"
+                  style="background:linear-gradient(135deg,#7C3AED,#DB2777);">
+            ✦ Ejecutar Acción
+          </button>
+          <button onclick="bynixDismissAction()"
+                  class="px-4 py-2.5 rounded-xl text-xs font-medium transition-all"
+                  style="color:rgba(255,255,255,.38);border:1px solid rgba(255,255,255,.1);"
+                  onmouseover="this.style.background='rgba(255,255,255,.05)';"
+                  onmouseout="this.style.background='transparent';">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="bynix-exhausted" class="hidden text-center py-6">
+      <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
+           style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);">
+        <svg class="w-6 h-6" fill="none" stroke="#EF4444" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+      </div>
+      <p class="text-sm font-bold text-white mb-1.5">Energía agotada</p>
+      <p class="text-xs mb-1 leading-relaxed" style="color:rgba(255,255,255,.38);">
+        Los 100 créditos diarios se han consumido.
+      </p>
+      <p class="text-xs mb-5" style="color:rgba(255,255,255,.28);">
+        Los créditos se reinician <span id="bynix-reset-time">{{ bynix_reset_time }}</span>
+      </p>
+      <button onclick="bynixUpgrade()"
+              class="w-full py-3 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90 active:scale-95"
+              style="background:linear-gradient(135deg,#7C3AED,#DB2777);">
+        ✦ Desbloquear Bynix Pro
+      </button>
+    </div>
+
+  </div>
+
+  <div style="flex-shrink:0;border-top:1px solid rgba(255,255,255,.05);">
+    <div class="px-5 pt-3 pb-2">
+      <div class="flex items-center justify-between mb-2">
+        <span style="font-size:9px;text-transform:uppercase;letter-spacing:.18em;font-weight:700;
+                     color:rgba(255,255,255,.28);">Energía Bynix</span>
+        <div class="flex items-center gap-2.5">
+          <span id="bynix-credits-label"
+                style="font-size:9px;text-transform:uppercase;letter-spacing:.15em;
+                       font-weight:700;color:rgba(255,255,255,.32);">
+            {{ bynix_credits }}&nbsp;/&nbsp;{{ bynix_credits_max }}
+          </span>
+          <button onclick="bynixUpgrade()"
+                  style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;
+                         border:1px solid rgba(124,58,237,.55);color:#9F67F7;background:transparent;transition:all .2s;"
+                  onmouseover="this.style.background='linear-gradient(135deg,#7C3AED,#DB2777)';this.style.color='white';this.style.borderColor='transparent';"
+                  onmouseout="this.style.background='transparent';this.style.color='#9F67F7';this.style.borderColor='rgba(124,58,237,.55)';">
+            Pro ↑
+          </button>
+        </div>
+      </div>
+      <div style="height:4px;border-radius:9999px;background:rgba(255,255,255,.07);overflow:hidden;">
+        <div id="bynix-meter-bar"
+             class="h-full rounded-full transition-all duration-500
+                    {% if bynix_usage_percent >= 90 %}animate-pulse{% endif %}"
+             style="width:{{ bynix_usage_percent }}%;
+                    background:{% if bynix_usage_percent >= 90 %}#EF4444{% elif bynix_usage_percent >= 80 %}#F97316{% else %}linear-gradient(90deg,#7C3AED,#DB2777){% endif %};">
+        </div>
+      </div>
+      <p id="bynix-threshold-label"
+         style="font-size:10px;margin-top:6px;font-weight:500;"
+         class="{% if bynix_usage_percent >= 100 %}text-red-400
+                {% elif bynix_usage_percent >= 90 %}text-red-400
+                {% elif bynix_usage_percent >= 80 %}text-amber-400
+                {% else %}hidden{% endif %}">
+        {% if bynix_usage_percent >= 100 %}⚡ Energía agotada · Se reinicia {{ bynix_reset_time }}
+        {% elif bynix_usage_percent >= 90 %}⚠ Energía crítica · {{ bynix_credits }} créditos restantes
+        {% elif bynix_usage_percent >= 80 %}⚡ Energía baja — úsalos con intención
+        {% endif %}
+      </p>
+    </div>
+    <div class="px-5 pb-5 pt-1">
+      <div class="flex gap-2 items-end">
+        <textarea id="bynix-input" rows="2"
+                  placeholder="Describe lo que necesitas o pregunta sobre el evento…"
+                  autocomplete="off"
+                  {% if bynix_usage_percent >= 100 %}disabled{% endif %}
+                  class="flex-1 text-sm px-4 py-2.5 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed"
+                  style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+                         color:rgba(255,255,255,.85);line-height:1.55;"
+                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();bynixSend();}"></textarea>
+        <button id="bynix-send-btn" onclick="bynixSend()"
+                {% if bynix_usage_percent >= 100 %}disabled{% endif %}
+                class="flex-shrink-0 w-10 h-10 rounded-xl text-white flex items-center justify-center
+                       transition-all hover:opacity-90 active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed"
+                style="background:linear-gradient(135deg,#7C3AED,#DB2777);">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+        </button>
+      </div>
+      <p class="text-center mt-1.5" style="font-size:10px;color:rgba(255,255,255,.18);">
+        Enter para enviar · Shift+Enter nueva línea
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const CHAT_URL    = "{% url 'events:event_assistant_chat' event.pk %}";
+  const CAPTURE_URL = "{% url 'events:bynix_quick_capture' event.pk %}";
+  const CSRF_TOKEN  = "{{ csrf_token }}";
+
+  let _credits      = {{ bynix_credits|default:100 }};
+  let _usagePct     = {{ bynix_usage_percent|default:0 }};
+  const _maxCredits = {{ bynix_credits_max|default:100 }};
+  let _open          = false;
+  let _pendingAction = null;
+
+  const $ = id => document.getElementById(id);
+
+  function updateMeter(usagePct, creditsLeft) {
+    const bar = $('bynix-meter-bar');
+    if (bar) {
+      bar.style.width = usagePct + '%';
+      if (usagePct >= 90) {
+        bar.style.background = '#EF4444'; bar.classList.add('animate-pulse');
+      } else if (usagePct >= 80) {
+        bar.style.background = '#F97316'; bar.classList.remove('animate-pulse');
+      } else {
+        bar.style.background = 'linear-gradient(90deg,#7C3AED,#DB2777)'; bar.classList.remove('animate-pulse');
+      }
+    }
+    const lbl = $('bynix-credits-label');
+    if (lbl) lbl.textContent = creditsLeft + ' / ' + _maxCredits;
+    const tl = $('bynix-threshold-label');
+    if (tl) {
+      if (usagePct >= 100) {
+        tl.removeAttribute('class'); tl.style.cssText = 'font-size:10px;margin-top:6px;font-weight:500;color:#f87171;';
+        tl.textContent = '⚡ Energía agotada';
+      } else if (usagePct >= 90) {
+        tl.removeAttribute('class'); tl.style.cssText = 'font-size:10px;margin-top:6px;font-weight:500;color:#f87171;';
+        tl.textContent = '⚠ Energía crítica · ' + creditsLeft + ' créditos restantes';
+      } else if (usagePct >= 80) {
+        tl.removeAttribute('class'); tl.style.cssText = 'font-size:10px;margin-top:6px;font-weight:500;color:#fbbf24;';
+        tl.textContent = '⚡ Energía baja — úsalos con intención';
+      } else {
+        tl.removeAttribute('class'); tl.style.cssText = 'display:none;';
+      }
+    }
+  }
+
+  function enterExhaustedMode(resetTime) {
+    $('bynix-welcome').classList.add('hidden');
+    $('bynix-response-area').classList.add('hidden');
+    $('bynix-action-card').classList.add('hidden');
+    $('bynix-exhausted').classList.remove('hidden');
+    if (resetTime) { const rt = $('bynix-reset-time'); if (rt) rt.textContent = resetTime; }
+    const inp = $('bynix-input'), btn = $('bynix-send-btn');
+    if (inp) { inp.disabled = true; inp.placeholder = 'Créditos agotados'; }
+    if (btn) btn.disabled = true;
+  }
+
+  function showActionCard(action) {
+    _pendingAction = action;
+    $('bynix-action-label').textContent   = action.label        || 'Acción preparada';
+    $('bynix-action-confirm').textContent = action.confirm_text || '¿Deseas ejecutar esta acción?';
+    $('bynix-action-card').classList.remove('hidden');
+  }
+
+  window.bynixExecuteAction = async function () {
+    if (!_pendingAction || _credits <= 0) return;
+    $('bynix-action-buttons').classList.add('hidden');
+    $('bynix-action-executing').classList.remove('hidden');
+    try {
+      const res  = await fetch(CAPTURE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ description: _pendingAction.description }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error');
+      if (data.credits_remaining !== undefined) {
+        _credits = data.credits_remaining; _usagePct = data.usage_percent;
+        updateMeter(_usagePct, _credits);
+      }
+      $('bynix-action-card').classList.add('hidden');
+      $('bynix-response-text').textContent = data.mensaje || '¡Estructura creada con éxito!';
+      $('bynix-response-area').classList.remove('hidden');
+      if (data.incluir_presupuesto) _showToast('¿Deseas que añada también el módulo de presupuesto para este evento?', 5000);
+      if (_credits <= 0) setTimeout(() => enterExhaustedMode(), 1800);
+      _pendingAction = null;
+    } catch (_e) {
+      $('bynix-action-buttons').classList.remove('hidden');
+      $('bynix-action-executing').classList.add('hidden');
+      $('bynix-response-text').textContent = 'No pude completar la acción. Intenta de nuevo.';
+      $('bynix-response-area').classList.remove('hidden');
+    }
+  };
+
+  window.bynixDismissAction = function () {
+    _pendingAction = null; $('bynix-action-card').classList.add('hidden');
+  };
+
+  window.bynixUpgrade = function () {
+    _showToast('Próximamente: Desbloquea potencia ilimitada con Bynix Pro. ¡Únete a la lista de espera!', 4000);
+  };
+
+  function _showToast(msg, duration) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9999;' +
+      'padding:12px 20px;border-radius:16px;color:white;font-size:13px;font-weight:500;' +
+      'max-width:340px;text-align:center;box-shadow:0 8px 32px rgba(124,58,237,.5);' +
+      'background:linear-gradient(135deg,#7C3AED,#DB2777);transition:opacity .5s;';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; }, duration - 500);
+    setTimeout(() => t.remove(), duration);
+  }
+
+  window.bynixToggle = () => _open ? bynixClose() : bynixOpen();
+
+  window.bynixOpen = function () {
+    _open = true;
+    $('bynix-panel').classList.replace('bynix-hidden', 'bynix-visible');
+    $('bynix-backdrop').classList.add('bynix-active');
+    $('bynix-bubble').classList.add('bynix-bubble-hidden');
+    setTimeout(() => {
+      if (_credits <= 0) { enterExhaustedMode(); }
+      else { const inp = $('bynix-input'); if (inp) inp.focus(); }
+    }, 80);
+  };
+
+  window.bynixClose = function () {
+    _open = false;
+    $('bynix-panel').classList.replace('bynix-visible', 'bynix-hidden');
+    $('bynix-backdrop').classList.remove('bynix-active');
+    $('bynix-bubble').classList.remove('bynix-bubble-hidden');
+  };
+
+  window.bynixSend = async function () {
+    const inp = $('bynix-input');
+    const query = inp.value.trim();
+    if (!query || _credits <= 0) return;
+
+    inp.disabled = true;
+    $('bynix-send-btn').disabled = true;
+    $('bynix-welcome').classList.add('hidden');
+    $('bynix-response-area').classList.add('hidden');
+    $('bynix-action-card').classList.add('hidden');
+    $('bynix-skeleton').classList.remove('hidden');
+
+    try {
+      const res  = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ query }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      $('bynix-response-text').textContent = data.response || 'Procesando tu solicitud…';
+      $('bynix-response-area').classList.remove('hidden');
+
+      if (data.credits_remaining !== undefined) {
+        _credits = data.credits_remaining; _usagePct = data.usage_percent;
+        updateMeter(_usagePct, _credits);
+      }
+      if (data.action && data.action.type === 'CREATE_STRUCTURE') showActionCard(data.action);
+      if (_credits <= 0) { setTimeout(() => enterExhaustedMode(data.reset_time), 1500); return; }
+
+    } catch (_err) {
+      $('bynix-response-text').textContent = 'Bynix está procesando. Intenta de nuevo en un momento.';
+      $('bynix-response-area').classList.remove('hidden');
+    } finally {
+      $('bynix-skeleton').classList.add('hidden');
+      if (_credits > 0) {
+        inp.value = ''; inp.disabled = false;
+        $('bynix-send-btn').disabled = false; inp.focus();
+      }
+    }
+  };
+
+  // Move fixed elements to <body> to escape overflow-hidden on ancestor containers
+  ['bynix-backdrop', 'bynix-bubble', 'bynix-panel'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && el.parentNode !== document.body) document.body.appendChild(el);
+  });
+
+  updateMeter(_usagePct, _credits);
+
+}());
+</script>
+<!-- ══ FIN BYNIX ══════════════════════════════════════════════════════════ -->
+
+{% endblock %}
