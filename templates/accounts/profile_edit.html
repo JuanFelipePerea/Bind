@@ -86,21 +86,59 @@
     {% csrf_token %}
 
     <!-- Banner hero -->
-    <div class="relative w-full h-44 rounded-2xl overflow-hidden shadow-lg">
+    <div class="relative w-full h-52 rounded-2xl overflow-hidden shadow-lg">
+
       {% if profile.avatar %}
-      <img src="{{ profile.avatar.url }}" alt="Banner" class="w-full h-full object-cover" id="bannerPreview">
+      <img src="{{ profile.avatar.url }}" alt="Banner"
+           class="absolute inset-0 w-full h-full object-cover" id="bannerPreview">
       {% else %}
-      <div class="w-full h-full bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-600" id="bannerFallback"></div>
-      <img src="" alt="" class="w-full h-full object-cover hidden absolute inset-0" id="bannerPreview">
+      <div class="absolute inset-0 bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-600" id="bannerFallback"></div>
+      <img src="" alt="" class="absolute inset-0 w-full h-full object-cover hidden" id="bannerPreview">
       {% endif %}
-      <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none"></div>
-      <div class="absolute bottom-4 left-5">
-        <p class="text-white font-bold text-xl leading-tight">@{{ user.username }}</p>
-        {% if profile %}<p class="text-white/60 text-xs mt-0.5">{{ profile.get_role_display }}</p>{% endif %}
+
+      <!-- Overlay degradado -->
+      <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none"></div>
+
+      <!-- Avatar card + identidad — misma posición que profile.html -->
+      <div class="absolute bottom-0 left-0 right-0 px-5 pb-4 flex items-end gap-3">
+        <div class="relative flex-shrink-0">
+          {% if profile.avatar %}
+          <img src="{{ profile.avatar.url }}" alt="Avatar"
+               id="avatarThumb"
+               class="w-16 h-16 rounded-xl object-cover shadow-xl"
+               style="border:2.5px solid rgba(255,255,255,0.45);">
+          {% else %}
+          <div id="avatarThumb"
+               class="w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-xl"
+               style="background:rgba(255,255,255,0.2);border:2.5px solid rgba(255,255,255,0.35);
+                      backdrop-filter:blur(4px);">
+            {{ user.username|first|upper }}
+          </div>
+          {% endif %}
+        </div>
+        <div class="pb-0.5">
+          <p class="text-white font-bold text-lg leading-tight"
+             style="text-shadow:0 1px 6px rgba(0,0,0,.45);">
+            {{ user.get_full_name|default:user.username }}
+          </p>
+          <p class="text-white/60 text-xs mt-0.5">@{{ user.username }}
+            {% if profile %} · {{ profile.get_role_display }}{% endif %}
+          </p>
+        </div>
       </div>
-      <label for="avatarInput" class="absolute top-3 right-3 cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-black/40 hover:bg-black/60 text-white text-xs font-semibold rounded-lg backdrop-blur-sm transition-all border border-white/20 select-none">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        Cambiar portada
+
+      <!-- Botón cambiar portada -->
+      <label for="avatarInput"
+             class="absolute top-3 right-3 cursor-pointer flex items-center gap-1.5 px-3 py-1.5
+                    bg-black/40 hover:bg-black/65 text-white text-xs font-semibold rounded-lg
+                    backdrop-blur-sm transition-all border border-white/20 select-none">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Cambiar foto
       </label>
     </div>
     <input type="file" id="avatarInput" name="avatar" accept="image/*" class="sr-only">
@@ -184,17 +222,34 @@
 
 <script>
 (function () {
-  // Banner preview al seleccionar imagen
+  // Banner + thumb preview al seleccionar imagen
   var avatarInput    = document.getElementById('avatarInput');
   var bannerPreview  = document.getElementById('bannerPreview');
   var bannerFallback = document.getElementById('bannerFallback');
+  var avatarThumb    = document.getElementById('avatarThumb');
 
   avatarInput.addEventListener('change', function () {
     var file = this.files[0];
     if (!file) return;
-    bannerPreview.src = URL.createObjectURL(file);
+    var url = URL.createObjectURL(file);
+
+    // Actualizar banner full-bleed
+    bannerPreview.src = url;
     bannerPreview.classList.remove('hidden');
     if (bannerFallback) bannerFallback.style.display = 'none';
+
+    // Actualizar thumb si es un <img> (puede ser un <div> si no hay avatar)
+    if (avatarThumb && avatarThumb.tagName === 'IMG') {
+      avatarThumb.src = url;
+    } else if (avatarThumb) {
+      // Reemplazar el div inicial con una imagen
+      var img = document.createElement('img');
+      img.id = 'avatarThumb';
+      img.className = 'w-16 h-16 rounded-xl object-cover shadow-xl';
+      img.style.cssText = 'border:2.5px solid rgba(255,255,255,0.45);';
+      img.src = url;
+      avatarThumb.parentNode.replaceChild(img, avatarThumb);
+    }
   });
 
   // intl-tel-input con bandera de Colombia por defecto

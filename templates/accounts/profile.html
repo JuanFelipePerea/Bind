@@ -8,30 +8,65 @@
   <!-- Tarjeta de perfil -->
   <div class="glass rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-sm">
 
-    <!-- Header con avatar -->
-    <div class="bg-gradient-to-r from-teal-500 to-cyan-600 p-8 flex items-center gap-6">
+    <!-- Banner hero — foto como fondo full-bleed -->
+    <div class="relative w-full h-52">
+
       {% if profile.avatar %}
-      <img src="{{ profile.avatar.url }}" alt="Avatar" class="w-20 h-20 rounded-2xl object-cover border-2 border-white/40 dark:border-white/20 shadow-lg shrink-0">
+      <img src="{{ profile.avatar.url }}" alt="Portada"
+           class="absolute inset-0 w-full h-full object-cover">
       {% else %}
-      <div class="w-20 h-20 rounded-2xl bg-white/20 dark:bg-white/10 border-2 border-white/40 dark:border-white/20 flex items-center justify-center text-white dark:text-gray-900 font-bold text-4xl shadow-lg shrink-0">
-        {{ user.username|first|upper }}
-      </div>
+      <div class="absolute inset-0 bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-600"></div>
       {% endif %}
-      <div>
-        <h2 class="text-2xl font-bold text-white">{{ user.get_full_name|default:user.username }}</h2>
-        <p class="text-white/70 text-sm mt-1">@{{ user.username }}</p>
-        <div class="mt-2 flex items-center gap-2">
-          {% if user.is_superuser %}
-          <span class="bg-white/20 dark:bg-white/10 border border-white/30 dark:border-white/20 text-white dark:text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
-            Superusuario
-          </span>
-          {% endif %}
-          {% if profile %}
-          <span class="bg-white/20 dark:bg-white/10 border border-white/30 dark:border-white/20 text-white dark:text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
-            {{ profile.get_role_display }}
-          </span>
-          {% endif %}
+
+      <!-- Overlay degradado siempre presente para legibilidad del texto -->
+      <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent pointer-events-none"></div>
+
+      <!-- Avatar card + identidad sobre el banner -->
+      <div class="absolute bottom-0 left-0 right-0 px-6 pb-5 flex items-end gap-4">
+
+        <!-- Avatar como tarjeta flotante sobre el banner -->
+        {% if profile.avatar %}
+        <img src="{{ profile.avatar.url }}" alt="Avatar"
+             class="w-20 h-20 rounded-2xl object-cover flex-shrink-0 shadow-2xl"
+             style="border:2.5px solid rgba(255,255,255,0.45);">
+        {% else %}
+        <div class="w-20 h-20 rounded-2xl flex-shrink-0 shadow-2xl flex items-center justify-center
+                    text-white font-bold text-3xl"
+             style="background:rgba(255,255,255,0.2);border:2.5px solid rgba(255,255,255,0.35);
+                    backdrop-filter:blur(4px);">
+          {{ user.username|first|upper }}
         </div>
+        {% endif %}
+
+        <!-- Nombre, handle y badges -->
+        <div class="flex-1 min-w-0 pb-1">
+          <div class="flex items-end justify-between gap-3 flex-wrap">
+            <div>
+              <h2 class="text-2xl font-bold text-white leading-tight"
+                  style="text-shadow:0 1px 8px rgba(0,0,0,.5);">
+                {{ user.get_full_name|default:user.username }}
+              </h2>
+              <p class="text-white/65 text-sm mt-0.5">@{{ user.username }}</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              {% if user.is_superuser %}
+              <span class="text-white text-xs font-bold px-3 py-1 rounded-full"
+                    style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);
+                           backdrop-filter:blur(6px);">
+                Superusuario
+              </span>
+              {% endif %}
+              {% if profile %}
+              <span class="text-white text-xs font-bold px-3 py-1 rounded-full"
+                    style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);
+                           backdrop-filter:blur(6px);">
+                {{ profile.get_role_display }}
+              </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 

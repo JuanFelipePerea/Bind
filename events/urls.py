@@ -13,6 +13,9 @@ urlpatterns = [
     path('events/<int:pk>/modules/', views.event_modules_manage, name='event_modules_manage'),
     path('en-curso/', views.eventos_en_curso, name='eventos_en_curso'),
     path('templates/', views.template_list, name='template_list'),
+    path('templates/new/', views.template_create, name='template_create'),
+    path('templates/<int:template_id>/edit/', views.template_edit, name='template_edit'),
+    path('templates/<int:template_id>/delete/', views.template_delete, name='template_delete'),
     path('templates/<int:template_id>/quick-create/', views.quick_create_from_template, name='quick_create_from_template'),
     path('templates/<int:template_id>/preview.json', views.template_preview_json, name='template_preview_json'),
     path('report/', views.report_view, name='report'),
@@ -20,4 +23,6 @@ urlpatterns = [
     path('alerts/<int:pk>/dismiss/', views.alert_dismiss, name='alert_dismiss'),
     path('alerts/<int:pk>/action/', views.alert_action, name='alert_action'),
     path('search/', views.global_search, name='search'),
+    path('events/<int:pk>/bynix/', views.event_assistant_chat, name='event_assistant_chat'),
+    path('events/<int:pk>/bynix/capture/', views.bynix_quick_capture, name='bynix_quick_capture'),
 ]

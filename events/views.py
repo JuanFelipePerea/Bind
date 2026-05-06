@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -11,10 +12,12 @@ from django.db.models import Count, Q
 from django.db import models as db_models
 from .models import Event, EventTemplate, EventModule, TemplateModule, EventAlert, EngineMetrics
 from .stats import compute_user_stats
-from modules.models import Task, File, Checklist
+from modules.models import Task, File, Checklist, ChecklistItem
 from datetime import timedelta
 import calendar as cal_module
 from datetime import date as date_cls
+
+logger = logging.getLogger(__name__)
 
 
 # ── Helper: serializa plantillas a JSON para el frontend ─────────────────────
@@ -757,6 +760,98 @@ def global_search(request):
 
 
 @login_required
+def template_create(request):
+    active_modules = []
+    form_data = {}
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        active_modules = request.POST.getlist('modules')
+        form_data = {
+            'name': name,
+            'description': request.POST.get('description', ''),
+            'category': request.POST.get('category', 'business'),
+            'color': request.POST.get('color', '#3B82F6'),
+        }
+        if not name:
+            messages.error(request, 'El nombre es obligatorio.')
+        else:
+            tmpl = EventTemplate.objects.create(
+                created_by=request.user, **form_data
+            )
+            for mod in active_modules:
+                TemplateModule.objects.get_or_create(template=tmpl, module_type=mod)
+            messages.success(request, f'Plantilla "{tmpl.name}" creada.')
+            return redirect('events:template_list')
+    return render(request, 'events/template_form.html', {
+        'category_choices': EventTemplate.CATEGORY_CHOICES,
+        'module_choices': TemplateModule.MODULE_CHOICES,
+        'active_modules': active_modules,
+        'form_data': form_data,
+    })
+
+
+@login_required
+def template_edit(request, template_id):
+    tmpl = get_object_or_404(EventTemplate, pk=template_id)
+    if tmpl.created_by != request.user and not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para editar esta plantilla.')
+        return redirect('events:template_list')
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        active_modules = request.POST.getlist('modules')
+        if not name:
+            messages.error(request, 'El nombre es obligatorio.')
+            return render(request, 'events/template_form.html', {
+                'template': tmpl,
+                'category_choices': EventTemplate.CATEGORY_CHOICES,
+                'module_choices': TemplateModule.MODULE_CHOICES,
+                'active_modules': active_modules,
+                'form_data': {
+                    'name': name,
+                    'description': request.POST.get('description', ''),
+                    'category': request.POST.get('category', tmpl.category),
+                    'color': request.POST.get('color', tmpl.color),
+                },
+            })
+        tmpl.name = name
+        tmpl.description = request.POST.get('description', '').strip()
+        tmpl.category = request.POST.get('category', tmpl.category)
+        tmpl.color = request.POST.get('color', tmpl.color)
+        tmpl.save()
+        tmpl.modules.all().delete()
+        for mod in set(active_modules):
+            TemplateModule.objects.create(template=tmpl, module_type=mod)
+        messages.success(request, f'Plantilla "{tmpl.name}" actualizada.')
+        return redirect('events:template_list')
+    return render(request, 'events/template_form.html', {
+        'template': tmpl,
+        'category_choices': EventTemplate.CATEGORY_CHOICES,
+        'module_choices': TemplateModule.MODULE_CHOICES,
+        'active_modules': list(tmpl.modules.values_list('module_type', flat=True)),
+        'form_data': {
+            'name': tmpl.name,
+            'description': tmpl.description,
+            'category': tmpl.category,
+            'color': tmpl.color,
+        },
+    })
+
+
+@login_required
+def template_delete(request, template_id):
+    template = get_object_or_404(EventTemplate, pk=template_id)
+    if template.created_by != request.user and not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para eliminar esta plantilla.')
+        return redirect('events:template_list')
+    if request.method == 'POST':
+        name = template.name
+        template.delete()
+        messages.success(request, f'Plantilla "{name}" eliminada.')
+        return redirect('events:template_list')
+    return render(request, 'events/template_confirm_delete.html', {'template': template})
+
+
+@login_required
 def template_list(request):
     category = request.GET.get('category', '')
     templates = EventTemplate.objects.prefetch_related(
@@ -852,4 +947,182 @@ def calendar_view(request):
         'today':           today,
     }
     return render(request, 'events/calendar.html', context)
- 
+
+
+# ─────────────────────────────────────────────
+#  BYNIX — ASISTENTE CONTEXTUAL POR EVENTO
+# ─────────────────────────────────────────────
+
+@login_required
+def event_assistant_chat(request, pk):
+    """
+    Endpoint AJAX: recibe POST JSON con {query} y devuelve la respuesta de Bynix.
+    Incluye campo 'action' cuando Bynix detecta intención de crear contenido.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    event = get_object_or_404(Event, pk=pk, owner=request.user)
+
+    try:
+        body = json.loads(request.body)
+        query = body.get('query', '').strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Formato inválido'}, status=400)
+
+    if not query:
+        return JsonResponse({'error': 'La consulta está vacía'}, status=400)
+
+    urgent_tasks = event.tasks.filter(
+        status__in=['pending', 'in_progress'],
+    ).order_by(
+        db_models.Case(
+            db_models.When(priority='high', then=0),
+            db_models.When(priority='medium', then=1),
+            default=2,
+            output_field=db_models.IntegerField(),
+        ),
+        'due_date',
+    )[:5]
+
+    active_alerts = EventAlert.objects.filter(
+        event=event, is_dismissed=False,
+    ).order_by('severity')[:3]
+
+    total_tasks = event.tasks.count()
+    done_tasks  = event.tasks.filter(status='done').count()
+    progress    = int((done_tasks / total_tasks) * 100) if total_tasks > 0 else 0
+
+    event_context = {
+        'nombre':  event.name,
+        'progreso': progress,
+        'tareas_urgentes': [
+            {
+                'titulo':   t.title,
+                'prioridad': t.priority,
+                'vence':    str(t.due_date) if t.due_date else None,
+            }
+            for t in urgent_tasks
+        ],
+        'alertas': [
+            {'mensaje': a.message, 'severidad': a.severity}
+            for a in active_alerts
+        ],
+    }
+
+    # Cargar y preparar historial de sesión (máx 10 interacciones = 20 entradas)
+    bynix_history = request.session.get('bynix_history', {})
+    event_key = str(pk)
+    event_history = bynix_history.get(event_key, [])[-20:]
+
+    try:
+        from events.services.ai_service import (
+            get_event_assistant_response, deduct_credits,
+            get_credits_reset_info, BYNIX_DAILY_CREDITS,
+        )
+        result    = get_event_assistant_response(query, event_context, history=event_history)
+        remaining = deduct_credits(request.user.pk)
+        usage_pct = round((1 - remaining / BYNIX_DAILY_CREDITS) * 100)
+
+        # Persistir turno en sesión (mantener solo las últimas 10 interacciones)
+        event_history = event_history + [
+            {'role': 'user',      'content': query},
+            {'role': 'assistant', 'content': result.get('response', '')},
+        ]
+        bynix_history[event_key] = event_history[-20:]
+        request.session['bynix_history'] = bynix_history
+        request.session.modified = True
+
+        response_data = {
+            'response':         result.get('response', ''),
+            'action':           result.get('action'),
+            'credits_remaining': remaining,
+            'usage_percent':    usage_pct,
+        }
+        if remaining <= 0:
+            reset_info = get_credits_reset_info(request.user.pk)
+            response_data['reset_time'] = reset_info['reset_time']
+
+        return JsonResponse(response_data)
+
+    except Exception as exc:
+        logger.warning("Bynix assistant error for event %s: %s", pk, exc)
+        return JsonResponse({
+            'response': 'Bynix está procesando. Intenta de nuevo en un momento.',
+            'action':   None,
+        })
+
+
+# ─────────────────────────────────────────────
+#  BYNIX — QUICK CAPTURE
+# ─────────────────────────────────────────────
+
+@login_required
+def bynix_quick_capture(request, pk):
+    """
+    Ejecuta un Quick Capture: genera y crea tareas + checklists en el evento actual
+    a partir de una descripción en lenguaje natural enviada por Bynix.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    event = get_object_or_404(Event, pk=pk, owner=request.user)
+
+    try:
+        body = json.loads(request.body)
+        description = body.get('description', '').strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Formato inválido'}, status=400)
+
+    if not description:
+        return JsonResponse({'error': 'Descripción vacía'}, status=400)
+
+    try:
+        from events.services.ai_service import (
+            quick_capture_event_structure, deduct_credits, BYNIX_DAILY_CREDITS,
+        )
+        structure = quick_capture_event_structure(description)
+
+        created_tasks = []
+        for task_data in structure.get('tareas', []):
+            task = Task.objects.create(
+                event=event,
+                title=task_data.get('titulo', 'Tarea sin título')[:200],
+                description=task_data.get('descripcion', ''),
+                priority=task_data.get('prioridad', 'medium'),
+                status='pending',
+            )
+            created_tasks.append(task.title)
+
+        created_checklists = []
+        for cl_data in structure.get('checklist', []):
+            checklist = Checklist.objects.create(
+                event=event,
+                title=cl_data.get('titulo', 'Checklist')[:150],
+            )
+            for item_text in cl_data.get('items', []):
+                ChecklistItem.objects.create(
+                    checklist=checklist,
+                    text=str(item_text)[:300],
+                )
+            created_checklists.append(checklist.title)
+
+        remaining = deduct_credits(request.user.pk)
+        usage_pct = round((1 - remaining / BYNIX_DAILY_CREDITS) * 100)
+
+        return JsonResponse({
+            'success':             True,
+            'mensaje':             structure.get('mensaje', '¡Estructura creada con éxito!'),
+            'tareas_creadas':      created_tasks,
+            'checklists_creados':  created_checklists,
+            'incluir_presupuesto': structure.get('incluir_presupuesto', False),
+            'credits_remaining':   remaining,
+            'usage_percent':       usage_pct,
+        })
+
+    except Exception as exc:
+        logger.warning("Bynix quick capture error for event %s: %s", pk, exc)
+        return JsonResponse(
+            {'error': 'No pude generar la estructura. Intenta de nuevo.'},
+            status=500,
+        )

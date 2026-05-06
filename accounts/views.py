@@ -139,6 +139,8 @@ def register_view(request):
             first_name=first_name, last_name=last_name,
         )
         # UserProfile is created automatically by the post_save signal in models.py
+        if user.email:
+            _send_welcome_email(user)
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         messages.success(request, f'¡Bienvenido a Bind, {user.first_name or user.username}!')
         return redirect('events:dashboard')
@@ -203,6 +205,26 @@ def profile_edit_view(request):
 def _generate_2fa_code():
     """Genera código de 6 dígitos."""
     return str(random.randint(100000, 999999))
+
+
+def _send_welcome_email(user):
+    """Envía correo de bienvenida a un usuario recién registrado. Silencia errores de SMTP."""
+    name = user.first_name or user.username
+    try:
+        send_mail(
+            subject='¡Bienvenido a BIND!',
+            message=(
+                f'Hola {name},\n\n'
+                'Tu cuenta en BIND ha sido creada exitosamente. '
+                'Ya puedes acceder a la plataforma y comenzar a gestionar tus eventos.\n\n'
+                '— El equipo de BIND'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
 
 
 @login_required
