@@ -23,7 +23,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 _API_KEY = os.getenv("GEMINI_API_KEY", "")
-DEFAULT_MODEL = "gemini-2.0-flash-lite"
+DEFAULT_MODEL = "gemini-2.5-flash-lite"
 
 if not _API_KEY:
     logger.warning("GEMINI_API_KEY no definida — el servicio de IA estará inactivo.")
@@ -282,12 +282,13 @@ Con acción de creación:
 """.strip()
 
 
-def get_event_assistant_response(query: str, event_context: dict) -> dict:
+def get_event_assistant_response(query: str, event_context: dict, history: list = None) -> dict:
     """
     Genera una respuesta de Bynix a una consulta sobre un evento específico.
     Puede incluir una acción sugerida (CREATE_STRUCTURE) si detecta intención de crear.
 
     event_context: {nombre, progreso, tareas_urgentes, alertas}
+    history: lista de dicts {role: 'user'|'assistant', content: str} — últimas interacciones.
     Devuelve {"response": "...", "action": null | {...}}.
     Raises RuntimeError si el servicio falla.
     """
@@ -302,8 +303,16 @@ def get_event_assistant_response(query: str, event_context: dict) -> dict:
         for a in event_context.get("alertas", [])
     ) or "  (ninguna)"
 
+    history_block = ""
+    if history:
+        lines = [
+            f"{'Usuario' if t['role'] == 'user' else 'Bynix'}: {t['content']}"
+            for t in history
+        ]
+        history_block = "Historial reciente de la conversación:\n" + "\n".join(lines) + "\n\n"
+
     prompt = f"""
-Contexto del evento:
+{history_block}Contexto del evento:
 - Nombre: {event_context.get('nombre', 'Sin nombre')}
 - Progreso de tareas: {event_context.get('progreso', 0)}%
 - Tareas urgentes (pendientes / en progreso):

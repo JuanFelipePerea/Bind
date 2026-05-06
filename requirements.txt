@@ -11,3 +11,6 @@ cryptography==47.0.0
 python-docx==1.2.0
 PyPDF2==3.0.1
 gunicorn==23.0.0
+cloudinary>=1.40.0
+django-cloudinary-storage>=0.3.0
+google-genai>=1.0.0

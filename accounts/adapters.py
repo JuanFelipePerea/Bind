@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.mail import send_mail
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 
 
@@ -39,6 +40,23 @@ class BindSocialAccountAdapter(DefaultSocialAccountAdapter):
         user = super().save_user(request, sociallogin, form)
         from accounts.models import UserProfile
         UserProfile.objects.get_or_create(user=user)
+        if user.email:
+            name = user.first_name or user.username
+            try:
+                send_mail(
+                    subject='¡Bienvenido a BIND!',
+                    message=(
+                        f'Hola {name},\n\n'
+                        'Tu cuenta en BIND ha sido vinculada con Google exitosamente. '
+                        'Ya puedes acceder a la plataforma y comenzar a gestionar tus eventos.\n\n'
+                        '— El equipo de BIND'
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=True,
+                )
+            except Exception:
+                pass
         return user
 
     def is_open_for_signup(self, request, sociallogin):

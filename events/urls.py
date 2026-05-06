@@ -23,4 +23,6 @@ urlpatterns = [
     path('alerts/<int:pk>/dismiss/', views.alert_dismiss, name='alert_dismiss'),
     path('alerts/<int:pk>/action/', views.alert_action, name='alert_action'),
     path('search/', views.global_search, name='search'),
+    path('events/<int:pk>/bynix/', views.event_assistant_chat, name='event_assistant_chat'),
+    path('events/<int:pk>/bynix/capture/', views.bynix_quick_capture, name='bynix_quick_capture'),
 ]
