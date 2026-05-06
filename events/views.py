@@ -105,6 +105,8 @@ def dashboard(request):
         '-created_at',
     )[:5]
 
+    show_tour = not getattr(getattr(request.user, 'profile', None), 'onboarding_completed', True)
+
     context = {
         'active_events_count': stats['active_events'],
         'total_events':        stats['total_events'],
@@ -126,6 +128,7 @@ def dashboard(request):
         'engine_summary':      engine_output['dashboard_summary'],
         'engine_decisions':    engine_output['all_decisions'],
         'budget_events':       budget_events,
+        'show_tour':           show_tour,
     }
     return render(request, 'events/dashboard.html', context)
 

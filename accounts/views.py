@@ -6,6 +6,8 @@ from django.contrib import messages
 from django.contrib.messages import get_messages
 from django.core.mail import send_mail
 from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 import random
 import re
 
@@ -381,3 +383,15 @@ def user_delete_view(request, pk):
         'target_user': target_user,
         'is_admin':    True,
     })
+
+
+# ─── Onboarding tour ──────────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def tour_complete_view(request):
+    """Marca el onboarding tour como completado para el usuario autenticado."""
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    profile.onboarding_completed = True
+    profile.save(update_fields=['onboarding_completed'])
+    return JsonResponse({'ok': True})

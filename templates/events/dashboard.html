@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% load engine_tags %}
+{% load static %}
 {% block title %}BIND - Dashboard{% endblock %}
 {% block page_title %}Panel Principal{% endblock %}
 
 {% block topbar_action %}
-<a href="{% url 'events:event_create' %}" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all flex items-center gap-2 group text-sm">
+<a id="btn-new-event" href="{% url 'events:event_create' %}" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all flex items-center gap-2 group text-sm">
   <svg class="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
   Nuevo evento
 </a>
@@ -92,7 +93,7 @@
       </div>
 
       <!-- Métricas — orden de prioridad: Pendientes > Tareas Hoy > Proyectos -->
-      <div class="flex items-center gap-3">
+      <div id="dashboard-metrics" class="flex items-center gap-3">
 
         <!-- 1. Pendientes (máxima prioridad) -->
         <div class="flex items-center gap-2 px-4 py-2 rounded-xl border
@@ -235,7 +236,7 @@
         </div>
 
         <!-- Estado de Proyectos -->
-        <div>
+        <div id="project-status-panel">
           <div class="flex items-center justify-between mb-3">
             <h4 class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Estado de proyectos</h4>
             <a href="{% url 'events:event_list' %}" class="text-xs text-teal-500 hover:text-teal-600 font-medium">Ver todos →</a>
@@ -411,4 +412,14 @@
   <!-- ══════════════════ FIN GRID ══════════════════ -->
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if show_tour %}
+<script>
+  const SHOW_TOUR = true;
+  const TOUR_COMPLETE_URL = "{% url 'accounts:tour_complete' %}";
+</script>
+<script src="{% static 'js/bind_tour.js' %}"></script>
+{% endif %}
 {% endblock %}
