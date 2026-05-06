@@ -116,6 +116,10 @@ STORAGES = {
     },
 }
 
+# django-cloudinary-storage accede a settings.STATICFILES_STORAGE, que Django 6.0
+# eliminó de global_settings.py. Este shim evita el AttributeError en el startup.
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
