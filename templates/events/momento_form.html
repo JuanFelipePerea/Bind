@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}BIND - {{ accion }} Momento{% endblock %}
+{% block page_title %}{{ accion }} Momento{% endblock %}
+
+{% block topbar_action %}
+<a href="{% url 'events:event_detail' evento.pk %}"
+   class="glass px-4 py-2 rounded-xl text-sm font-medium hover:bg-white/80 dark:hover:bg-gray-700 transition-all text-gray-700 dark:text-gray-200 flex items-center gap-2">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+  </svg>
+  Volver al evento
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-8 max-w-2xl mx-auto animate-fade-in">
+
+  <div class="glass rounded-2xl p-8 shadow-lg">
+    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">{{ accion }} Momento</h2>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+      Evento: <span class="font-medium text-gray-700 dark:text-gray-300">{{ evento.name }}</span>
+    </p>
+
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+      {% for msg in messages %}
+      <div class="px-4 py-3 rounded-xl text-sm
+        {% if msg.tags == 'error' %}bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400
+        {% else %}bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400{% endif %}">
+        {{ msg }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form id="momento-form"
+          method="post"
+          action="{% if momento %}{% url 'events:momento_edit' evento.pk momento.pk %}{% else %}{% url 'events:momento_create' evento.pk %}{% endif %}">
+      {% csrf_token %}
+
+      <!-- Título -->
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          Título <span class="text-red-500">*</span>
+        </label>
+        <input type="text" name="titulo" id="id_titulo"
+               value="{{ momento.titulo|default:'' }}"
+               placeholder="ej. Bienvenida oficial, Cóctel de apertura…"
+               required
+               class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600
+                      bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                      focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none
+                      transition text-sm">
+        <p class="mt-1 text-xs text-red-500 hidden" id="error-titulo"></p>
+      </div>
+
+      <!-- Descripción -->
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          Descripción <span class="text-gray-400 font-normal">(opcional)</span>
+        </label>
+        <textarea name="descripcion" id="id_descripcion" rows="3"
+                  placeholder="Notas adicionales sobre este momento…"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600
+                         bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none
+                         transition text-sm resize-none">{{ momento.descripcion|default:'' }}</textarea>
+      </div>
+
+      <!-- Hora inicio / fin -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            Hora de inicio <span class="text-red-500">*</span>
+          </label>
+          <input type="datetime-local" name="hora_inicio" id="id_hora_inicio"
+                 value="{{ momento.hora_inicio|date:'Y-m-d\TH:i'|default:'' }}"
+                 required
+                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600
+                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                        focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none
+                        transition text-sm">
+          <p class="mt-1 text-xs text-red-500 hidden" id="error-hora_inicio"></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            Hora de fin <span class="text-gray-400 font-normal">(opcional)</span>
+          </label>
+          <input type="datetime-local" name="hora_fin" id="id_hora_fin"
+                 value="{{ momento.hora_fin|date:'Y-m-d\TH:i'|default:'' }}"
+                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600
+                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                        focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none
+                        transition text-sm">
+          <p class="mt-1 text-xs text-red-500 hidden" id="error-hora_fin"></p>
+        </div>
+      </div>
+
+      <!-- Tipo / Importancia -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Tipo</label>
+          <select name="tipo" id="id_tipo"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600
+                         bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none
+                         transition text-sm">
+            {% for val, label in tipo_choices %}
+            <option value="{{ val }}" {% if momento.tipo == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Importancia</label>
+          <select name="importancia" id="id_importancia"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600
+                         bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none
+                         transition text-sm">
+            {% for val, label in importancia_choices %}
+            <option value="{{ val }}" {% if momento.importancia == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="flex items-center justify-end gap-3">
+        <a href="{% url 'events:event_detail' evento.pk %}"
+           class="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400
+                  hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
+          Cancelar
+        </a>
+        <button type="submit" id="btn-submit"
+                class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white
+                       bg-gradient-to-r from-teal-500 to-cyan-600
+                       hover:from-teal-600 hover:to-cyan-700 shadow-sm
+                       transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ accion }} Momento
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* Validación de hora_fin > hora_inicio en el cliente */
+(function () {
+  const form       = document.getElementById('momento-form');
+  const horaInicio = document.getElementById('id_hora_inicio');
+  const horaFin    = document.getElementById('id_hora_fin');
+  const errFin     = document.getElementById('error-hora_fin');
+
+  function validateTimes() {
+    if (!horaInicio.value || !horaFin.value) { errFin.classList.add('hidden'); return true; }
+    const ok = new Date(horaFin.value) > new Date(horaInicio.value);
+    if (!ok) {
+      errFin.textContent = 'La hora de fin debe ser posterior a la hora de inicio.';
+      errFin.classList.remove('hidden');
+    } else {
+      errFin.classList.add('hidden');
+    }
+    return ok;
+  }
+
+  horaInicio.addEventListener('change', validateTimes);
+  horaFin.addEventListener('change', validateTimes);
+
+  form.addEventListener('submit', function (e) {
+    if (!validateTimes()) { e.preventDefault(); }
+  });
+})();
+</script>
+{% endblock %}

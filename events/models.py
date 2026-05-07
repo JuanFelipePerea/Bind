@@ -56,6 +56,7 @@ class TemplateModule(models.Model):
         ('checklist', 'Checklist'),
         ('files', 'Archivos'),
         ('budget', 'Presupuesto'),
+        ('momentos', 'Momentos'),
     ]
 
     template = models.ForeignKey(EventTemplate, on_delete=models.CASCADE, related_name='modules')
@@ -109,6 +110,10 @@ class Event(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    layout_config = models.JSONField(
+        default=dict, blank=True,
+        verbose_name='Configuración de layout',
+    )
 
     def __str__(self):
         return self.name
@@ -132,6 +137,7 @@ class EventModule(models.Model):
         ('checklist', 'Checklist'),
         ('files', 'Archivos'),
         ('budget', 'Presupuesto'),
+        ('momentos', 'Momentos'),
     ]
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='modules')
@@ -290,6 +296,93 @@ class EventAlert(models.Model):
 
     def __str__(self):
         return f"[{self.severity}] {self.title}"
+
+
+class Momento(models.Model):
+    """
+    Hito temporal dentro de un evento. No es una tarea; es un punto fijo en el cronograma.
+    Compatible con FullCalendar a través de to_fullcalendar_json().
+    """
+
+    TIPO_CHOICES = [
+        ('protocolo',      'Protocolo'),
+        ('logistica',      'Logística'),
+        ('alimentacion',   'Alimentación'),
+        ('entretenimiento', 'Entretenimiento'),
+    ]
+
+    IMPORTANCIA_CHOICES = [
+        ('baja',  'Baja'),
+        ('media', 'Media'),
+        ('alta',  'Alta'),
+    ]
+
+    # Color por tipo para FullCalendar
+    _TIPO_COLOR = {
+        'protocolo':       '#6366F1',
+        'logistica':       '#F59E0B',
+        'alimentacion':    '#10B981',
+        'entretenimiento': '#EC4899',
+    }
+
+    evento      = models.ForeignKey(
+        Event, on_delete=models.CASCADE,
+        related_name='momentos', verbose_name='Evento'
+    )
+    titulo      = models.CharField(max_length=200, verbose_name='Título')
+    descripcion = models.TextField(blank=True, verbose_name='Descripción')
+    hora_inicio = models.DateTimeField(verbose_name='Hora de inicio')
+    hora_fin    = models.DateTimeField(null=True, blank=True, verbose_name='Hora de fin')
+    tipo        = models.CharField(
+        max_length=20, choices=TIPO_CHOICES, default='protocolo',
+        verbose_name='Tipo'
+    )
+    importancia = models.CharField(
+        max_length=10, choices=IMPORTANCIA_CHOICES, default='media',
+        verbose_name='Importancia'
+    )
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.titulo} — {self.evento.name}"
+
+    def to_dict(self):
+        """Representación JSON general del Momento (usada en respuestas CRUD y contexto AI)."""
+        return {
+            'id':           self.pk,
+            'titulo':       self.titulo,
+            'descripcion':  self.descripcion,
+            'hora_inicio':  self.hora_inicio.isoformat(),
+            'hora_fin':     self.hora_fin.isoformat() if self.hora_fin else None,
+            'tipo':         self.tipo,
+            'tipo_display': self.get_tipo_display(),
+            'importancia':  self.importancia,
+            'importancia_display': self.get_importancia_display(),
+            'color':        self._TIPO_COLOR.get(self.tipo, '#6366F1'),
+        }
+
+    def to_fullcalendar_json(self):
+        """Formato compatible con FullCalendar. Construido sobre to_dict()."""
+        d = self.to_dict()
+        data = {
+            'id':    d['id'],
+            'title': d['titulo'],
+            'start': d['hora_inicio'],
+            'color': d['color'],
+            'extendedProps': {
+                'tipo':        d['tipo'],
+                'importancia': d['importancia'],
+                'descripcion': d['descripcion'],
+            },
+        }
+        if d['hora_fin']:
+            data['end'] = d['hora_fin']
+        return data
+
+    class Meta:
+        verbose_name = "Momento"
+        verbose_name_plural = "Momentos"
+        ordering = ['hora_inicio']
 
 
 class EngineMetrics(models.Model):

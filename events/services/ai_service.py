@@ -296,6 +296,24 @@ def build_event_context(event) -> dict:
     except Exception:
         pass
 
+    # Momentos — hitos temporales del evento
+    momentos_info = []
+    try:
+        for m in event.momentos.order_by('hora_inicio'):
+            entry = {
+                'titulo':      m.titulo,
+                'tipo':        m.get_tipo_display(),
+                'importancia': m.get_importancia_display(),
+                'hora_inicio': m.hora_inicio.strftime('%d/%m/%Y %H:%M'),
+            }
+            if m.hora_fin:
+                entry['hora_fin'] = m.hora_fin.strftime('%d/%m/%Y %H:%M')
+            if m.descripcion:
+                entry['descripcion'] = m.descripcion[:200]
+            momentos_info.append(entry)
+    except Exception:
+        pass
+
     return {
         'nombre': event.name,
         'descripcion': event.description[:500] if event.description else '',
@@ -311,6 +329,7 @@ def build_event_context(event) -> dict:
             'pendientes': pending_att,
         },
         'presupuesto': budget_info,
+        'momentos': momentos_info,
     }
 
 

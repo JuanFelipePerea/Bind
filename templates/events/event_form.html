@@ -12,7 +12,7 @@
 
       {% if not object %}
       <!-- Datos de plantillas para el JS (generado en la vista) -->
-      <script id="templateData" type="application/json">{{ templates_json|default:"{}" }}</script>
+      <script id="templateData" type="application/json">{{ templates_json|default:"{}"|safe }}</script>
 
       <!-- Selector de plantilla (solo en creación) -->
       <div class="mb-6">
@@ -31,23 +31,31 @@
           </label>
 
           {% for tmpl in templates %}
-          <label class="cursor-pointer">
-            <input type="radio" name="template_id" value="{{ tmpl.pk }}" class="sr-only peer"
-              {% if selected_template and selected_template.pk == tmpl.pk %}checked{% endif %}>
-            <div class="glass p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 peer-checked:border-teal-500 peer-checked:bg-teal-50/50 dark:peer-checked:bg-teal-900/20 transition-all text-center">
-              <div class="w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center
-                {% if tmpl.category == 'business' %}bg-blue-500
-                {% elif tmpl.category == 'academic' %}bg-gray-600
-                {% elif tmpl.category == 'creative' %}bg-purple-500
-                {% elif tmpl.category == 'marketing' %}bg-orange-500
-                {% elif tmpl.category == 'social' %}bg-teal-500
-                {% else %}bg-teal-500{% endif %}">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+          <div class="relative">
+            <label class="cursor-pointer block">
+              <input type="radio" name="template_id" value="{{ tmpl.pk }}" class="sr-only peer"
+                {% if selected_template and selected_template.pk == tmpl.pk %}checked{% endif %}>
+              <div class="glass p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 peer-checked:border-teal-500 peer-checked:bg-teal-50/50 dark:peer-checked:bg-teal-900/20 transition-all text-center">
+                <div class="w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center
+                  {% if tmpl.category == 'business' %}bg-blue-500
+                  {% elif tmpl.category == 'academic' %}bg-gray-600
+                  {% elif tmpl.category == 'creative' %}bg-purple-500
+                  {% elif tmpl.category == 'marketing' %}bg-orange-500
+                  {% elif tmpl.category == 'social' %}bg-teal-500
+                  {% else %}bg-teal-500{% endif %}">
+                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+                </div>
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{{ tmpl.name }}</p>
+                <p class="text-[10px] text-gray-400 uppercase mt-0.5">{{ tmpl.get_category_display }}</p>
               </div>
-              <p class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{{ tmpl.name }}</p>
-              <p class="text-[10px] text-gray-400 uppercase mt-0.5">{{ tmpl.get_category_display }}</p>
-            </div>
-          </label>
+            </label>
+            <button type="button"
+              onclick="openTemplatePreview('{{ tmpl.pk }}')"
+              class="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/80 dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 flex items-center justify-center shadow-sm hover:bg-teal-50 dark:hover:bg-teal-900/40 hover:border-teal-400 transition-all z-10"
+              title="Vista previa">
+              <svg class="w-3.5 h-3.5 text-gray-500 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </button>
+          </div>
           {% endfor %}
         </div>
       </div>
@@ -117,6 +125,42 @@
       <input type="hidden" name="template_customization" id="templateCustomization">
 
       <hr class="border-gray-200 dark:border-gray-700 mb-8">
+
+      <!-- Modal: Vista previa de plantilla -->
+      <div id="templatePreviewModal"
+        class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.5);">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+          <!-- Header del modal -->
+          <div id="previewHeader" class="px-6 py-5 flex items-start gap-4">
+            <div id="previewIcon" class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p id="previewCategory" class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-0.5"></p>
+              <h2 id="previewName" class="text-xl font-bold text-gray-900 dark:text-white leading-tight"></h2>
+              <p id="previewDesc" class="text-sm text-gray-500 dark:text-gray-400 mt-1"></p>
+            </div>
+            <button type="button" onclick="closeTemplatePreview()"
+              class="ml-2 flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+              <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <!-- Cuerpo del modal -->
+          <div class="px-6 pb-6 space-y-5">
+            <div id="previewTasksSection" class="hidden">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Tareas incluidas</h3>
+              <ul id="previewTasksList" class="space-y-2"></ul>
+            </div>
+            <div id="previewChecklistsSection" class="hidden">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Checklists</h3>
+              <div id="previewChecklistsContent" class="space-y-3"></div>
+            </div>
+            <p id="previewEmpty" class="hidden text-sm text-gray-400 dark:text-gray-500 text-center py-4">Esta plantilla no tiene tareas ni checklists configuradas.</p>
+          </div>
+        </div>
+      </div>
+
       {% endif %}
 
       {% if not object %}
@@ -167,6 +211,17 @@
               </div>
               <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">Archivos</p>
               <p class="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">Documentos adjuntos</p>
+            </div>
+          </label>
+
+          <label class="cursor-pointer select-none">
+            <input type="checkbox" name="modules" value="momentos" class="sr-only peer">
+            <div class="p-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 peer-checked:border-teal-500 dark:peer-checked:border-teal-400 peer-checked:bg-teal-50 dark:peer-checked:bg-teal-900/20 transition-all text-center flex flex-col items-center gap-1.5">
+              <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">Momentos</p>
+              <p class="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">Cronograma de hitos</p>
             </div>
           </label>
 
@@ -283,7 +338,7 @@ const CATEGORY_GRADIENTS = {
 };
 const MODULE_LABELS = {
   tasks: 'Tareas', attendees: 'Asistentes', checklist: 'Checklist',
-  files: 'Archivos', budget: 'Presupuesto',
+  files: 'Archivos', budget: 'Presupuesto', momentos: 'Momentos',
 };
 const CATEGORY_LABELS = {
   business: 'Negocios', academic: 'Académico', creative: 'Creativo',
@@ -544,7 +599,7 @@ function updateTemplateBanner(templateId) {
   banner.classList.remove('hidden');
 }
 
-const ALL_MODULES = ['tasks', 'attendees', 'checklist', 'files'];
+const ALL_MODULES = ['tasks', 'attendees', 'checklist', 'files', 'momentos'];
 
 function syncModuleCards(templateId) {
   const data = TEMPLATE_DATA[templateId];
@@ -597,6 +652,73 @@ startInput?.addEventListener('change', () => {
 document.getElementById('eventForm')?.addEventListener('submit', function () {
   const btn = this.querySelector('button[type="submit"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+});
+
+// --- Vista previa de plantilla ---
+const PREVIEW_CAT_COLORS = {
+  business: 'bg-blue-500', academic: 'bg-gray-600', creative: 'bg-purple-500',
+  marketing: 'bg-orange-500', social: 'bg-teal-500'
+};
+
+function openTemplatePreview(id) {
+  const tmpl = TEMPLATE_DATA[id];
+  if (!tmpl) return;
+
+  const modal = document.getElementById('templatePreviewModal');
+  const iconEl = document.getElementById('previewIcon');
+  iconEl.className = `w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${PREVIEW_CAT_COLORS[tmpl.category] || 'bg-teal-500'}`;
+  document.getElementById('previewName').textContent = tmpl.name;
+  document.getElementById('previewCategory').textContent = tmpl.category || '';
+  document.getElementById('previewDesc').textContent = tmpl.description || '';
+
+  const tasksList = document.getElementById('previewTasksList');
+  const tasksSection = document.getElementById('previewTasksSection');
+  tasksList.innerHTML = '';
+  if (tmpl.tasks && tmpl.tasks.length > 0) {
+    tmpl.tasks.forEach(t => {
+      const pm = PRIORITY_MAP[t.priority] || PRIORITY_MAP.low;
+      const li = document.createElement('li');
+      li.className = 'flex items-center gap-3 bg-gray-50 dark:bg-gray-800/60 rounded-lg px-3 py-2';
+      li.innerHTML = `<span class="flex-1 text-sm text-gray-700 dark:text-gray-300">${escHtml(t.title)}</span><span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${pm.cls}">${pm.label}</span>`;
+      tasksList.appendChild(li);
+    });
+    tasksSection.classList.remove('hidden');
+  } else {
+    tasksSection.classList.add('hidden');
+  }
+
+  const checklistsContent = document.getElementById('previewChecklistsContent');
+  const checklistsSection = document.getElementById('previewChecklistsSection');
+  checklistsContent.innerHTML = '';
+  const checklists = tmpl.checklists || {};
+  const checklistKeys = Object.keys(checklists);
+  if (checklistKeys.length > 0) {
+    checklistKeys.forEach(title => {
+      const div = document.createElement('div');
+      const items = checklists[title].map(i => `<li class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"><svg class="w-3.5 h-3.5 text-teal-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>${escHtml(i)}</li>`).join('');
+      div.innerHTML = `<p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">${escHtml(title)}</p><ul class="space-y-1 pl-1">${items}</ul>`;
+      checklistsContent.appendChild(div);
+    });
+    checklistsSection.classList.remove('hidden');
+  } else {
+    checklistsSection.classList.add('hidden');
+  }
+
+  const isEmpty = (!tmpl.tasks || tmpl.tasks.length === 0) && checklistKeys.length === 0;
+  document.getElementById('previewEmpty').classList.toggle('hidden', !isEmpty);
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeTemplatePreview() {
+  const modal = document.getElementById('templatePreviewModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+document.getElementById('templatePreviewModal')?.addEventListener('click', function(e) {
+  if (e.target === this) closeTemplatePreview();
 });
 </script>
 {% endif %}

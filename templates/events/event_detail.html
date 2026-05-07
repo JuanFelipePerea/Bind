@@ -2,6 +2,129 @@
 {% block title %}BIND - {{ event.name }}{% endblock %}
 {% block page_title %}{{ event.name }}{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10/dist/gridstack.min.css">
+<style>
+  /* ── Gridstack base ──────────────────────────────────────────────────── */
+  .grid-stack { background: transparent; }
+  .grid-stack > .grid-stack-item > .grid-stack-item-content {
+    overflow: hidden;
+    border-radius: 1rem;
+    transition: box-shadow .25s ease, outline .25s ease;
+  }
+  .grid-stack-placeholder > .placeholder-content {
+    background: rgba(20,184,166,.07);
+    border: 2px dashed rgba(20,184,166,.35);
+    border-radius: 1rem;
+  }
+  .grid-stack-item > .ui-resizable-se {
+    width: 18px; height: 18px; right: 3px; bottom: 3px;
+    background: rgba(20,184,166,.2); border-radius: 0 0 .75rem 0; transition: background .2s;
+  }
+  .grid-stack-item > .ui-resizable-se:hover { background: rgba(20,184,166,.5); }
+
+  /* ── Module card ─────────────────────────────────────────────────────── */
+  .gs-module-card {
+    height: 100%; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .gs-module-body {
+    flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0;
+  }
+  .gs-module-body::-webkit-scrollbar { width: 3px; }
+  .gs-module-body::-webkit-scrollbar-thumb {
+    background: rgba(20,184,166,.3); border-radius: 9999px;
+  }
+
+  /* ── Drag handle (always visible, subtle) ────────────────────────────── */
+  .gs-drag-handle { touch-action: none; flex-shrink: 0; transition: color .2s, transform .2s; }
+
+  /* ── EDIT MODE ───────────────────────────────────────────────────────── */
+  /* Grid banner */
+  #event-grid.gs-edit-mode {
+    outline: 2px dashed rgba(20,184,166,.35);
+    outline-offset: 4px;
+    border-radius: .5rem;
+  }
+  /* Each module glows and shows cursor */
+  #event-grid.gs-edit-mode .grid-stack-item > .grid-stack-item-content {
+    box-shadow: 0 0 0 2px rgba(20,184,166,.45), 0 4px 20px rgba(20,184,166,.08);
+    cursor: default;
+  }
+  /* Drag handle becomes big + teal + labelled */
+  #event-grid.gs-edit-mode .gs-drag-handle {
+    color: rgb(20,184,166) !important;
+    transform: scale(1.15);
+    cursor: grab;
+  }
+  #event-grid.gs-edit-mode .gs-drag-handle:active { cursor: grabbing; }
+  /* Tooltip hint on handle */
+  #event-grid.gs-edit-mode .gs-drag-handle::after {
+    content: 'Mover';
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: rgba(20,184,166,.8);
+    line-height: 1;
+    margin-top: 1px;
+  }
+
+  /* ── LAYOUT TOOLBAR ─────────────────────────────────────────────────── */
+  #layout-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    transition: box-shadow .2s;
+  }
+  #layout-toolbar:hover { box-shadow: 0 8px 32px rgba(0,0,0,.12); }
+  .lt-divider { width: 1px; height: 18px; background: rgba(0,0,0,.1); flex-shrink: 0; }
+  .dark #layout-toolbar .lt-divider { background: rgba(255,255,255,.12); }
+
+  .lt-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px; border-radius: 12px; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+    transition: background .18s, color .18s, box-shadow .18s, transform .1s;
+    background: transparent; color: #6b7280;
+  }
+  .lt-btn:hover { background: rgba(20,184,166,.1); color: #0f766e; }
+  .lt-btn:active { transform: scale(.96); }
+  .lt-btn.lt-active {
+    background: rgba(20,184,166,.15); color: #0f766e;
+    box-shadow: 0 0 0 1.5px rgba(20,184,166,.4);
+  }
+  .lt-btn-edit {
+    background: #f3f4f6; color: #374151;
+  }
+  .lt-btn-edit:hover { background: #e5e7eb; }
+  .lt-btn-edit.lt-edit-on {
+    background: linear-gradient(135deg,rgba(20,184,166,.2),rgba(6,182,212,.15));
+    color: #0f766e;
+    box-shadow: 0 0 0 1.5px rgba(20,184,166,.5);
+  }
+  /* Dark mode adjustments */
+  .dark .lt-btn { color: #9ca3af; }
+  .dark .lt-btn:hover { background: rgba(20,184,166,.15); color: #5eead4; }
+  .dark .lt-btn.lt-active { background: rgba(20,184,166,.2); color: #5eead4; }
+  .dark .lt-btn-edit { background: rgba(255,255,255,.07); color: #d1d5db; }
+  .dark .lt-btn-edit:hover { background: rgba(255,255,255,.12); }
+  .dark .lt-btn-edit.lt-edit-on { background: rgba(20,184,166,.2); color: #5eead4; }
+
+  /* ── TOAST ──────────────────────────────────────────────────────────── */
+  .layout-toast {
+    position: fixed; bottom: 5.5rem; left: 50%; transform: translateX(-50%);
+    z-index: 9998; padding: 7px 18px; border-radius: 12px;
+    background: rgba(15,23,42,.88); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.1); color: #fff;
+    font-size: 12px; font-weight: 600; pointer-events: none;
+    white-space: nowrap; transition: opacity .45s ease;
+  }
+</style>
+{% endblock %}
+
 {% block topbar_action %}
 <div class="flex items-center gap-2">
   <a href="{% url 'events:event_modules_manage' event.pk %}" class="glass px-4 py-2 rounded-xl text-sm font-medium hover:bg-white/80 dark:hover:bg-gray-700 transition-all text-gray-700 dark:text-gray-200 flex items-center gap-2">
@@ -124,192 +247,451 @@
     </div>
   </div>
 
-  <!-- Contenido principal -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- ══ GRIDSTACK — LIENZO MODULAR ══════════════════════════════════════ -->
+  <div class="grid-stack mt-4" id="event-grid">
 
-    <!-- Columna izquierda: módulos -->
-    <div class="lg:col-span-2 space-y-5">
-
-      <!-- Descripción — peso terciario si existe -->
-      {% if event.description %}
-      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Descripción</h3>
-        <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{{ event.description }}</p>
-      </div>
-      {% endif %}
-
-      <!-- Módulo: Tareas — módulo primario -->
-      {% if 'tasks' in active_modules %}
-      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
-            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-            Tareas
-          </h3>
-          <a href="{% url 'modules:task_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
-        </div>
-        <div class="space-y-2 mb-4">
-          {% for task in tasks_preview %}
-          <div class="flex items-center gap-3 p-3 rounded-xl border-l-4
-            {% if task.priority == 'high' %}border-red-400 bg-red-500/5{% elif task.priority == 'medium' %}border-yellow-400 bg-yellow-500/5{% else %}border-green-400 bg-green-500/5{% endif %}
-            {% if task.status == 'done' %}opacity-50{% endif %}">
-            <span class="flex-1 text-sm {% if task.status == 'done' %}text-gray-400 line-through{% else %}text-gray-800 dark:text-white{% endif %}">{{ task.title }}</span>
-            <span class="text-xs px-2 py-0.5 rounded font-medium
-              {% if task.status == 'done' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300
-              {% elif task.status == 'in_progress' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300
-              {% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% endif %}">
-              {{ task.get_status_display }}
+    <!-- ── Descripción ─────────────────────────────────────────────────── -->
+    {% if event.description %}
+    <div class="grid-stack-item" gs-id="description" gs-x="0" gs-y="0" gs-w="12" gs-h="2">
+      <div class="grid-stack-item-content">
+        <div class="gs-module-card glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-2 flex-shrink-0">
+            <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Descripción</h3>
+            <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors" title="Mover módulo">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
             </span>
           </div>
-          {% empty %}
-          <p class="text-gray-400 text-sm text-center py-3">Sin tareas aún.</p>
-          {% endfor %}
-        </div>
-        <!-- CTA primario del módulo -->
-        <button type="button" onclick="openAside('_tplTaskCreate', 'Nueva tarea')"
-           class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold rounded-xl transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          Nueva tarea
-        </button>
-      </div>
-      {% endif %}
-
-      <!-- Módulo: Checklist -->
-      {% if 'checklist' in active_modules %}
-      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
-            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            Checklists
-          </h3>
-          <div class="flex items-center gap-3">
-            <button type="button" onclick="openAside('_tplChecklistCreate', 'Nueva checklist')"
-                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500/90 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-              Nueva
-            </button>
-            <a href="{% url 'modules:checklist_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
+          <div class="gs-module-body">
+            <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{{ event.description }}</p>
           </div>
         </div>
-        <div class="space-y-3">
-          {% for checklist in checklists_preview %}
-          <div class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-            <div class="flex justify-between items-center mb-1.5">
-              <span class="text-sm font-medium text-gray-800 dark:text-white">{{ checklist.title }}</span>
-              <span class="text-xs font-bold text-gray-500">{{ checklist.progress }}%</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Tareas ───────────────────────────────────────────────────────── -->
+    {% if 'tasks' in active_modules %}
+    <div class="grid-stack-item" gs-id="tasks" gs-x="0" gs-y="2" gs-w="8" gs-h="6">
+      <div class="grid-stack-item-content">
+        <div class="gs-module-card glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+          <div class="flex justify-between items-center mb-4 flex-shrink-0">
+            <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
+              <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+              Tareas
+            </h3>
+            <div class="flex items-center gap-2">
+              <a href="{% url 'modules:task_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
+              <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors" title="Mover módulo">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
+              </span>
+            </div>
+          </div>
+          <div class="gs-module-body space-y-2 mb-3">
+            {% for task in tasks_preview %}
+            <div class="flex items-center gap-3 p-3 rounded-xl border-l-4
+              {% if task.priority == 'high' %}border-red-400 bg-red-500/5{% elif task.priority == 'medium' %}border-yellow-400 bg-yellow-500/5{% else %}border-green-400 bg-green-500/5{% endif %}
+              {% if task.status == 'done' %}opacity-50{% endif %}">
+              <span class="flex-1 text-sm {% if task.status == 'done' %}text-gray-400 line-through{% else %}text-gray-800 dark:text-white{% endif %}">{{ task.title }}</span>
+              <span class="text-xs px-2 py-0.5 rounded font-medium
+                {% if task.status == 'done' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300
+                {% elif task.status == 'in_progress' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300
+                {% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% endif %}">
+                {{ task.get_status_display }}
+              </span>
+            </div>
+            {% empty %}
+            <p class="text-gray-400 text-sm text-center py-3">Sin tareas aún.</p>
+            {% endfor %}
+          </div>
+          <button type="button" onclick="openAside('_tplTaskCreate', 'Nueva tarea')"
+             class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold rounded-xl transition-colors flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nueva tarea
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Asistentes ───────────────────────────────────────────────────── -->
+    {% if 'attendees' in active_modules %}
+    <div class="grid-stack-item" gs-id="attendees" gs-x="8" gs-y="2" gs-w="4" gs-h="4">
+      <div class="grid-stack-item-content">
+        <div class="gs-module-card glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+          <div class="flex justify-between items-center mb-4 flex-shrink-0">
+            <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Asistentes</h3>
+            <div class="flex items-center gap-2">
+              <a href="{% url 'modules:attendee_list' event.pk %}" class="text-xs text-teal-500 hover:underline font-semibold">Ver todos →</a>
+              <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors" title="Mover módulo">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
+              </span>
+            </div>
+          </div>
+          <div class="gs-module-body">
+            <div class="flex flex-wrap gap-2 mb-3">
+              {% for attendee in attendees_preview %}
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-xs font-bold" title="{{ attendee.name }}">
+                {{ attendee.name|first|upper }}
+              </div>
+              {% empty %}
+              <p class="text-gray-400 text-sm">Sin asistentes.
+                <a href="{% url 'modules:attendee_create' event.pk %}" class="text-teal-500 hover:underline">Agregar</a>
+              </p>
+              {% endfor %}
+            </div>
+            {% if attendees_preview %}
+            <a href="{% url 'modules:attendee_create' event.pk %}" class="inline-flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-semibold hover:underline">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Agregar asistente
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Checklists ───────────────────────────────────────────────────── -->
+    {% if 'checklist' in active_modules %}
+    <div class="grid-stack-item" gs-id="checklist" gs-x="0" gs-y="8" gs-w="8" gs-h="5">
+      <div class="grid-stack-item-content">
+        <div class="gs-module-card glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+          <div class="flex justify-between items-center mb-4 flex-shrink-0">
+            <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
+              <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              Checklists
+            </h3>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="openAside('_tplChecklistCreate', 'Nueva checklist')"
+                      class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500/90 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Nueva
+              </button>
+              <a href="{% url 'modules:checklist_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
+              <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors" title="Mover módulo">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
+              </span>
+            </div>
+          </div>
+          <div class="gs-module-body space-y-3">
+            {% for checklist in checklists_preview %}
+            <div class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+              <div class="flex justify-between items-center mb-1.5">
+                <span class="text-sm font-medium text-gray-800 dark:text-white">{{ checklist.title }}</span>
+                <span class="text-xs font-bold text-gray-500">{{ checklist.progress }}%</span>
+              </div>
+              <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div class="bg-teal-400 h-1.5 rounded-full transition-all" style="width: {{ checklist.progress }}%"></div>
+              </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-400 text-sm text-center py-3">Sin checklists.
+              <button type="button" onclick="openAside('_tplChecklistCreate', 'Nueva checklist')" class="text-teal-500 hover:underline">Crear una</button>
+            </p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Presupuesto ───────────────────────────────────────────────────── -->
+    <div class="grid-stack-item" gs-id="budget" gs-x="8" gs-y="6" gs-w="4" gs-h="5">
+      <div class="grid-stack-item-content">
+        <div class="gs-module-card glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+          {% if event.budget %}
+          <div class="flex justify-between items-center mb-3 flex-shrink-0">
+            <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Presupuesto</h3>
+            <div class="flex items-center gap-2">
+              <a href="{% url 'modules:budget_detail' event.pk %}" class="text-xs text-teal-500 hover:underline font-semibold">Ver detalle →</a>
+              <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors" title="Mover módulo">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
+              </span>
+            </div>
+          </div>
+          <div class="gs-module-body">
+            <div class="grid grid-cols-3 gap-2 mb-3">
+              <div class="text-center">
+                <p class="text-xs text-gray-400 mb-0.5">Planificado</p>
+                <p class="font-bold text-gray-800 dark:text-white text-sm">{{ event.budget.total_budget|floatformat:0 }}</p>
+              </div>
+              <div class="text-center">
+                <p class="text-xs text-gray-400 mb-0.5">Gastado</p>
+                <p class="font-bold text-sm {% if event.budget.usage_percentage >= 80 %}text-red-500{% else %}text-gray-800 dark:text-white{% endif %}">{{ event.budget.total_spent|floatformat:0 }}</p>
+              </div>
+              <div class="text-center">
+                <p class="text-xs text-gray-400 mb-0.5">Restante</p>
+                <p class="font-bold text-sm {% if event.budget.remaining < 0 %}text-red-500{% else %}text-teal-500{% endif %}">{{ event.budget.remaining|floatformat:0 }}</p>
+              </div>
             </div>
             <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div class="bg-teal-400 h-1.5 rounded-full transition-all" style="width: {{ checklist.progress }}%"></div>
+              <div class="h-1.5 rounded-full {% if event.budget.usage_percentage >= 80 %}bg-red-500{% else %}bg-teal-400{% endif %}"
+                   style="width: {{ event.budget.usage_percentage|default:0 }}%"></div>
             </div>
+            <p class="text-xs text-gray-400 mt-1.5 text-right">{{ event.budget.currency }} · {{ event.budget.usage_percentage }}% usado</p>
           </div>
-          {% empty %}
-          <p class="text-gray-400 text-sm text-center py-3">Sin checklists.
-            <button type="button" onclick="openAside('_tplChecklistCreate', 'Nueva checklist')" class="text-teal-500 hover:underline">Crear una</button>
-          </p>
-          {% endfor %}
+          {% else %}
+          <div class="flex justify-between items-center mb-2 flex-shrink-0">
+            <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Presupuesto</h3>
+            <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors" title="Mover módulo">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
+            </span>
+          </div>
+          <div class="gs-module-body">
+            <p class="text-xs text-gray-400 mb-2">Sin presupuesto definido</p>
+            <a href="{% url 'modules:budget_detail' event.pk %}" class="text-xs font-bold text-teal-500 hover:underline">Crear presupuesto →</a>
+          </div>
+          {% endif %}
         </div>
       </div>
-      {% endif %}
-
-      <!-- Módulo: Archivos -->
-      {% if 'files' in active_modules %}
-      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
-            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            Archivos
-          </h3>
-          <a href="{% url 'modules:file_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todos →</a>
-        </div>
-        {% if files_preview %}
-        <div class="space-y-2">
-          {% for file in files_preview %}
-          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-            <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-              <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-            </div>
-            <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ file.name }}</span>
-          </div>
-          {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-gray-400 text-sm text-center py-3">Sin archivos.
-          <a href="{% url 'modules:file_create' event.pk %}" class="text-teal-500 hover:underline">Agregar uno</a>
-        </p>
-        {% endif %}
-      </div>
-      {% endif %}
-
     </div>
 
-    <!-- Columna derecha — solo datos únicos: asistentes + presupuesto -->
-    <div class="space-y-5">
-
-      <!-- Asistentes -->
-      {% if 'attendees' in active_modules %}
-      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Asistentes</h3>
-          <a href="{% url 'modules:attendee_list' event.pk %}" class="text-xs text-teal-500 hover:underline font-semibold">Ver todos →</a>
-        </div>
-        <div class="flex flex-wrap gap-2 mb-3">
-          {% for attendee in attendees_preview %}
-          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-xs font-bold" title="{{ attendee.name }}">
-            {{ attendee.name|first|upper }}
+    <!-- ── Archivos ──────────────────────────────────────────────────────── -->
+    {% if 'files' in active_modules %}
+    <div class="grid-stack-item" gs-id="files" gs-x="0" gs-y="13" gs-w="8" gs-h="5">
+      <div class="grid-stack-item-content">
+        <div class="gs-module-card glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+          <div class="flex justify-between items-center mb-4 flex-shrink-0">
+            <h3 class="font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
+              <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Archivos
+            </h3>
+            <div class="flex items-center gap-2">
+              <a href="{% url 'modules:file_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todos →</a>
+              <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors" title="Mover módulo">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
+              </span>
+            </div>
           </div>
-          {% empty %}
-          <p class="text-gray-400 text-sm">Sin asistentes.
-            <a href="{% url 'modules:attendee_create' event.pk %}" class="text-teal-500 hover:underline">Agregar</a>
-          </p>
-          {% endfor %}
+          <div class="gs-module-body">
+            {% if files_preview %}
+            <div class="space-y-2">
+              {% for file in files_preview %}
+              <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                </div>
+                <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ file.name }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-400 text-sm text-center py-3">Sin archivos.
+              <a href="{% url 'modules:file_create' event.pk %}" class="text-teal-500 hover:underline">Agregar uno</a>
+            </p>
+            {% endif %}
+          </div>
         </div>
-        {% if attendees_preview %}
-        <a href="{% url 'modules:attendee_create' event.pk %}" class="inline-flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-semibold hover:underline">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          Agregar asistente
-        </a>
-        {% endif %}
       </div>
-      {% endif %}
-
-      <!-- Presupuesto -->
-      {% if event.budget %}
-      <div class="glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <div class="flex justify-between items-center mb-3">
-          <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Presupuesto</h3>
-          <a href="{% url 'modules:budget_detail' event.pk %}" class="text-xs text-teal-500 hover:underline font-semibold">Ver detalle →</a>
-        </div>
-        <div class="grid grid-cols-3 gap-2 mb-3">
-          <div class="text-center">
-            <p class="text-xs text-gray-400 mb-0.5">Planificado</p>
-            <p class="font-bold text-gray-800 dark:text-white text-sm">{{ event.budget.total_budget|floatformat:0 }}</p>
-          </div>
-          <div class="text-center">
-            <p class="text-xs text-gray-400 mb-0.5">Gastado</p>
-            <p class="font-bold text-sm {% if event.budget.usage_percentage >= 80 %}text-red-500{% else %}text-gray-800 dark:text-white{% endif %}">{{ event.budget.total_spent|floatformat:0 }}</p>
-          </div>
-          <div class="text-center">
-            <p class="text-xs text-gray-400 mb-0.5">Restante</p>
-            <p class="font-bold text-sm {% if event.budget.remaining < 0 %}text-red-500{% else %}text-teal-500{% endif %}">{{ event.budget.remaining|floatformat:0 }}</p>
-          </div>
-        </div>
-        <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div class="h-1.5 rounded-full {% if event.budget.usage_percentage >= 80 %}bg-red-500{% else %}bg-teal-400{% endif %}"
-               style="width: {{ event.budget.usage_percentage|default:0 }}%"></div>
-        </div>
-        <p class="text-xs text-gray-400 mt-1.5 text-right">{{ event.budget.currency }} · {{ event.budget.usage_percentage }}% usado</p>
-      </div>
-      {% else %}
-      <div class="glass p-5 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-        <p class="text-xs text-gray-400 mb-2">Sin presupuesto definido</p>
-        <a href="{% url 'modules:budget_detail' event.pk %}" class="text-xs font-bold text-teal-500 hover:underline">Crear presupuesto →</a>
-      </div>
-      {% endif %}
-
     </div>
+    {% endif %}
+
+    <!-- ── Cronograma de Momentos ────────────────────────────────────────── -->
+    {% if 'momentos' in active_modules %}
+    <div class="grid-stack-item" gs-id="momentos" gs-x="0" gs-y="18" gs-w="12" gs-h="8">
+      <div class="grid-stack-item-content">
+        <div class="gs-module-card glass p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-4 flex-shrink-0">
+            <h2 class="text-base font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <svg class="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Cronograma de Momentos
+            </h2>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="openMomentoModal()"
+                      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold
+                             text-white bg-gradient-to-r from-teal-500 to-cyan-600
+                             hover:from-teal-600 hover:to-cyan-700 shadow-sm transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Nuevo momento
+              </button>
+              <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors" title="Mover módulo">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="gs-module-body">
+            {% if event.momentos.all %}
+            <div class="relative">
+              <div class="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+              <div class="space-y-4" id="momentos-list"
+                   data-base-url="{% url 'events:momento_edit' event.pk 999999 %}"
+                   data-event-pk="{{ event.pk }}">
+                {% for momento in event.momentos.all %}
+                {% with tipo=momento.tipo %}
+                <div class="relative flex items-start gap-4 pl-0 sm:pl-14" data-momento-pk="{{ momento.pk }}">
+                  <div class="hidden sm:flex absolute left-0 w-10 h-10 rounded-full items-center justify-center shadow-sm flex-shrink-0
+                    {% if tipo == 'protocolo' %}bg-indigo-100 dark:bg-indigo-900/30
+                    {% elif tipo == 'logistica' %}bg-amber-100 dark:bg-amber-900/30
+                    {% elif tipo == 'alimentacion' %}bg-emerald-100 dark:bg-emerald-900/30
+                    {% else %}bg-pink-100 dark:bg-pink-900/30{% endif %}">
+                    {% if tipo == 'protocolo' %}
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    {% elif tipo == 'logistica' %}
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m0 0h2m10 0h2m-6-8h6"/></svg>
+                    {% elif tipo == 'alimentacion' %}
+                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    {% else %}
+                    <svg class="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+                    {% endif %}
+                  </div>
+                  <div class="flex-1 glass rounded-2xl p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap mb-1">
+                          <h4 class="font-semibold text-gray-900 dark:text-white text-sm">{{ momento.titulo }}</h4>
+                          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide
+                            {% if tipo == 'protocolo' %}bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300
+                            {% elif tipo == 'logistica' %}bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300
+                            {% elif tipo == 'alimentacion' %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300
+                            {% else %}bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300{% endif %}">
+                            {{ momento.get_tipo_display }}
+                          </span>
+                          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide
+                            {% if momento.importancia == 'alta' %}bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400
+                            {% elif momento.importancia == 'media' %}bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400
+                            {% else %}bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400{% endif %}">
+                            {{ momento.get_importancia_display }}
+                          </span>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-1">
+                          <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                          {{ momento.hora_inicio|date:"d M Y · H:i" }}
+                          {% if momento.hora_fin %}→ {{ momento.hora_fin|date:"H:i" }}{% endif %}
+                        </p>
+                        {% if momento.descripcion %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ momento.descripcion }}</p>
+                        {% endif %}
+                      </div>
+                      <div class="flex items-center gap-1 flex-shrink-0">
+                        <button type="button"
+                                data-edit-url="{% url 'events:momento_edit' event.pk momento.pk %}"
+                                data-pk="{{ momento.pk }}"
+                                data-titulo="{{ momento.titulo|escapejs }}"
+                                data-descripcion="{{ momento.descripcion|escapejs }}"
+                                data-hora-inicio="{{ momento.hora_inicio|date:'Y-m-d\TH:i' }}"
+                                data-hora-fin="{{ momento.hora_fin|date:'Y-m-d\TH:i'|default:'' }}"
+                                data-tipo="{{ momento.tipo }}"
+                                data-importancia="{{ momento.importancia }}"
+                                onclick="openMomentoModal(this)"
+                                class="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors"
+                                title="Editar">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
+                        <button type="button"
+                                data-delete-url="{% url 'events:momento_delete' event.pk momento.pk %}"
+                                data-pk="{{ momento.pk }}"
+                                data-momento-title="{{ momento.titulo|escapejs }}"
+                                onclick="deleteMomento(this)"
+                                class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                title="Eliminar">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endwith %}
+                {% endfor %}
+              </div>
+            </div>
+            {% else %}
+            <div class="rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-8 text-center" data-momento-empty>
+              <div class="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center mx-auto mb-3">
+                <svg class="w-6 h-6 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Sin momentos registrados</p>
+              <p class="text-xs text-gray-400 mb-4">Añade hitos fijos al cronograma de este evento.</p>
+              <button type="button" onclick="openMomentoModal()"
+                      class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold text-white
+                             bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 transition-all shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Crear primer momento
+              </button>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
   </div>
+  <!-- ══ FIN GRIDSTACK ════════════════════════════════════════════════════ -->
 
 </div>
+
+<!-- ══ TOOLBAR DE LAYOUT ════════════════════════════════════════════════ -->
+<div id="layout-toolbar"
+     class="fixed bottom-4 left-1/2 z-30 glass shadow-lg border border-gray-200/60 dark:border-gray-700/60"
+     style="transform:translateX(-50%);max-width:min(720px,calc(100vw - 110px))">
+
+  <!-- Botón: Editar orden -->
+  <button id="lt-edit-btn" onclick="ltToggleEdit()"
+          class="lt-btn lt-btn-edit" title="Paso 1: activa el modo edición · Paso 2: arrastra un módulo · Paso 3: toca Listo">
+    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+    </svg>
+    <span id="lt-edit-label">Editar orden</span>
+  </button>
+
+  <div class="lt-divider"></div>
+
+  <!-- Label discreto -->
+  <span class="text-xs text-gray-400 dark:text-gray-500 hidden sm:inline px-1 flex-shrink-0">Vista rápida:</span>
+
+  <!-- Preset 1: Tareas al frente -->
+  <button id="lt-p-operativo" onclick="ltApplyPreset('operativo')" class="lt-btn"
+          title="Tareas y checklists en grande. Ideal para el día a día operativo.">
+    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+    </svg>
+    <span class="hidden xs:inline">Operativo</span><span class="xs:hidden">Op.</span>
+  </button>
+
+  <!-- Preset 2: Cronograma -->
+  <button id="lt-p-cronograma" onclick="ltApplyPreset('cronograma')" class="lt-btn"
+          title="El cronograma de momentos ocupa el tope. Ideal para el día del evento.">
+    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <span class="hidden xs:inline">Cronograma</span><span class="xs:hidden">Crono.</span>
+  </button>
+
+  <!-- Preset 3: Vista compacta -->
+  <button id="lt-p-compacta" onclick="ltApplyPreset('compacta')" class="lt-btn"
+          title="Todo visible en tres columnas. Ideal para pantallas grandes o una vista general.">
+    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+    </svg>
+    <span class="hidden xs:inline">Compacta</span><span class="xs:hidden">Comp.</span>
+  </button>
+
+  <div class="lt-divider"></div>
+
+  <!-- Restablecer -->
+  <button onclick="ltResetLayout()" class="lt-btn" title="Volver a la distribución original de fábrica">
+    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+    </svg>
+    <span class="hidden sm:inline">Predeterminado</span>
+  </button>
+
+</div>
+<!-- ══ FIN TOOLBAR DE LAYOUT ════════════════════════════════════════════ -->
 
 <!-- ══ ASIDE TEMPLATES (hidden, cloned by openAside) ══════════════════════ -->
 <div id="_tplTaskCreate" class="hidden">
@@ -840,4 +1222,633 @@
 </script>
 <!-- ══ FIN BYNIX ══════════════════════════════════════════════════════════ -->
 
+<!-- ══ MODAL DE MOMENTOS ══════════════════════════════════════════════════ -->
+<div id="momento-modal"
+     class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden"
+     role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <!-- Backdrop -->
+  <div id="momento-backdrop"
+       class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+       onclick="closeMomentoModal()"></div>
+
+  <!-- Panel -->
+  <div class="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl
+              overflow-hidden transform transition-all duration-200 scale-95 opacity-0"
+       id="momento-panel">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800
+                bg-gradient-to-r from-teal-500 to-cyan-600">
+      <h3 id="modal-title" class="text-base font-bold text-white">Nuevo Momento</h3>
+      <button type="button" onclick="closeMomentoModal()"
+              class="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Errores globales -->
+    <div id="modal-error-banner" class="hidden px-6 pt-4">
+      <div class="px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xl text-sm"></div>
+    </div>
+
+    <!-- Form -->
+    <form id="momento-modal-form" class="px-6 py-5 space-y-4" novalidate>
+      {% csrf_token %}
+      <input type="hidden" id="modal-edit-url" value="">
+      <input type="hidden" id="modal-create-url" value="{% url 'events:momento_create' event.pk %}">
+
+      <!-- Título -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+          Título <span class="text-red-500">*</span>
+        </label>
+        <input type="text" id="modal-titulo" name="titulo" required
+               placeholder="ej. Bienvenida oficial, Cóctel de apertura…"
+               class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                      bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm
+                      focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition">
+        <p class="mt-1 text-xs text-red-500 hidden" id="err-titulo"></p>
+      </div>
+
+      <!-- Descripción -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+          Descripción <span class="font-normal text-gray-400">(opcional)</span>
+        </label>
+        <textarea id="modal-descripcion" name="descripcion" rows="2"
+                  placeholder="Notas adicionales…"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                         bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm
+                         focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none
+                         transition resize-none"></textarea>
+      </div>
+
+      <!-- Hora inicio / fin -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+            Inicio <span class="text-red-500">*</span>
+          </label>
+          <input type="datetime-local" id="modal-hora-inicio" name="hora_inicio" required
+                 class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                        bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm
+                        focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition">
+          <p class="mt-1 text-xs text-red-500 hidden" id="err-hora_inicio"></p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+            Fin <span class="font-normal text-gray-400">(opcional)</span>
+          </label>
+          <input type="datetime-local" id="modal-hora-fin" name="hora_fin"
+                 class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                        bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm
+                        focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition">
+          <p class="mt-1 text-xs text-red-500 hidden" id="err-hora_fin"></p>
+        </div>
+      </div>
+
+      <!-- Tipo / Importancia -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5">Tipo</label>
+          <select id="modal-tipo" name="tipo"
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                         bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm
+                         focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition">
+            <option value="protocolo">Protocolo</option>
+            <option value="logistica">Logística</option>
+            <option value="alimentacion">Alimentación</option>
+            <option value="entretenimiento">Entretenimiento</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5">Importancia</label>
+          <select id="modal-importancia" name="importancia"
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                         bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm
+                         focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition">
+            <option value="baja">Baja</option>
+            <option value="media" selected>Media</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" onclick="closeMomentoModal()"
+                class="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400
+                       hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+          Cancelar
+        </button>
+        <button type="submit" id="modal-submit-btn"
+                class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white
+                       bg-gradient-to-r from-teal-500 to-cyan-600
+                       hover:from-teal-600 hover:to-cyan-700 shadow-sm transition-all
+                       disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+          <span id="modal-submit-text">Crear Momento</span>
+          <svg id="modal-spinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ── Módulo Momentos — Modal + Fetch API ───────────────────────────────── */
+(function () {
+
+  /* Colores y labels por tipo */
+  var TIPO_COLORS = {
+    protocolo: '#6366F1', logistica: '#F59E0B',
+    alimentacion: '#10B981', entretenimiento: '#EC4899',
+  };
+  var TIPO_LABELS = {
+    protocolo: 'Protocolo', logistica: 'Logística',
+    alimentacion: 'Alimentación', entretenimiento: 'Entretenimiento',
+  };
+  var IMP_LABELS = { baja: 'Baja', media: 'Media', alta: 'Alta' };
+
+  /* Helpers de UI */
+  function getCSRF() {
+    var t = document.querySelector('[name=csrfmiddlewaretoken]');
+    return t ? t.value : '';
+  }
+
+  function showFieldError(id, msg) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  function clearErrors() {
+    ['err-titulo', 'err-hora_inicio', 'err-hora_fin'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) { el.textContent = ''; el.classList.add('hidden'); }
+    });
+    var banner = document.getElementById('modal-error-banner');
+    if (banner) banner.classList.add('hidden');
+  }
+
+  function setLoading(on) {
+    var btn  = document.getElementById('modal-submit-btn');
+    var spin = document.getElementById('modal-spinner');
+    if (btn)  btn.disabled = on;
+    if (spin) spin.classList.toggle('hidden', !on);
+  }
+
+  /* Formatea fecha ISO a "DD Mon YYYY · HH:MM" */
+  function fmtDatetime(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    var months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    var day   = String(d.getDate()).padStart(2, '0');
+    var month = months[d.getMonth()];
+    var year  = d.getFullYear();
+    var h     = String(d.getHours()).padStart(2, '0');
+    var m     = String(d.getMinutes()).padStart(2, '0');
+    return day + ' ' + month + ' ' + year + ' · ' + h + ':' + m;
+  }
+
+  /* ── Abrir modal ────────────────────────────────────────────────────── */
+  window.openMomentoModal = function (editBtn) {
+    var modal  = document.getElementById('momento-modal');
+    var panel  = document.getElementById('momento-panel');
+    var title  = document.getElementById('modal-title');
+    var submit = document.getElementById('modal-submit-text');
+    var editUrl = document.getElementById('modal-edit-url');
+
+    clearErrors();
+    document.getElementById('momento-modal-form').reset();
+
+    if (editBtn && editBtn.dataset) {
+      /* Modo edición — rellenar campos con datos del botón */
+      var d = editBtn.dataset;
+      title.textContent  = 'Editar Momento';
+      submit.textContent = 'Guardar cambios';
+      editUrl.value      = d.editUrl || '';
+      document.getElementById('modal-titulo').value       = d.titulo       || '';
+      document.getElementById('modal-descripcion').value  = d.descripcion  || '';
+      document.getElementById('modal-hora-inicio').value  = d.horaInicio   || '';
+      document.getElementById('modal-hora-fin').value     = d.horaFin      || '';
+      document.getElementById('modal-tipo').value         = d.tipo         || 'protocolo';
+      document.getElementById('modal-importancia').value  = d.importancia  || 'media';
+    } else {
+      /* Modo creación */
+      title.textContent  = 'Nuevo Momento';
+      submit.textContent = 'Crear Momento';
+      editUrl.value      = '';
+    }
+
+    modal.classList.remove('hidden');
+    setTimeout(function () {
+      panel.style.transform = 'scale(1)';
+      panel.style.opacity   = '1';
+    }, 10);
+    document.getElementById('modal-titulo').focus();
+  };
+
+  /* ── Cerrar modal ───────────────────────────────────────────────────── */
+  window.closeMomentoModal = function () {
+    var modal = document.getElementById('momento-modal');
+    var panel = document.getElementById('momento-panel');
+    panel.style.transform = 'scale(0.95)';
+    panel.style.opacity   = '0';
+    setTimeout(function () { modal.classList.add('hidden'); }, 200);
+  };
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMomentoModal();
+  });
+
+  /* ── Construir HTML de un card de momento ───────────────────────────── */
+  function buildCardHTML(m) {
+    var tipoLabel = TIPO_LABELS[m.tipo] || m.tipo;
+    var impLabel  = IMP_LABELS[m.importancia] || m.importancia;
+    var horaFin   = m.hora_fin ? ' → ' + new Date(m.hora_fin).toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit'}) : '';
+    var horario   = fmtDatetime(m.hora_inicio) + horaFin;
+
+    /* Clases de color por tipo */
+    var tipoBg   = { protocolo: 'bg-indigo-100 text-indigo-700', logistica: 'bg-amber-100 text-amber-700',
+                     alimentacion: 'bg-emerald-100 text-emerald-700', entretenimiento: 'bg-pink-100 text-pink-700' };
+    var impBg    = { alta: 'bg-red-100 text-red-600', media: 'bg-yellow-100 text-yellow-600', baja: 'bg-gray-100 text-gray-500' };
+
+    /* URLs: reemplaza el placeholder 999999 con el pk real del momento */
+    var baseUrl   = (document.getElementById('momentos-list').dataset.baseUrl || '').replace('999999', m.id);
+    var editUrl   = baseUrl;
+    var deleteUrl = baseUrl.replace('/editar/', '/eliminar/');
+
+    return '<div class="relative flex items-start gap-4 pl-0 sm:pl-14" data-momento-pk="' + m.id + '">' +
+      '<div class="flex-1 glass rounded-2xl p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">' +
+        '<div class="flex items-start justify-between gap-2">' +
+          '<div class="flex-1 min-w-0">' +
+            '<div class="flex items-center gap-2 flex-wrap mb-1">' +
+              '<h4 class="font-semibold text-gray-900 dark:text-white text-sm">' + escHtml(m.titulo) + '</h4>' +
+              '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ' + (tipoBg[m.tipo] || '') + '">' + escHtml(tipoLabel) + '</span>' +
+              '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ' + (impBg[m.importancia] || '') + '">' + escHtml(impLabel) + '</span>' +
+            '</div>' +
+            '<p class="text-xs text-gray-500 dark:text-gray-400 mb-1">' + escHtml(horario) + '</p>' +
+            (m.descripcion ? '<p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">' + escHtml(m.descripcion) + '</p>' : '') +
+          '</div>' +
+          '<div class="flex items-center gap-1 flex-shrink-0">' +
+            '<button type="button"' +
+              ' data-edit-url="' + editUrl + '"' +
+              ' data-pk="' + m.id + '"' +
+              ' data-titulo="' + escAttr(m.titulo) + '"' +
+              ' data-descripcion="' + escAttr(m.descripcion) + '"' +
+              ' data-hora-inicio="' + escAttr(m.hora_inicio ? m.hora_inicio.slice(0,16) : '') + '"' +
+              ' data-hora-fin="' + escAttr(m.hora_fin ? m.hora_fin.slice(0,16) : '') + '"' +
+              ' data-tipo="' + escAttr(m.tipo) + '"' +
+              ' data-importancia="' + escAttr(m.importancia) + '"' +
+              ' onclick="openMomentoModal(this)"' +
+              ' class="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors" title="Editar">' +
+              '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>' +
+            '</button>' +
+            '<button type="button"' +
+              ' data-delete-url="' + deleteUrl + '"' +
+              ' data-pk="' + m.id + '"' +
+              ' data-momento-title="' + escAttr(m.titulo) + '"' +
+              ' onclick="deleteMomento(this)"' +
+              ' class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Eliminar">' +
+              '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function escAttr(s) {
+    return String(s || '').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  /* ── Envío del formulario vía Fetch ─────────────────────────────────── */
+  document.getElementById('momento-modal-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearErrors();
+
+    /* Validación client-side: hora_fin > hora_inicio */
+    var ini = document.getElementById('modal-hora-inicio').value;
+    var fin = document.getElementById('modal-hora-fin').value;
+    if (ini && fin && new Date(fin) <= new Date(ini)) {
+      showFieldError('err-hora_fin', 'La hora de fin debe ser posterior a la hora de inicio.');
+      return;
+    }
+
+    var editUrl   = document.getElementById('modal-edit-url').value;
+    var createUrl = document.getElementById('modal-create-url').value;
+    var url       = editUrl || createUrl;
+    var isEdit    = Boolean(editUrl);
+
+    var body = new FormData(this);
+
+    setLoading(true);
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken':      getCSRF(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: body,
+    })
+    .then(function (r) { return r.json().then(function(d){ return {ok: r.ok, data: d}; }); })
+    .then(function (res) {
+      setLoading(false);
+      if (!res.ok) {
+        /* Mostrar errores de campo */
+        var errs = res.data.errores || {};
+        Object.keys(errs).forEach(function(campo) {
+          showFieldError('err-' + campo, errs[campo]);
+        });
+        if (!Object.keys(errs).length) {
+          var banner = document.getElementById('modal-error-banner');
+          banner.querySelector('div').textContent = res.data.error || 'Error desconocido.';
+          banner.classList.remove('hidden');
+        }
+        return;
+      }
+
+      var m = res.data.momento;
+      closeMomentoModal();
+
+      /* Inyectar URL base si no existe en el list container */
+      var list = document.getElementById('momentos-list');
+
+      if (isEdit) {
+        /* Actualizar card existente */
+        var existing = list ? list.querySelector('[data-momento-pk="' + m.id + '"]') : null;
+        if (existing) {
+          var tmp = document.createElement('div');
+          tmp.innerHTML = buildCardHTML(m);
+          existing.parentNode.replaceChild(tmp.firstChild, existing);
+        } else {
+          location.reload();
+        }
+      } else {
+        /* Insertar nuevo card */
+        if (list) {
+          var tmp2 = document.createElement('div');
+          tmp2.innerHTML = buildCardHTML(m);
+          list.appendChild(tmp2.firstChild);
+          /* Ocultar estado vacío si existe */
+          var emptyState = document.querySelector('[data-momento-empty]');
+          if (emptyState) emptyState.classList.add('hidden');
+        } else {
+          location.reload();
+        }
+      }
+    })
+    .catch(function () {
+      setLoading(false);
+      var banner = document.getElementById('modal-error-banner');
+      banner.querySelector('div').textContent = 'Error de red. Inténtalo de nuevo.';
+      banner.classList.remove('hidden');
+    });
+  });
+
+  /* ── Eliminar Momento vía Fetch ─────────────────────────────────────── */
+  window.deleteMomento = function (btn) {
+    var url   = btn.dataset.deleteUrl;
+    var title = btn.dataset.momentoTitle;
+    if (!confirm('¿Eliminar el momento "' + title + '"? Esta acción no se puede deshacer.')) return;
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken':      getCSRF(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.ok) {
+        var card = btn.closest('[data-momento-pk]');
+        if (card) {
+          card.style.transition = 'opacity 0.3s, transform 0.3s';
+          card.style.opacity    = '0';
+          card.style.transform  = 'translateX(20px)';
+          setTimeout(function () {
+            card.remove();
+            var list = document.getElementById('momentos-list');
+            if (list && !list.children.length) location.reload();
+          }, 300);
+        }
+      } else {
+        alert('Error al eliminar: ' + (data.error || 'desconocido'));
+      }
+    })
+    .catch(function () { alert('Error de red. Inténtalo de nuevo.'); });
+  };
+
+}());
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/gridstack@10/dist/gridstack-all.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── Constants ────────────────────────────────────────────────────────── */
+  var LAYOUT_URL  = "{% url 'events:save_layout_config' event.pk %}";
+  var CSRF        = "{{ csrf_token }}";
+  var savedLayout = {{ layout_config_json|safe }};
+
+  /* Default positions (mirror the HTML gs-* attributes) */
+  var PRESET_DEFAULT = {
+    description: {x:0,  y:0,  w:12, h:2},
+    tasks:       {x:0,  y:2,  w:8,  h:6},
+    attendees:   {x:8,  y:2,  w:4,  h:4},
+    checklist:   {x:0,  y:8,  w:8,  h:5},
+    budget:      {x:8,  y:6,  w:4,  h:5},
+    files:       {x:0,  y:13, w:8,  h:5},
+    momentos:    {x:0,  y:18, w:12, h:8},
+  };
+
+  /* Preset: Operativo — tareas y checklists dominan */
+  var PRESET_OPERATIVO = {
+    tasks:       {x:0,  y:0,  w:8,  h:7},
+    checklist:   {x:0,  y:7,  w:8,  h:5},
+    attendees:   {x:8,  y:0,  w:4,  h:3},
+    budget:      {x:8,  y:3,  w:4,  h:4},
+    files:       {x:8,  y:7,  w:4,  h:5},
+    momentos:    {x:0,  y:12, w:12, h:6},
+    description: {x:0,  y:18, w:12, h:2},
+  };
+
+  /* Preset: Cronograma — momentos en el tope */
+  var PRESET_CRONOGRAMA = {
+    momentos:    {x:0,  y:0,  w:12, h:8},
+    tasks:       {x:0,  y:8,  w:6,  h:5},
+    checklist:   {x:6,  y:8,  w:6,  h:5},
+    attendees:   {x:0,  y:13, w:4,  h:3},
+    budget:      {x:4,  y:13, w:4,  h:3},
+    files:       {x:8,  y:13, w:4,  h:3},
+    description: {x:0,  y:16, w:12, h:2},
+  };
+
+  /* Preset: Compacta — 3 columnas igual de anchas */
+  var PRESET_COMPACTA = {
+    tasks:       {x:0, y:0, w:4, h:6},
+    checklist:   {x:4, y:0, w:4, h:6},
+    momentos:    {x:8, y:0, w:4, h:6},
+    attendees:   {x:0, y:6, w:3, h:4},
+    budget:      {x:3, y:6, w:5, h:4},
+    files:       {x:8, y:6, w:4, h:4},
+    description: {x:0, y:10, w:12, h:2},
+  };
+
+  var PRESETS = {
+    default:    PRESET_DEFAULT,
+    operativo:  PRESET_OPERATIVO,
+    cronograma: PRESET_CRONOGRAMA,
+    compacta:   PRESET_COMPACTA,
+  };
+
+  var PRESET_LABELS = {
+    default:    'Predeterminado',
+    operativo:  'Vista Operativa',
+    cronograma: 'Vista Cronograma',
+    compacta:   'Vista Compacta',
+  };
+
+  /* ── Init Gridstack ───────────────────────────────────────────────────── */
+  var gridEl = document.getElementById('event-grid');
+  if (!gridEl) return;
+
+  /* Apply saved positions BEFORE Gridstack reads the attributes */
+  gridEl.querySelectorAll('.grid-stack-item').forEach(function (item) {
+    var pos = savedLayout[item.getAttribute('gs-id')];
+    if (pos) ['x','y','w','h'].forEach(function (k) { item.setAttribute('gs-'+k, pos[k]); });
+  });
+
+  var gs = GridStack.init({
+    cellHeight:  70,
+    animate:     true,
+    handle:      '.gs-drag-handle',
+    resizable:   { handles: 'se' },
+    float:       false,
+    column:      12,
+    columnOpts:  { breakpoints: [{ w: 768, c: 1 }] },
+    margin:      6,
+  }, '#event-grid');
+
+  /* Start locked — user must press "Editar orden" to move things */
+  gs.setStatic(true);
+
+  /* ── Persistence ──────────────────────────────────────────────────────── */
+  var _saveTimer = null;
+
+  function persistLayout(overrideEmpty) {
+    var layout = {};
+    gs.getGridItems().forEach(function (item) {
+      var id = item.getAttribute('gs-id');
+      var n  = item.gridstackNode;
+      if (id && n) layout[id] = {x:n.x, y:n.y, w:n.w, h:n.h};
+    });
+    fetch(LAYOUT_URL, {
+      method:  'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
+      body:    JSON.stringify({ layout: overrideEmpty ? {} : layout }),
+    }).catch(function(){});
+  }
+
+  gs.on('change resizestop', function () {
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(persistLayout, 800);
+  });
+
+  /* ── Edit mode ────────────────────────────────────────────────────────── */
+  var _editMode = false;
+
+  window.ltToggleEdit = function () {
+    _editMode = !_editMode;
+    gs.setStatic(!_editMode);
+    gridEl.classList.toggle('gs-edit-mode', _editMode);
+
+    var btn   = document.getElementById('lt-edit-btn');
+    var label = document.getElementById('lt-edit-label');
+    if (_editMode) {
+      btn.classList.add('lt-edit-on');
+      label.textContent = 'Listo ✓';
+      showLayoutToast('Modo edición activo — arrastra los módulos desde el ícono ⠿');
+    } else {
+      btn.classList.remove('lt-edit-on');
+      label.textContent = 'Editar orden';
+      persistLayout();
+      showLayoutToast('Layout guardado');
+    }
+  };
+
+  /* ── Apply a named preset ─────────────────────────────────────────────── */
+  window.ltApplyPreset = function (name) {
+    var preset = PRESETS[name];
+    if (!preset) return;
+
+    /* Highlight active preset button */
+    ['operativo','cronograma','compacta'].forEach(function (p) {
+      var el = document.getElementById('lt-p-' + p);
+      if (el) el.classList.toggle('lt-active', p === name);
+    });
+
+    gs.batchUpdate();
+    gridEl.querySelectorAll('.grid-stack-item').forEach(function (item) {
+      var pos = preset[item.getAttribute('gs-id')];
+      if (pos) gs.update(item, pos);
+    });
+    gs.batchUpdate(false);
+
+    persistLayout();
+    showLayoutToast('Vista aplicada: ' + (PRESET_LABELS[name] || name));
+  };
+
+  /* ── Reset to default ─────────────────────────────────────────────────── */
+  window.ltResetLayout = function () {
+    /* Clear active preset highlights */
+    ['operativo','cronograma','compacta'].forEach(function (p) {
+      var el = document.getElementById('lt-p-' + p);
+      if (el) el.classList.remove('lt-active');
+    });
+
+    gs.batchUpdate();
+    gridEl.querySelectorAll('.grid-stack-item').forEach(function (item) {
+      var pos = PRESET_DEFAULT[item.getAttribute('gs-id')];
+      if (pos) gs.update(item, pos);
+    });
+    gs.batchUpdate(false);
+
+    persistLayout(true);   /* save empty dict = "use HTML defaults next load" */
+    showLayoutToast('Vista restablecida al diseño original');
+  };
+
+  /* ── Toast helper ─────────────────────────────────────────────────────── */
+  function showLayoutToast(msg) {
+    var old = document.querySelector('.layout-toast');
+    if (old) old.remove();
+    var t = document.createElement('div');
+    t.className = 'layout-toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.style.opacity = '0'; }, 2200);
+    setTimeout(function () { t.remove(); }, 2700);
+  }
+
+  /* ── Move toolbar to <body> (same pattern as Bynix) ──────────────────── */
+  var tb = document.getElementById('layout-toolbar');
+  if (tb && tb.parentNode !== document.body) document.body.appendChild(tb);
+
+}());
+</script>
 {% endblock %}
