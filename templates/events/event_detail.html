@@ -1745,8 +1745,8 @@
     margin:      6,
   }, '#event-grid');
 
-  /* Start locked — user must press "Editar orden" to move things */
-  gs.setStatic(true);
+  /* Drag locked by default; resize always available */
+  gs.enableMove(false);
 
   /* ── Persistence ──────────────────────────────────────────────────────── */
   var _saveTimer = null;
@@ -1775,7 +1775,7 @@
 
   window.ltToggleEdit = function () {
     _editMode = !_editMode;
-    gs.setStatic(!_editMode);
+    gs.enableMove(_editMode);   // only toggle drag; resize stays on always
     gridEl.classList.toggle('gs-edit-mode', _editMode);
 
     var btn   = document.getElementById('lt-edit-btn');
