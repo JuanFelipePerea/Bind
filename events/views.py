@@ -10,7 +10,7 @@ from django.db import transaction
 from django.db.models import Count, Q
 
 from django.db import models as db_models
-from .models import Event, EventTemplate, EventModule, TemplateModule, EventAlert, EngineMetrics
+from .models import Event, EventTemplate, EventModule, TemplateModule, EventAlert, EngineMetrics, Momento
 from .stats import compute_user_stats
 from modules.models import Task, File, Checklist, ChecklistItem
 from datetime import timedelta
@@ -366,8 +366,30 @@ def event_detail(request, pk):
         'files_preview':       files_preview,
         'attendees_preview':   attendees_preview,
         'engine_score':        engine_score,
+        'layout_config_json':  json.dumps(event.layout_config or {}, ensure_ascii=False),
     }
     return render(request, 'events/event_detail.html', context)
+
+
+# ─────────────────────────────────────────────
+#  PERSISTENCIA DE LAYOUT (Gridstack)
+# ─────────────────────────────────────────────
+
+@login_required
+def save_layout_config(request, pk):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    event = get_object_or_404(Event, pk=pk, owner=request.user)
+    try:
+        data = json.loads(request.body)
+        layout = data.get('layout', {})
+        if not isinstance(layout, dict):
+            return JsonResponse({'error': 'Invalid layout'}, status=400)
+        event.layout_config = layout
+        event.save(update_fields=['layout_config'])
+        return JsonResponse({'ok': True})
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
 
 # ─────────────────────────────────────────────
@@ -1095,3 +1117,169 @@ def bynix_quick_capture(request, pk):
             {'error': 'No pude generar la estructura. Intenta de nuevo.'},
             status=500,
         )
+
+
+# ── Momentos ─────────────────────────────────────────────────────────────────
+
+def _parse_momento_post(post, evento):
+    """
+    Extrae y valida los campos de Momento desde request.POST.
+    Valida que hora_inicio/hora_fin estén dentro del rango start_date↔end_date del evento
+    (solo cuando el evento tiene fechas definidas). Devuelve (datos, errores).
+    """
+    from django.utils.dateparse import parse_datetime
+
+    errores = {}
+    titulo = post.get('titulo', '').strip()
+    if not titulo:
+        errores['titulo'] = 'El título es obligatorio.'
+
+    hora_inicio_raw = post.get('hora_inicio', '').strip()
+    hora_fin_raw    = post.get('hora_fin', '').strip()
+
+    hora_inicio = None
+    hora_fin    = None
+
+    if hora_inicio_raw:
+        hora_inicio = parse_datetime(hora_inicio_raw)
+        if hora_inicio is None:
+            errores['hora_inicio'] = 'Formato de fecha inválido.'
+    else:
+        errores['hora_inicio'] = 'La hora de inicio es obligatoria.'
+
+    if hora_fin_raw:
+        hora_fin = parse_datetime(hora_fin_raw)
+        if hora_fin is None:
+            errores['hora_fin'] = 'Formato de fecha inválido.'
+        elif hora_inicio and hora_fin <= hora_inicio:
+            errores['hora_fin'] = 'La hora de fin debe ser posterior a la hora de inicio.'
+
+    # Validación de rango: el momento debe caer dentro de las fechas del evento.
+    # Solo se aplica cuando el evento tiene fechas definidas; si no las tiene, se omite.
+    if hora_inicio and not errores.get('hora_inicio'):
+        if evento.start_date and hora_inicio < evento.start_date:
+            errores['hora_inicio'] = (
+                f'El momento no puede ser anterior al inicio del evento '
+                f'({evento.start_date.strftime("%d/%m/%Y %H:%M")}).'
+            )
+        if evento.end_date and hora_inicio > evento.end_date:
+            errores['hora_inicio'] = (
+                f'El momento no puede ser posterior al fin del evento '
+                f'({evento.end_date.strftime("%d/%m/%Y %H:%M")}).'
+            )
+
+    if hora_fin and not errores.get('hora_fin'):
+        if evento.end_date and hora_fin > evento.end_date:
+            errores['hora_fin'] = (
+                f'La hora de fin no puede superar el fin del evento '
+                f'({evento.end_date.strftime("%d/%m/%Y %H:%M")}).'
+            )
+
+    tipo        = post.get('tipo', 'protocolo')
+    importancia = post.get('importancia', 'media')
+
+    datos = {
+        'titulo':      titulo,
+        'descripcion': post.get('descripcion', '').strip(),
+        'hora_inicio': hora_inicio,
+        'hora_fin':    hora_fin,
+        'tipo':        tipo,
+        'importancia': importancia,
+    }
+    return datos, errores
+
+
+@login_required
+def momento_create(request, event_pk):
+    evento = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    if request.method == 'POST':
+        datos, errores = _parse_momento_post(request.POST, evento)
+
+        if errores:
+            if is_ajax:
+                return JsonResponse({'ok': False, 'errores': errores}, status=400)
+            messages.error(request, 'Por favor corrige los errores del formulario.')
+        else:
+            momento = Momento.objects.create(evento=evento, **datos)
+            if is_ajax:
+                return JsonResponse({'ok': True, 'momento': momento.to_dict()}, status=201)
+            messages.success(request, f'Momento "{momento.titulo}" creado.')
+            return redirect('events:event_detail', pk=event_pk)
+
+    # GET — renderiza formulario
+    context = {
+        'evento':      evento,
+        'accion':      'Crear',
+        'tipo_choices': Momento.TIPO_CHOICES,
+        'importancia_choices': Momento.IMPORTANCIA_CHOICES,
+        'momento':     None,
+    }
+    return render(request, 'events/momento_form.html', context)
+
+
+@login_required
+def momento_edit(request, event_pk, pk):
+    evento  = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    momento = get_object_or_404(Momento, pk=pk, evento=evento)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    if request.method == 'POST':
+        datos, errores = _parse_momento_post(request.POST, evento)
+
+        if errores:
+            if is_ajax:
+                return JsonResponse({'ok': False, 'errores': errores}, status=400)
+            messages.error(request, 'Por favor corrige los errores del formulario.')
+        else:
+            for campo, valor in datos.items():
+                setattr(momento, campo, valor)
+            momento.save()
+            if is_ajax:
+                return JsonResponse({'ok': True, 'momento': momento.to_dict()})
+            messages.success(request, f'Momento "{momento.titulo}" actualizado.')
+            return redirect('events:event_detail', pk=event_pk)
+
+    context = {
+        'evento':      evento,
+        'accion':      'Editar',
+        'tipo_choices': Momento.TIPO_CHOICES,
+        'importancia_choices': Momento.IMPORTANCIA_CHOICES,
+        'momento':     momento,
+    }
+    return render(request, 'events/momento_form.html', context)
+
+
+@login_required
+def momento_delete(request, event_pk, pk):
+    evento  = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    momento = get_object_or_404(Momento, pk=pk, evento=evento)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    if request.method == 'POST':
+        titulo = momento.titulo
+        momento.delete()
+        if is_ajax:
+            return JsonResponse({'ok': True, 'mensaje': f'Momento "{titulo}" eliminado.'})
+        messages.success(request, f'Momento "{titulo}" eliminado.')
+        return redirect('events:event_detail', pk=event_pk)
+
+    if is_ajax:
+        return JsonResponse({'ok': False, 'error': 'Método no permitido.'}, status=405)
+    return redirect('events:event_detail', pk=event_pk)
+
+
+@login_required
+def momentos_json(request, event_pk):
+    """
+    Feed de Momentos de un evento.
+    ?format=fullcalendar  → formato FullCalendar (default)
+    ?format=list          → formato to_dict() para uso general
+    """
+    evento   = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    momentos = evento.momentos.all()
+    fmt = request.GET.get('format', 'fullcalendar')
+    if fmt == 'list':
+        return JsonResponse([m.to_dict() for m in momentos], safe=False)
+    return JsonResponse([m.to_fullcalendar_json() for m in momentos], safe=False)

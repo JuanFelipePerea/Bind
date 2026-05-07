@@ -25,4 +25,11 @@ urlpatterns = [
     path('search/', views.global_search, name='search'),
     path('events/<int:pk>/bynix/', views.event_assistant_chat, name='event_assistant_chat'),
     path('events/<int:pk>/bynix/capture/', views.bynix_quick_capture, name='bynix_quick_capture'),
+    # Momentos
+    path('events/<int:event_pk>/momentos/nuevo/',              views.momento_create, name='momento_create'),
+    path('events/<int:event_pk>/momentos/<int:pk>/editar/',    views.momento_edit,   name='momento_edit'),
+    path('events/<int:event_pk>/momentos/<int:pk>/eliminar/',  views.momento_delete, name='momento_delete'),
+    path('events/<int:event_pk>/momentos.json',                views.momentos_json,  name='momentos_json'),
+    # Layout persistence
+    path('events/<int:pk>/layout/', views.save_layout_config, name='save_layout_config'),
 ]
