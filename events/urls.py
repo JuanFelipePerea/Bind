@@ -32,4 +32,8 @@ urlpatterns = [
     path('events/<int:event_pk>/momentos.json',                views.momentos_json,  name='momentos_json'),
     # Layout persistence
     path('events/<int:pk>/layout/', views.save_layout_config, name='save_layout_config'),
+    # Bynix — Dashboard (global, sin evento específico)
+    path('bynix/', views.dashboard_assistant_chat, name='dashboard_assistant_chat'),
+    # Events API — creación rápida vía IA
+    path('events/api/create/', views.event_api_create, name='event_api_create'),
 ]

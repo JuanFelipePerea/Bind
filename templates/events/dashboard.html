@@ -412,6 +412,223 @@
   <!-- ══════════════════ FIN GRID ══════════════════ -->
 
 </div>
+
+<!-- ══ BYNIX DASHBOARD — AGENTE GLOBAL ══════════════════════════════════════ -->
+<style>
+  #db-bynix-panel { transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+  #db-bynix-panel.bynix-hidden  { transform: translateX(100%); pointer-events: none; }
+  #db-bynix-panel.bynix-visible { transform: translateX(0);    pointer-events: auto; }
+  #db-bynix-backdrop { transition: opacity 0.3s ease; opacity: 0; pointer-events: none; }
+  #db-bynix-backdrop.bynix-active { opacity: 1; pointer-events: auto; }
+  #db-bynix-bubble {
+    transition: transform 0.2s ease, opacity 0.25s ease;
+    box-shadow: 0 4px 24px rgba(124,58,237,.45), 0 2px 8px rgba(0,0,0,.15);
+  }
+  #db-bynix-bubble:hover { transform: scale(1.08); }
+  #db-bynix-bubble:active { transform: scale(0.95); }
+  #db-bynix-bubble.bynix-bubble-hidden { opacity: 0; pointer-events: none; transform: scale(0.75); }
+  @keyframes db-bynix-pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(124,58,237,.5),  0 4px 24px rgba(124,58,237,.4); }
+    70%  { box-shadow: 0 0 0 12px rgba(124,58,237,0),  0 4px 24px rgba(219,39,119,.3); }
+    100% { box-shadow: 0 0 0 0   rgba(124,58,237,0),   0 4px 24px rgba(124,58,237,.4); }
+  }
+  #db-bynix-bubble:not(.bynix-bubble-hidden) { animation: db-bynix-pulse 2.6s ease-in-out infinite; }
+  @keyframes db-bynix-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .db-bynix-shimmer-bar {
+    background: linear-gradient(90deg, rgba(124,58,237,.18) 0%, rgba(219,39,119,.28) 50%, rgba(124,58,237,.18) 100%);
+    background-size: 200% 100%;
+    animation: db-bynix-shimmer 1.6s ease-in-out infinite;
+    border-radius: 9999px;
+  }
+  #db-bynix-top-bar {
+    background: linear-gradient(90deg,#7C3AED,#DB2777,#7C3AED);
+    background-size: 200% 100%;
+    animation: db-bynix-shimmer 5s linear infinite;
+  }
+  #db-bynix-content::-webkit-scrollbar { width: 3px; }
+  #db-bynix-content::-webkit-scrollbar-thumb { background: rgba(124,58,237,.35); border-radius: 9999px; }
+  #db-bynix-input { scrollbar-width: none; resize: none; }
+  #db-bynix-input::-webkit-scrollbar { display: none; }
+  #db-bynix-input::placeholder { color: rgba(255,255,255,.28); }
+  #db-bynix-input:focus { outline: none; border-color: rgba(124,58,237,.6) !important; }
+  @keyframes db-bynix-glow {
+    0%,100% { box-shadow: 0 0 0 0 rgba(124,58,237,.3); }
+    50%      { box-shadow: 0 0 16px 3px rgba(124,58,237,.12); }
+  }
+  .db-bynix-action-glow { animation: db-bynix-glow 2.8s ease-in-out infinite; }
+</style>
+
+<div id="db-bynix-backdrop" class="fixed inset-0 z-40"
+     style="backdrop-filter:blur(3px);background:rgba(0,0,0,.5);"
+     onclick="dbBynixClose()"></div>
+
+<button id="db-bynix-bubble" onclick="dbBynixToggle()" title="Abrir Bynix — Asistente Global"
+        class="fixed z-40 bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center"
+        style="background:#ffffff;">
+  {% if engine_summary.needs_attention %}
+  <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+    <span class="text-white font-bold" style="font-size:8px;">{{ engine_summary.critical_count }}</span>
+  </span>
+  {% endif %}
+  <img src="{% static 'img/logo-ia.png' %}" alt="Bynix" class="w-12 h-12 object-contain select-none" draggable="false">
+</button>
+
+<div id="db-bynix-panel" class="bynix-hidden fixed right-0 top-0 z-50 flex flex-col"
+     style="width:min(420px,100vw);height:100vh;height:100dvh;background:#0e0e14;
+            border-left:1px solid rgba(124,58,237,.18);box-shadow:-16px 0 60px rgba(0,0,0,.75);">
+
+  <div id="db-bynix-top-bar" style="height:3px;flex-shrink:0;"></div>
+
+  <div class="flex items-center justify-between px-5 py-4"
+       style="flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05);">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+           style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.25);">
+        <img src="{% static 'img/logo-ia.png' %}" alt="Bynix" class="w-7 h-7 object-contain">
+      </div>
+      <div>
+        <p style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-.01em;">Bynix</p>
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:.18em;
+                  color:rgba(255,255,255,.32);margin-top:4px;">Director de Operaciones</p>
+      </div>
+    </div>
+    <button onclick="dbBynixClose()" class="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
+            style="color:rgba(255,255,255,.35);"
+            onmouseover="this.style.background='rgba(255,255,255,.06)';this.style.color='rgba(255,255,255,.7)';"
+            onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,.35)';">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <div id="db-bynix-content" class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+
+    <div id="db-bynix-welcome">
+      {% if engine_summary.needs_attention %}
+      <div class="rounded-xl p-3.5 mb-4"
+           style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);">
+        <div class="flex items-start gap-2.5">
+          <span style="color:#EF4444;flex-shrink:0;margin-top:2px;font-size:13px;">✦</span>
+          <p class="text-sm leading-relaxed font-medium" style="color:rgba(255,255,255,.88);">
+            Hay <strong>{{ engine_summary.events_at_risk }} evento{{ engine_summary.events_at_risk|pluralize }}</strong>
+            en zona de riesgo y <strong>{{ engine_summary.critical_count }} alerta{{ engine_summary.critical_count|pluralize }} crítica{{ engine_summary.critical_count|pluralize }}</strong>.
+            Pregúntame qué necesita atención inmediata.
+          </p>
+        </div>
+      </div>
+      {% else %}
+      <p class="text-sm leading-relaxed mb-4" style="color:rgba(255,255,255,.55);">
+        Soy <span class="font-bold text-white">Bynix</span>, tu Director de Operaciones global.
+        Tengo visibilidad sobre todos tus eventos. Pregúntame lo que necesites o pídeme crear un evento nuevo.
+      </p>
+      {% endif %}
+
+      <div class="rounded-xl overflow-hidden text-xs"
+           style="border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);">
+        <div class="px-3.5 py-2.5" style="border-bottom:1px solid rgba(255,255,255,.06);">
+          <p style="font-weight:700;text-transform:uppercase;letter-spacing:.18em;font-size:9px;
+                    background:linear-gradient(90deg,#7C3AED,#DB2777);-webkit-background-clip:text;
+                    -webkit-text-fill-color:transparent;background-clip:text;">Capacidades globales</p>
+        </div>
+        <ul style="color:rgba(255,255,255,.45);">
+          <li class="flex items-start gap-2.5 px-3.5 py-2" style="border-bottom:1px solid rgba(255,255,255,.04);">
+            <span style="color:#7C3AED;margin-top:1px;flex-shrink:0;">✦</span>
+            <span>Analizar el estado de todos tus eventos en tiempo real</span>
+          </li>
+          <li class="flex items-start gap-2.5 px-3.5 py-2" style="border-bottom:1px solid rgba(255,255,255,.04);">
+            <span style="color:#7C3AED;margin-top:1px;flex-shrink:0;">✦</span>
+            <span>Identificar qué evento necesita tu atención inmediata</span>
+          </li>
+          <li class="flex items-start gap-2.5 px-3.5 py-2" style="border-bottom:1px solid rgba(255,255,255,.04);">
+            <span style="color:#7C3AED;margin-top:1px;flex-shrink:0;">✦</span>
+            <span>Crear un nuevo evento con una descripción en lenguaje natural</span>
+          </li>
+          <li class="flex items-start gap-2.5 px-3.5 py-2">
+            <span style="color:#7C3AED;margin-top:1px;flex-shrink:0;">✦</span>
+            <span>Navegar directamente al evento que necesita acción</span>
+          </li>
+        </ul>
+      </div>
+      <p class="text-center mt-3" style="font-size:10px;color:rgba(255,255,255,.22);">
+        Cada consulta consume <strong style="color:rgba(255,255,255,.38);">10 créditos</strong>
+      </p>
+    </div>
+
+    <div id="db-bynix-response-area" class="hidden">
+      <p id="db-bynix-response-text" class="text-sm leading-relaxed" style="color:rgba(255,255,255,.78);"></p>
+    </div>
+
+    <div id="db-bynix-skeleton" class="hidden space-y-3 pt-1">
+      <div class="db-bynix-shimmer-bar" style="height:12px;width:100%;"></div>
+      <div class="db-bynix-shimmer-bar" style="height:12px;width:83%;"></div>
+      <div class="db-bynix-shimmer-bar" style="height:12px;width:67%;"></div>
+    </div>
+
+    <!-- Tarjeta de acción (navegación o creación de evento) -->
+    <div id="db-bynix-action-card" class="hidden db-bynix-action-glow rounded-2xl overflow-hidden"
+         style="border:1px solid rgba(124,58,237,.45);background:rgba(124,58,237,.07);">
+      <div class="px-4 py-4">
+        <div class="flex items-start gap-3 mb-3.5">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+               style="background:linear-gradient(135deg,#7C3AED,#DB2777);">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p id="db-bynix-action-label" class="text-sm font-bold text-white leading-snug"></p>
+            <p id="db-bynix-action-confirm" class="text-xs mt-1.5 leading-relaxed"
+               style="color:rgba(255,255,255,.5);"></p>
+          </div>
+        </div>
+        <div id="db-bynix-action-executing" class="hidden text-center py-1 space-y-2">
+          <div class="db-bynix-shimmer-bar" style="height:8px;width:100%;"></div>
+          <p style="font-size:11px;color:rgba(255,255,255,.35);">Procesando…</p>
+        </div>
+        <div id="db-bynix-action-buttons" class="flex gap-2">
+          <button onclick="dbBynixExecuteAction()"
+                  class="flex-1 py-2.5 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90 active:scale-95"
+                  style="background:linear-gradient(135deg,#7C3AED,#DB2777);">
+            ✦ Ejecutar
+          </button>
+          <button onclick="dbBynixDismissAction()"
+                  class="px-4 py-2.5 rounded-xl text-xs font-medium transition-all"
+                  style="color:rgba(255,255,255,.38);border:1px solid rgba(255,255,255,.1);"
+                  onmouseover="this.style.background='rgba(255,255,255,.05)';"
+                  onmouseout="this.style.background='transparent';">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Input de chat -->
+  <div class="shrink-0 px-4 pb-4 pt-3" style="border-top:1px solid rgba(255,255,255,.05);">
+    <div class="relative">
+      <textarea id="db-bynix-input" rows="2"
+                placeholder="Pregunta algo o pide crear un evento…"
+                class="w-full text-sm text-white rounded-xl px-4 py-3 pr-12"
+                style="background:rgba(255,255,255,.05);border:1px solid rgba(124,58,237,.3);
+                       font-family:inherit;line-height:1.5;"></textarea>
+      <button onclick="dbBynixSend()"
+              class="absolute right-2.5 bottom-2.5 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-90 active:scale-95"
+              style="background:linear-gradient(135deg,#7C3AED,#DB2777);"
+              title="Enviar">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+        </svg>
+      </button>
+    </div>
+    <p id="db-bynix-credits-bar" class="text-center mt-2" style="font-size:10px;color:rgba(255,255,255,.22);"></p>
+  </div>
+
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -422,4 +639,164 @@
 </script>
 <script src="{% static 'js/bind_tour.js' %}"></script>
 {% endif %}
+<script>
+(function () {
+  'use strict';
+
+  const DASHBOARD_BYNIX_URL = "{% url 'events:dashboard_assistant_chat' %}";
+  const EVENT_API_CREATE_URL = "{% url 'events:event_api_create' %}";
+  const CSRF_TOKEN = "{{ csrf_token }}";
+
+  let dbPendingAction = null;
+  let dbIsOpen = false;
+
+  function dbBynixToggle() {
+    dbIsOpen ? dbBynixClose() : dbBynixOpen();
+  }
+  window.dbBynixToggle = dbBynixToggle;
+
+  function dbBynixOpen() {
+    dbIsOpen = true;
+    document.getElementById('db-bynix-panel').classList.replace('bynix-hidden', 'bynix-visible');
+    document.getElementById('db-bynix-backdrop').classList.add('bynix-active');
+    document.getElementById('db-bynix-bubble').classList.add('bynix-bubble-hidden');
+    setTimeout(() => document.getElementById('db-bynix-input').focus(), 320);
+  }
+
+  function dbBynixClose() {
+    dbIsOpen = false;
+    document.getElementById('db-bynix-panel').classList.replace('bynix-visible', 'bynix-hidden');
+    document.getElementById('db-bynix-backdrop').classList.remove('bynix-active');
+    document.getElementById('db-bynix-bubble').classList.remove('bynix-bubble-hidden');
+  }
+  window.dbBynixClose = dbBynixClose;
+
+  function dbBynixSetLoading(on) {
+    document.getElementById('db-bynix-skeleton').classList.toggle('hidden', !on);
+    document.getElementById('db-bynix-input').disabled = on;
+  }
+
+  function dbBynixShowResponse(text) {
+    const area = document.getElementById('db-bynix-response-area');
+    document.getElementById('db-bynix-response-text').textContent = text;
+    area.classList.remove('hidden');
+    document.getElementById('db-bynix-welcome').classList.add('hidden');
+  }
+
+  function dbBynixShowAction(action, responseText) {
+    dbPendingAction = action;
+    dbBynixShowResponse(responseText);
+
+    const card = document.getElementById('db-bynix-action-card');
+    const label = document.getElementById('db-bynix-action-label');
+    const confirm = document.getElementById('db-bynix-action-confirm');
+
+    if (action.type === 'CREATE_EVENT') {
+      label.textContent = `Crear evento: "${action.name}"`;
+      confirm.textContent = action.start_date
+        ? `Fecha propuesta: ${action.start_date}. ¿Confirmamos la creación?`
+        : '¿Confirmamos la creación del nuevo evento?';
+    } else if (action.type === 'NAVIGATE_EVENT') {
+      label.textContent = `Ir al evento: "${action.event_name}"`;
+      confirm.textContent = '¿Quieres ir directamente a este evento ahora?';
+    }
+
+    card.classList.remove('hidden');
+  }
+
+  async function dbBynixExecuteAction() {
+    if (!dbPendingAction) return;
+    const buttons = document.getElementById('db-bynix-action-buttons');
+    const executing = document.getElementById('db-bynix-action-executing');
+    buttons.classList.add('hidden');
+    executing.classList.remove('hidden');
+
+    try {
+      if (dbPendingAction.type === 'CREATE_EVENT') {
+        const res = await fetch(EVENT_API_CREATE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+          body: JSON.stringify({
+            name: dbPendingAction.name,
+            description: dbPendingAction.description || '',
+            start_date: dbPendingAction.start_date || null,
+          }),
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+      } else if (dbPendingAction.type === 'NAVIGATE_EVENT') {
+        window.location.href = `/events/${dbPendingAction.event_id}/`;
+        return;
+      }
+    } catch (e) {
+      console.error('Bynix action error:', e);
+    }
+
+    buttons.classList.remove('hidden');
+    executing.classList.add('hidden');
+    dbBynixDismissAction();
+  }
+  window.dbBynixExecuteAction = dbBynixExecuteAction;
+
+  function dbBynixDismissAction() {
+    dbPendingAction = null;
+    document.getElementById('db-bynix-action-card').classList.add('hidden');
+  }
+  window.dbBynixDismissAction = dbBynixDismissAction;
+
+  async function dbBynixSend() {
+    const input = document.getElementById('db-bynix-input');
+    const query = input.value.trim();
+    if (!query) return;
+
+    input.value = '';
+    dbBynixSetLoading(true);
+    dbBynixDismissAction();
+
+    try {
+      const res = await fetch(DASHBOARD_BYNIX_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ query }),
+      });
+      const data = await res.json();
+
+      dbBynixSetLoading(false);
+
+      if (data.action && data.action.type) {
+        dbBynixShowAction(data.action, data.response);
+      } else {
+        dbBynixShowResponse(data.response || 'Sin respuesta disponible.');
+        document.getElementById('db-bynix-action-card').classList.add('hidden');
+      }
+
+      if (data.credits_remaining !== undefined) {
+        const pct = data.usage_percent || 0;
+        document.getElementById('db-bynix-credits-bar').textContent =
+          `${data.credits_remaining} créditos restantes (${pct}% usado)`;
+      }
+    } catch (e) {
+      dbBynixSetLoading(false);
+      dbBynixShowResponse('Error de conexión. Intenta de nuevo.');
+    }
+  }
+  window.dbBynixSend = dbBynixSend;
+
+  // Enter para enviar, Shift+Enter para nueva línea
+  document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('db-bynix-input');
+    if (inp) {
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          dbBynixSend();
+        }
+      });
+    }
+  });
+})();
+</script>
 {% endblock %}

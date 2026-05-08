@@ -314,6 +314,22 @@ def build_event_context(event) -> dict:
     except Exception:
         pass
 
+    # Checklists — progreso y ítems pendientes
+    checklists_info = []
+    try:
+        for cl in event.checklists.prefetch_related('items').all():
+            items = list(cl.items.all())
+            total_items = len(items)
+            done_items = sum(1 for i in items if i.is_checked)
+            pct = int(done_items / total_items * 100) if total_items else 0
+            checklists_info.append({
+                'titulo': cl.title,
+                'progreso': f"{done_items}/{total_items} ({pct}%)",
+                'items_pendientes': [i.text for i in items if not i.is_checked][:5],
+            })
+    except Exception:
+        pass
+
     return {
         'nombre': event.name,
         'descripcion': event.description[:500] if event.description else '',
@@ -330,6 +346,8 @@ def build_event_context(event) -> dict:
         },
         'presupuesto': budget_info,
         'momentos': momentos_info,
+        'checklists': checklists_info,
+        # engine_status se inyecta desde la view (no aquí) para mantener separación de capas
     }
 
 
@@ -347,6 +365,17 @@ PERSONALIDAD:
 - Máximo 3-4 oraciones por respuesta a menos que el usuario
   pida un plan detallado.
 
+MOTOR DE ANÁLISIS (prioridad alta):
+El contexto incluye un campo "engine_status" con el análisis
+del motor de BIND. Úsalo siempre:
+- Si health_score < 40: el evento está en estado crítico —
+  mencionarlo aunque el usuario no pregunte.
+- Si health_score < 60: advertir sobre el estado de riesgo.
+- Si momentum es "stalled" o "slowing": proactivamente sugerir
+  retomar actividad.
+- Las "alertas_activas" son las alertas reales del sistema —
+  cítalas con los datos exactos, no las parafrasees.
+
 CAPACIDADES QUE PUEDES EJECUTAR:
 1. Crear tareas: responde con JSON action si el usuario pide
    crear tareas. Formato:
@@ -359,13 +388,15 @@ CAPACIDADES QUE PUEDES EJECUTAR:
 3. Solo análisis (sin acción): responde en texto plano.
 
 REGLAS:
-- Si el usuario pregunta "¿cómo voy?" o similar, analiza
-  los datos del evento y da una respuesta específica con
-  números reales, no genérica.
+- Si el usuario pregunta "¿cómo voy?" o similar, empieza
+  con el health_score y momentum del engine_status, luego
+  añade contexto de tareas, checklists y presupuesto.
 - Si hay tareas vencidas, mencionarlas proactivamente.
 - Si el presupuesto supera el 80%, advertirlo.
 - Si faltan menos de 7 días y hay tareas pendientes de alta
   prioridad, es urgente — dilo claramente.
+- Si hay checklists con baja completitud y el evento es próximo,
+  mencionarlo.
 - No inventes datos. Solo usa lo que está en el contexto.
 - Si no tienes suficiente información, pregunta.
 
@@ -493,3 +524,152 @@ Reglas:
     """.strip()
 
     return generate_structured_data(prompt, system_instruction=_QUICK_CAPTURE_SYSTEM)
+
+
+# ─── Dashboard Bynix — contexto global del usuario ──────────────────────────
+
+_DASHBOARD_BYNIX_SYSTEM = """
+Eres Bynix, el asistente estratégico de BIND. En el dashboard tienes visibilidad
+completa sobre todos los eventos del usuario. Tu rol aquí es diferente al del
+asistente por evento: eres el Director de Operaciones.
+
+PERSONALIDAD:
+- Directo, estratégico. Sin rodeos.
+- Español, tono ejecutivo pero accesible.
+- Máximo 3-4 oraciones salvo que el usuario pida un plan.
+
+CAPACIDADES EN EL DASHBOARD:
+1. Orientar: decirle al usuario qué evento necesita atención inmediata.
+2. Crear eventos: si el usuario pide crear un nuevo evento, extrae nombre,
+   descripción y fecha si los menciona. Devuelve:
+   {{"action": {{"type": "CREATE_EVENT", "name": "<nombre>",
+   "description": "<descripción o vacío>",
+   "start_date": "<YYYY-MM-DD o null>"}}}}
+3. Navegar: si el usuario quiere ir a un evento, devuelve:
+   {{"action": {{"type": "NAVIGATE_EVENT", "event_id": <id>, "event_name": "<nombre>"}}}}
+4. Análisis global: responde con datos reales del contexto, sin inventar.
+
+REGLAS:
+- Si hay eventos críticos (health_score < 40), mencionarlos primero siempre.
+- Si needs_attention es true y el usuario saluda o pregunta cómo está todo,
+  mencionar el evento más urgente con datos concretos.
+- No inventes datos. Solo lo que está en el contexto.
+
+RESPONDE ÚNICAMENTE con JSON válido (sin texto extra, sin bloques markdown).
+Sin acción: {{"response": "<respuesta>", "action": null}}
+Con acción: {{"response": "<confirmación breve>", "action": {{...}}}}
+
+CONTEXTO GLOBAL DEL USUARIO:
+{dashboard_context}
+
+HISTORIAL RECIENTE:
+{history_block}
+""".strip()
+
+
+def build_dashboard_context(user, engine_output: dict, stats: dict) -> dict:
+    """
+    Construye el contexto global del usuario para el Dashboard Bynix.
+    Combina engine_output (scores + decisions) con stats agregados.
+    """
+    from events.models import Event
+
+    event_scores = engine_output.get('event_scores', {})
+    event_contexts = engine_output.get('event_contexts', {})
+    all_decisions = engine_output.get('all_decisions', [])
+    summary = engine_output.get('dashboard_summary', {})
+
+    eventos_info = []
+    events_qs = Event.objects.filter(
+        owner=user, status__in=['active', 'draft']
+    ).only('id', 'name', 'start_date', 'status').order_by('-updated_at')[:10]
+
+    for event in events_qs:
+        score = event_scores.get(event.pk)
+        ctx = event_contexts.get(event.pk)
+        entry = {
+            'id': event.pk,
+            'nombre': event.name,
+            'estado': event.get_status_display(),
+        }
+        if event.start_date:
+            entry['fecha'] = event.start_date.strftime('%d/%m/%Y')
+        if score:
+            entry['health_score'] = score.health_score
+            entry['health_label'] = score.health_label
+            entry['momentum'] = score.momentum_label
+        if ctx:
+            entry['progreso_tareas'] = f"{ctx.task_done}/{ctx.task_total}"
+            entry['tareas_vencidas'] = ctx.task_overdue
+            if ctx.days_until is not None:
+                entry['dias_restantes'] = ctx.days_until
+        eventos_info.append(entry)
+
+    return {
+        'usuario': user.get_full_name() or user.username,
+        'resumen': {
+            'eventos_activos': stats.get('active_events', 0),
+            'eventos_criticos': summary.get('events_at_risk', 0),
+            'tareas_pendientes': stats.get('pending_tasks', 0),
+            'tareas_vencidas': len(stats.get('overdue_tasks', [])) if isinstance(stats.get('overdue_tasks'), list) else 0,
+            'tasa_completado': stats.get('task_completion_rate', 0),
+        },
+        'necesita_atencion': summary.get('needs_attention', False),
+        'alertas_criticas': summary.get('critical_count', 0),
+        'eventos': eventos_info,
+        'decision_top': all_decisions[0].message if all_decisions else None,
+    }
+
+
+def get_dashboard_assistant_response(query: str, dashboard_context: dict, history: list = None) -> dict:
+    """
+    Genera una respuesta de Bynix en el contexto global del dashboard.
+    Soporta acciones CREATE_EVENT y NAVIGATE_EVENT.
+    Devuelve {"response": "...", "action": null | {...}}.
+    """
+    history_block = ""
+    if history:
+        lines = [
+            f"{'Usuario' if t['role'] == 'user' else 'Bynix'}: {t['content']}"
+            for t in history
+        ]
+        history_block = "Historial reciente:\n" + "\n".join(lines) + "\n\n"
+
+    eventos_resumen = ""
+    for ev in dashboard_context.get('eventos', []):
+        score_str = f" | Salud: {ev.get('health_score', '?')}/100" if 'health_score' in ev else ""
+        dias_str = f" | {ev.get('dias_restantes')} días" if 'dias_restantes' in ev else ""
+        vencidas_str = f" | {ev.get('tareas_vencidas')} vencidas" if ev.get('tareas_vencidas') else ""
+        eventos_resumen += f"  - [{ev['id']}] {ev['nombre']}{score_str}{dias_str}{vencidas_str}\n"
+
+    prompt = f"""
+{history_block}Contexto global:
+- Eventos activos: {dashboard_context['resumen']['eventos_activos']}
+- Eventos en riesgo/críticos: {dashboard_context['resumen']['eventos_criticos']}
+- Tareas pendientes: {dashboard_context['resumen']['tareas_pendientes']}
+- Tareas vencidas: {dashboard_context['resumen']['tareas_vencidas']}
+- Tasa de completado: {dashboard_context['resumen']['tasa_completado']}%
+- Necesita atención: {dashboard_context['necesita_atencion']}
+- Alerta principal: {dashboard_context.get('decision_top') or 'ninguna'}
+
+Eventos del usuario:
+{eventos_resumen or '  (ninguno activo)'}
+
+Consulta del usuario: {query}
+
+Responde con JSON exacto:
+Sin acción: {{"response": "<respuesta directa en español>", "action": null}}
+Crear evento: {{"response": "<confirmación>", "action": {{"type": "CREATE_EVENT", "name": "<nombre>", "description": "<desc o vacío>", "start_date": "<YYYY-MM-DD o null>"}}}}
+Navegar evento: {{"response": "<confirmación>", "action": {{"type": "NAVIGATE_EVENT", "event_id": <id>, "event_name": "<nombre>"}}}}
+    """.strip()
+
+    formatted_system = _DASHBOARD_BYNIX_SYSTEM.format(
+        dashboard_context=json.dumps(dashboard_context, ensure_ascii=False, indent=2),
+        history_block=history_block or "(ninguno)",
+    )
+    result = generate_structured_data(prompt, system_instruction=formatted_system)
+    if "action" not in result:
+        result["action"] = None
+    if "response" not in result:
+        result["response"] = ""
+    return result

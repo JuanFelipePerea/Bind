@@ -2,6 +2,7 @@ import json
 import logging
 
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
@@ -348,13 +349,40 @@ def event_detail(request, pk):
     files_preview = event.files.all().order_by('-uploaded_at')[:5]
     attendees_preview = event.attendees.all()[:5]
 
+    engine_score = None
+    engine_decisions_top = []
     try:
-        from events.engine.context import build_event_context
+        from events.engine.context import build_event_context as build_engine_ctx
         from events.engine.scorer import score_event
-        engine_ctx = build_event_context(event)
-        engine_score = score_event(engine_ctx)
+        from events.engine.decisions import derive_decisions
+        _ectx = build_engine_ctx(event)
+        engine_score = score_event(_ectx)
+        engine_decisions_top = derive_decisions(_ectx, engine_score)[:3]
     except Exception:
-        engine_score = None
+        pass
+
+    # Saludo contextual de Bynix según la salud del evento
+    bynix_greeting = None
+    if engine_score is not None:
+        hs = engine_score.health_score
+        mo = engine_score.momentum_label
+        name = event.name
+        if hs < 40:
+            top_msg = engine_decisions_top[0].message if engine_decisions_top else "hay alertas críticas pendientes"
+            bynix_greeting = (
+                f"Atención: el Engine marca «{name}» en estado crítico "
+                f"(salud {hs}/100). {top_msg} ¿Revisamos juntos?"
+            )
+        elif hs < 60:
+            bynix_greeting = (
+                f"«{name}» está en zona de riesgo (salud {hs}/100, momentum: {mo}). "
+                f"Hay puntos que necesitan atención. ¿Empezamos?"
+            )
+        elif mo in ('stalled', 'slowing'):
+            bynix_greeting = (
+                f"«{name}» tiene buena salud ({hs}/100) pero el momentum está {mo}. "
+                f"¿Quieres que revisemos qué está frenando el avance?"
+            )
 
     context = {
         'event':               event,
@@ -366,6 +394,7 @@ def event_detail(request, pk):
         'files_preview':       files_preview,
         'attendees_preview':   attendees_preview,
         'engine_score':        engine_score,
+        'bynix_greeting':      bynix_greeting,
         'layout_config_json':  json.dumps(event.layout_config or {}, ensure_ascii=False),
     }
     return render(request, 'events/event_detail.html', context)
@@ -1001,6 +1030,23 @@ def event_assistant_chat(request, pk):
     from events.services.ai_service import build_event_context
     event_context = build_event_context(event)
 
+    # Fusión con el Engine: inyectar health_score, momentum y alertas activas
+    try:
+        from events.engine.context import build_event_context as build_engine_ctx
+        from events.engine.scorer import score_event
+        from events.engine.decisions import derive_decisions
+        _ectx = build_engine_ctx(event)
+        _escore = score_event(_ectx)
+        _decisions = derive_decisions(_ectx, _escore)
+        event_context['engine_status'] = {
+            'health_score': _escore.health_score,
+            'health_label': _escore.health_label,
+            'momentum': _escore.momentum_label,
+            'alertas_activas': [d.message for d in _decisions[:3]],
+        }
+    except Exception:
+        pass
+
     # Cargar y preparar historial de sesión (máx 10 interacciones = 20 entradas)
     bynix_history = request.session.get('bynix_history', {})
     event_key = str(pk)
@@ -1117,6 +1163,121 @@ def bynix_quick_capture(request, pk):
             {'error': 'No pude generar la estructura. Intenta de nuevo.'},
             status=500,
         )
+
+
+# ─────────────────────────────────────────────
+#  BYNIX — ASISTENTE DE DASHBOARD (global)
+# ─────────────────────────────────────────────
+
+@login_required
+def dashboard_assistant_chat(request):
+    """
+    Endpoint AJAX del Bynix global del Dashboard.
+    No está vinculado a un evento específico — trabaja sobre el estado global del usuario.
+    Soporta acciones: CREATE_EVENT, NAVIGATE_EVENT.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        query = body.get('query', '').strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Formato inválido'}, status=400)
+
+    if not query:
+        return JsonResponse({'error': 'La consulta está vacía'}, status=400)
+
+    try:
+        from events.engine import run_engine_for_user
+        from events.stats import compute_user_stats
+        from events.services.ai_service import (
+            build_dashboard_context, get_dashboard_assistant_response,
+            deduct_credits, get_credits_reset_info, BYNIX_DAILY_CREDITS,
+        )
+
+        engine_output = run_engine_for_user(request.user)
+        stats = compute_user_stats(request.user)
+        dashboard_ctx = build_dashboard_context(request.user, engine_output, stats)
+
+        # Historial de sesión del dashboard (clave separada)
+        bynix_history = request.session.get('bynix_history', {})
+        event_history = bynix_history.get('dashboard', [])[-20:]
+
+        result = get_dashboard_assistant_response(query, dashboard_ctx, history=event_history)
+        remaining = deduct_credits(request.user.pk)
+        usage_pct = round((1 - remaining / BYNIX_DAILY_CREDITS) * 100)
+
+        event_history = event_history + [
+            {'role': 'user',      'content': query},
+            {'role': 'assistant', 'content': result.get('response', '')},
+        ]
+        bynix_history['dashboard'] = event_history[-20:]
+        request.session['bynix_history'] = bynix_history
+        request.session.modified = True
+
+        response_data = {
+            'response':          result.get('response', ''),
+            'action':            result.get('action'),
+            'credits_remaining': remaining,
+            'usage_percent':     usage_pct,
+        }
+        if remaining <= 0:
+            reset_info = get_credits_reset_info(request.user.pk)
+            response_data['reset_time'] = reset_info['reset_time']
+
+        return JsonResponse(response_data)
+
+    except Exception as exc:
+        logger.warning("Dashboard Bynix error: %s", exc)
+        return JsonResponse({
+            'response': 'Bynix está procesando. Intenta de nuevo en un momento.',
+            'action': None,
+        })
+
+
+# ─────────────────────────────────────────────
+#  EVENTS API — Creación rápida vía IA
+# ─────────────────────────────────────────────
+
+@login_required
+def event_api_create(request):
+    """
+    Crea un evento mínimo desde el Dashboard Bynix vía AJAX.
+    Acepta JSON {name, description, start_date (YYYY-MM-DD opcional)}.
+    Retorna {id, url} para que el JS redirija al nuevo evento.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        name = body.get('name', '').strip()[:200]
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Formato inválido'}, status=400)
+
+    if not name:
+        return JsonResponse({'error': 'El nombre del evento es obligatorio'}, status=400)
+
+    from django.utils.dateparse import parse_date
+    start_date = None
+    raw_date = body.get('start_date')
+    if raw_date:
+        start_date = parse_date(str(raw_date))
+
+    event = Event.objects.create(
+        owner=request.user,
+        name=name,
+        description=body.get('description', '')[:2000],
+        start_date=start_date,
+        status='draft',
+    )
+
+    return JsonResponse({
+        'id': event.pk,
+        'url': reverse('events:event_detail', kwargs={'pk': event.pk}),
+        'name': event.name,
+    })
 
 
 # ── Momentos ─────────────────────────────────────────────────────────────────

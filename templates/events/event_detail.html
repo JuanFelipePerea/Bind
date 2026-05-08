@@ -858,10 +858,21 @@
   <div id="bynix-content" class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
 
     <div id="bynix-welcome">
+      {% if bynix_greeting %}
+      <div class="rounded-xl p-3.5 mb-4"
+           style="background:rgba({% if engine_score and engine_score.health_score < 40 %}239,68,68{% elif engine_score and engine_score.health_score < 60 %}245,158,11{% else %}124,58,237{% endif %},.08);
+                  border:1px solid rgba({% if engine_score and engine_score.health_score < 40 %}239,68,68{% elif engine_score and engine_score.health_score < 60 %}245,158,11{% else %}124,58,237{% endif %},.25);">
+        <div class="flex items-start gap-2.5">
+          <span style="color:{% if engine_score and engine_score.health_score < 40 %}#EF4444{% elif engine_score and engine_score.health_score < 60 %}#F59E0B{% else %}#7C3AED{% endif %};flex-shrink:0;margin-top:2px;font-size:13px;">✦</span>
+          <p class="text-sm leading-relaxed font-medium" style="color:rgba(255,255,255,.88);">{{ bynix_greeting }}</p>
+        </div>
+      </div>
+      {% else %}
       <p class="text-sm leading-relaxed mb-4" style="color:rgba(255,255,255,.55);">
         Soy <span class="font-bold text-white">Bynix</span>, tu agente operativo.
         Analizo el estado de tu evento en tiempo real y puedo ejecutar acciones en tu nombre.
       </p>
+      {% endif %}
       <div class="rounded-xl overflow-hidden text-xs"
            style="border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);">
         <div class="px-3.5 py-2.5" style="border-bottom:1px solid rgba(255,255,255,.06);">
