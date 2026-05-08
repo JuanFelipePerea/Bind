@@ -1144,6 +1144,8 @@ def _parse_momento_post(post, evento):
         hora_inicio = parse_datetime(hora_inicio_raw)
         if hora_inicio is None:
             errores['hora_inicio'] = 'Formato de fecha inválido.'
+        elif timezone.is_naive(hora_inicio):
+            hora_inicio = timezone.make_aware(hora_inicio)
     else:
         errores['hora_inicio'] = 'La hora de inicio es obligatoria.'
 
@@ -1151,7 +1153,10 @@ def _parse_momento_post(post, evento):
         hora_fin = parse_datetime(hora_fin_raw)
         if hora_fin is None:
             errores['hora_fin'] = 'Formato de fecha inválido.'
-        elif hora_inicio and hora_fin <= hora_inicio:
+        else:
+            if timezone.is_naive(hora_fin):
+                hora_fin = timezone.make_aware(hora_fin)
+        if hora_fin and hora_inicio and hora_fin <= hora_inicio:
             errores['hora_fin'] = 'La hora de fin debe ser posterior a la hora de inicio.'
 
     # Validación de rango: el momento debe caer dentro de las fechas del evento.
