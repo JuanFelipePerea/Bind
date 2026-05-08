@@ -393,12 +393,81 @@ def file_delete(request, event_pk, pk):
 
 @login_required
 def task_overview(request):
-    """Global tasks overview across all events owned by the user."""
-    user = request.user
-    tasks = Task.objects.filter(event__owner=user).select_related('event').order_by('-created_at')
+    """
+    Vista global de tareas del usuario con filtros por estado, prioridad y búsqueda.
+    Orden inteligente: en_progreso primero, pendientes (alta prioridad arriba), hechas al final.
+    """
+    from django.utils import timezone as tz
+    from django.db.models import Case, When, Value, IntegerField, Q
+
+    user  = request.user
+    today = tz.now().date()
+
+    status_filter   = request.GET.get('status', '').strip()
+    priority_filter = request.GET.get('priority', '').strip()
+    q               = request.GET.get('q', '').strip()
+
+    base_qs = Task.objects.filter(event__owner=user).select_related('event')
+
+    # Estadísticas sobre el total sin filtros
+    total      = base_qs.count()
+    pending_ct = base_qs.filter(status__in=['pending', 'in_progress']).count()
+    done_ct    = base_qs.filter(status='done').count()
+    overdue_ct = base_qs.filter(status__in=['pending', 'in_progress'], due_date__lt=today).count()
+    high_ct    = base_qs.filter(priority='high', status__in=['pending', 'in_progress']).count()
+
+    # Filtros aplicados
+    qs = base_qs
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+    if priority_filter:
+        qs = qs.filter(priority=priority_filter)
+    if q:
+        qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
+
+    # Orden inteligente + anotación is_overdue para el template
+    from django.db.models import BooleanField
+    qs = qs.annotate(
+        status_order=Case(
+            When(status='in_progress', then=Value(0)),
+            When(status='pending',     then=Value(1)),
+            When(status='done',        then=Value(2)),
+            default=Value(3),
+            output_field=IntegerField(),
+        ),
+        priority_order=Case(
+            When(priority='high',   then=Value(0)),
+            When(priority='medium', then=Value(1)),
+            When(priority='low',    then=Value(2)),
+            default=Value(3),
+            output_field=IntegerField(),
+        ),
+        is_overdue=Case(
+            When(
+                Q(status__in=['pending', 'in_progress']) & Q(due_date__lt=today),
+                then=Value(True),
+            ),
+            default=Value(False),
+            output_field=BooleanField(),
+        ),
+    ).order_by('status_order', 'priority_order', 'due_date')
 
     context = {
-        'tasks': tasks,
+        'tasks':           qs,
+        'today':           today,
+        'status_filter':   status_filter,
+        'priority_filter': priority_filter,
+        'q':               q,
+        'has_filters':     bool(status_filter or priority_filter or q),
+        'task_count':      qs.count(),
+        'status_choices':  Task.STATUS_CHOICES,
+        'stats': {
+            'total':   total,
+            'pending': pending_ct,
+            'done':    done_ct,
+            'overdue': overdue_ct,
+            'high':    high_ct,
+        },
     }
     return render(request, 'modules/task_overview.html', context)
 
