@@ -985,11 +985,11 @@ def calendar_view(request):
             ev.budget_used  = 0.0
             ev.budget_total = 0.0
 
-    # Todas las tareas pendientes / en progreso con fecha límite
+    # Tareas con fecha límite — se necesita event__template para el color
     all_tasks = Task.objects.filter(
         event__owner=request.user,
         due_date__isnull=False,
-    ).select_related('event').order_by('due_date')
+    ).select_related('event', 'event__template').order_by('due_date')
 
     # Próximos 5 eventos para el panel lateral
     upcoming_events = Event.objects.filter(
@@ -998,13 +998,63 @@ def calendar_view(request):
         status__in=['active', 'draft'],
     ).order_by('start_date')[:5]
 
+    # ── SRV JSON ──────────────────────────────────────────────────────────────
+    # Construimos el array en Python para garantizar tipos correctos y evitar
+    # que la localización es-co (coma decimal) rompa el JavaScript en producción.
+    from django.core.serializers.json import DjangoJSONEncoder
+
+    srv_data = []
+
+    for ev in all_events:
+        srv_data.append({
+            'id':          ev.pk,
+            'eventId':     ev.pk,
+            'eventName':   ev.name,
+            'eventColor':  ev.template.color if ev.template else '#14b8a6',
+            'title':       ev.name,
+            'status':      ev.status,
+            'start':       ev.start_date.strftime('%Y-%m-%d') if ev.start_date else '',
+            'startFull':   ev.start_date.strftime('%Y-%m-%dT%H:%M') if ev.start_date else '',
+            'end':         (ev.end_date.strftime('%Y-%m-%d') if ev.end_date
+                            else (ev.start_date.strftime('%Y-%m-%d') if ev.start_date else '')),
+            'loc':         ev.location or '',
+            'desc':        (ev.description or '')[:90],
+            'viewUrl':     reverse('events:event_detail', args=[ev.pk]),
+            'editUrl':     reverse('events:event_edit',   args=[ev.pk]),
+            'delUrl':      reverse('events:event_delete', args=[ev.pk]),
+            'type':        'event',
+            'progress':    int(ev.task_progress_pct),
+            'budgetPct':   int(ev.budget_pct),
+            'budgetUsed':  round(float(ev.budget_used),  2),
+            'budgetTotal': round(float(ev.budget_total), 2),
+        })
+
+    for t in all_tasks:
+        srv_data.append({
+            'id':         t.pk,
+            'eventId':    t.event.pk,
+            'eventName':  t.event.name,
+            'eventColor': t.event.template.color if t.event.template else '#f59e0b',
+            'title':      t.title,
+            'status':     t.status,
+            'start':      t.due_date.strftime('%Y-%m-%d') if t.due_date else '',
+            'startFull':  (t.due_date.strftime('%Y-%m-%d') + 'T00:00') if t.due_date else '',
+            'end':        t.due_date.strftime('%Y-%m-%d') if t.due_date else '',
+            'loc':        '',
+            'desc':       (t.description or '')[:90],
+            'viewUrl':    reverse('modules:task_list',   args=[t.event.pk]),
+            'editUrl':    reverse('modules:task_edit',   args=[t.event.pk, t.pk]),
+            'delUrl':     reverse('modules:task_delete', args=[t.event.pk, t.pk]),
+            'type':       'task',
+            'priority':   t.priority,
+        })
+
     context = {
-        'all_events':        all_events,
-        'all_tasks':         all_tasks,
         'upcoming_events':   upcoming_events,
         'status_choices':    Event.STATUS_CHOICES,
         'today':             today,
         'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
+        'srv_json':          json.dumps(srv_data, ensure_ascii=False, cls=DjangoJSONEncoder),
     }
     return render(request, 'events/calendar.html', context)
 

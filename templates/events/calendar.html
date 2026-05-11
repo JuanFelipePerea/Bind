@@ -121,8 +121,8 @@
     }
   }
 </script>
-<script async defer
-  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initBindCalendarMaps"></script>
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initBindCalendarMaps&loading=async"></script>
 {% endif %}
 {% endblock %}
 
@@ -394,32 +394,12 @@
 {% endblock %}
 
 
+{{ srv_json|json_script:"bind-srv-data" }}
+
 {% block extra_js %}
 <script>
-// ─── Datos del servidor ───────────────────────────────────────
-const SRV = [
-  {% for ev in all_events %}
-  { id:{{ ev.pk }}, eventId:{{ ev.pk }}, eventName:"{{ ev.name|escapejs }}",
-    eventColor:"{{ ev.template.color|default:'#14b8a6' }}",
-    title:"{{ ev.name|escapejs }}", status:"{{ ev.status }}",
-    start:"{{ ev.start_date|date:'Y-m-d' }}", startFull:"{{ ev.start_date|date:'Y-m-d\TH:i' }}",
-    end:"{{ ev.end_date|date:'Y-m-d'|default:'' }}" || "{{ ev.start_date|date:'Y-m-d' }}",
-    loc:"{{ ev.location|escapejs }}", desc:"{{ ev.description|truncatechars:90|escapejs }}",
-    viewUrl:"{% url 'events:event_detail' ev.pk %}", editUrl:"{% url 'events:event_edit' ev.pk %}",
-    delUrl:"{% url 'events:event_delete' ev.pk %}", type:"event",
-    progress:{{ ev.task_progress_pct|default:0 }}, budgetPct:{{ ev.budget_pct|default:0 }},
-    budgetUsed:{{ ev.budget_used|default:0 }}, budgetTotal:{{ ev.budget_total|default:0 }} },
-  {% endfor %}
-  {% for t in all_tasks %}
-  { id:{{ t.pk }}, eventId:{{ t.event.pk }}, eventName:"{{ t.event.name|escapejs }}",
-    eventColor:"{{ t.event.template.color|default:'#f59e0b' }}",
-    title:"{{ t.title|escapejs }}", status:"{{ t.status }}",
-    start:"{{ t.due_date|date:'Y-m-d' }}", startFull:"{{ t.due_date|date:'Y-m-d\T00:00' }}",
-    end:"{{ t.due_date|date:'Y-m-d' }}", loc:"", desc:"{{ t.description|truncatechars:90|escapejs }}",
-    viewUrl:"{% url 'modules:task_list' t.event.pk %}", editUrl:"{% url 'modules:task_edit' t.event.pk t.pk %}",
-    delUrl:"{% url 'modules:task_delete' t.event.pk t.pk %}", type:"task", priority:"{{ t.priority }}" },
-  {% endfor %}
-];
+// ─── Datos del servidor (JSON construido en Python, sin bugs de locale) ───
+const SRV = JSON.parse(document.getElementById('bind-srv-data').textContent);
 
 // Lista única de eventos para el filtro por evento
 const EVENT_LIST = (()=>{
