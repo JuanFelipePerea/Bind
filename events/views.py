@@ -11,6 +11,7 @@ from django.db import transaction
 from django.db.models import Count, Q
 
 from django.db import models as db_models
+from django.conf import settings
 from .models import Event, EventTemplate, EventModule, TemplateModule, EventAlert, EngineMetrics, Momento
 from .stats import compute_user_stats
 from modules.models import Task, File, Checklist, ChecklistItem
@@ -396,6 +397,7 @@ def event_detail(request, pk):
         'engine_score':        engine_score,
         'bynix_greeting':      bynix_greeting,
         'layout_config_json':  json.dumps(event.layout_config or {}, ensure_ascii=False),
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
     }
     return render(request, 'events/event_detail.html', context)
 
@@ -503,8 +505,9 @@ def event_create(request):
         if not name:
             messages.error(request, 'El nombre del evento es obligatorio.')
             return render(request, 'events/event_form.html', {
-                'templates':      templates,
-                'templates_json': _build_templates_json(templates),
+                'templates':         templates,
+                'templates_json':    _build_templates_json(templates),
+                'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
             })
 
         template = None
@@ -572,9 +575,10 @@ def event_create(request):
         selected_template = EventTemplate.objects.filter(pk=template_param).first()
 
     return render(request, 'events/event_form.html', {
-        'templates':         templates,
-        'templates_json':    _build_templates_json(templates),
-        'selected_template': selected_template,
+        'templates':           templates,
+        'templates_json':      _build_templates_json(templates),
+        'selected_template':   selected_template,
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
     })
 
 
@@ -682,9 +686,10 @@ def event_edit(request, pk):
         return redirect('events:event_detail', pk=event.pk)
 
     return render(request, 'events/event_form.html', {
-        'event':    event,
-        'object':   event,
-        'templates': EventTemplate.objects.all(),
+        'event':               event,
+        'object':              event,
+        'templates':           EventTemplate.objects.all(),
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
     })
 
 
@@ -994,11 +999,12 @@ def calendar_view(request):
     ).order_by('start_date')[:5]
 
     context = {
-        'all_events':      all_events,
-        'all_tasks':       all_tasks,
-        'upcoming_events': upcoming_events,
-        'status_choices':  Event.STATUS_CHOICES,
-        'today':           today,
+        'all_events':        all_events,
+        'all_tasks':         all_tasks,
+        'upcoming_events':   upcoming_events,
+        'status_choices':    Event.STATUS_CHOICES,
+        'today':             today,
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
     }
     return render(request, 'events/calendar.html', context)
 

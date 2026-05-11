@@ -48,6 +48,27 @@ class UserProfile(models.Model):
     # Tutorial de onboarding
     onboarding_completed = models.BooleanField(default=False)
 
+    @property
+    def google_calendar_connected(self):
+        """True si el usuario tiene un refresh_token de Google con scope de Calendar."""
+        from allauth.socialaccount.models import SocialToken
+        return SocialToken.objects.filter(
+            account__user=self.user,
+            account__provider='google',
+            token_secret__isnull=False,
+        ).exclude(token_secret='').exists()
+
+    @property
+    def google_refresh_token(self):
+        """Retorna el refresh_token de Google, o None si no existe."""
+        from allauth.socialaccount.models import SocialToken
+        token = SocialToken.objects.filter(
+            account__user=self.user,
+            account__provider='google',
+            token_secret__isnull=False,
+        ).exclude(token_secret='').first()
+        return token.token_secret if token else None
+
     def __str__(self):
         return f"{self.user.username} ({self.role})"
 

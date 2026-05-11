@@ -252,11 +252,21 @@
 
         <!-- Ubicación -->
         <div>
-          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ubicación</label>
-          <input type="text" name="location"
-            value="{{ event.location|default:'' }}"
-            placeholder="Ej: Bogotá, Colombia"
-            class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all text-gray-800 dark:text-white placeholder-gray-400 text-sm">
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Ubicación
+            {% if google_maps_api_key %}<span class="text-xs font-normal text-gray-400 ml-1">— autocompletado activo</span>{% endif %}
+          </label>
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <input type="text" name="location" id="locationInput"
+              value="{{ event.location|default:'' }}"
+              placeholder="Buscar lugar, dirección o ciudad…"
+              autocomplete="off"
+              class="w-full pl-9 pr-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all text-gray-800 dark:text-white placeholder-gray-400 text-sm">
+          </div>
         </div>
 
         <!-- Fechas -->
@@ -721,5 +731,27 @@ document.getElementById('templatePreviewModal')?.addEventListener('click', funct
   if (e.target === this) closeTemplatePreview();
 });
 </script>
+{% endif %}
+
+{% if google_maps_api_key %}
+<script>
+function initBindFormPlaces() {
+  var input = document.getElementById('locationInput');
+  if (!input || !window.google || !google.maps || !google.maps.places) return;
+  var ac = new google.maps.places.Autocomplete(input, {
+    types: ['establishment', 'geocode'],
+    fields: ['name', 'formatted_address'],
+  });
+  // Cuando el usuario selecciona un lugar, usa la dirección formateada como valor
+  ac.addListener('place_changed', function() {
+    var place = ac.getPlace();
+    if (place && place.formatted_address) {
+      input.value = place.formatted_address;
+    }
+  });
+}
+</script>
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initBindFormPlaces"></script>
 {% endif %}
 {% endblock %}

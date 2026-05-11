@@ -14,6 +14,19 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 _allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
 
+# Render.com inyecta RENDER_EXTERNAL_HOSTNAME automáticamente en producción
+_render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
+if _render_host:
+    ALLOWED_HOSTS.append(_render_host)
+
+CSRF_TRUSTED_ORIGINS = (
+    [f'https://{_render_host}'] if _render_host else []
+) + [
+    o.strip()
+    for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if o.strip()
+]
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -164,6 +177,11 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 SOCIALACCOUNT_ADAPTER = 'accounts.adapters.BindSocialAccountAdapter'
 
+GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+
+# Persiste access_token + refresh_token en la tabla socialaccount_socialtoken
+SOCIALACCOUNT_STORE_TOKENS = True
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APP': {
@@ -171,8 +189,18 @@ SOCIALACCOUNT_PROVIDERS = {
             'secret': os.environ.get('GOOGLE_CLIENT_SECRET', ''),
             'key': '',
         },
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'online'},
+        # calendar incluido para poder sincronizar eventos desde BIND
+        'SCOPE': [
+            'profile',
+            'email',
+            'https://www.googleapis.com/auth/calendar',
+        ],
+        # offline → Google retorna refresh_token; consent → fuerza pantalla de permisos
+        # para que el refresh_token esté disponible aunque el usuario ya haya aceptado antes
+        'AUTH_PARAMS': {
+            'access_type': 'offline',
+            'prompt': 'consent select_account',
+        },
     }
 }
 

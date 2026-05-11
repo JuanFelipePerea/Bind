@@ -70,7 +70,60 @@
     color: #0d9488;
   }
   .dark .view-btn-active { color: #5eead4; }
+
+  /* ── FILTROS ────────────────────────────────────────────────── */
+  .fp {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px; border-radius: 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: .01em;
+    transition: all .18s cubic-bezier(.16,1,.3,1); border: 1.5px solid transparent;
+    cursor: pointer; line-height: 1.2; white-space: nowrap;
+  }
+  .fp.on {
+    background: rgba(20,184,166,.13); border-color: rgba(20,184,166,.5);
+    color: #0d9488; box-shadow: 0 0 0 3px rgba(20,184,166,.08);
+  }
+  .dark .fp.on { color: #5eead4; border-color: rgba(94,234,212,.35); background: rgba(20,184,166,.1); }
+  .fp.off {
+    background: transparent; border-color: rgba(156,163,175,.25); color: #9ca3af;
+  }
+  .dark .fp.off { border-color: rgba(75,85,99,.5); color: #4b5563; }
+  .fp.off:hover { border-color: rgba(20,184,166,.35); color: #6b7280; background: rgba(20,184,166,.05); }
+
+  /* ítem de evento en el filtro */
+  .ev-filter-item {
+    display: flex; align-items: center; gap: 6px; width: 100%;
+    padding: 5px 8px; border-radius: 8px;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    transition: all .15s; border: 1.5px solid transparent; text-align: left;
+  }
+  .ev-filter-item.fi-on {
+    background: rgba(255,255,255,.6); border-color: rgba(0,0,0,.07);
+    color: #374151;
+  }
+  .dark .ev-filter-item.fi-on { background: rgba(55,65,81,.5); border-color: rgba(255,255,255,.08); color: #e5e7eb; }
+  .ev-filter-item.fi-off {
+    background: transparent; color: #9ca3af; opacity: .55;
+  }
+  .ev-filter-item.fi-off:hover { opacity: .8; }
 </style>
+
+{% if google_maps_api_key %}
+<script>
+  function initBindCalendarMaps() {
+    // Places autocomplete en el modal de creación rápida
+    var locInput = document.getElementById('mLocationInput');
+    if (locInput && google.maps && google.maps.places) {
+      new google.maps.places.Autocomplete(locInput, {
+        types: ['establishment', 'geocode'],
+        fields: ['name', 'formatted_address'],
+      });
+    }
+  }
+</script>
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initBindCalendarMaps"></script>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -111,30 +164,54 @@
       <div id="miniGrid" class="grid grid-cols-7"></div>
     </div>
 
-    <!-- Filtros -->
-    <div class="glass rounded-2xl p-3 border border-gray-200/60 dark:border-gray-700/60">
-      <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2.5">Mostrar</p>
-      <div class="space-y-2">
-        <label class="flex items-center gap-2.5 cursor-pointer group">
-          <input type="checkbox" id="filterEvents" checked class="w-3.5 h-3.5 rounded accent-teal-500">
-          <span class="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-300">
-            <span class="w-2.5 h-2.5 rounded-sm bg-teal-500 shrink-0"></span>Eventos
-          </span>
-        </label>
-        <label class="flex items-center gap-2.5 cursor-pointer group">
-          <input type="checkbox" id="filterTasks" checked class="w-3.5 h-3.5 rounded accent-teal-500">
-          <span class="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-300">
-            <span class="w-2.5 h-2.5 rounded-sm bg-amber-400 shrink-0"></span>Tareas
-          </span>
-        </label>
+    <!-- ══ FILTROS — rediseño visual ══ -->
+    <div class="glass rounded-2xl border border-gray-200/60 dark:border-gray-700/60 overflow-hidden">
+
+      <!-- Cabecera del panel -->
+      <div class="flex items-center justify-between px-3 pt-3 pb-2 border-b border-gray-100/60 dark:border-gray-700/40">
+        <div class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+              d="M3 4a1 1 0 011-1h16a1 1 0 010 2H4a1 1 0 01-1-1zm3 4a1 1 0 011-1h10a1 1 0 010 2H7a1 1 0 01-1-1zm4 4a1 1 0 011-1h2a1 1 0 010 2h-2a1 1 0 01-1-1z"/>
+          </svg>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Filtros</span>
+          <span id="filterBadge"
+            class="hidden text-[9px] font-black bg-teal-500 text-white rounded-full px-1.5 leading-5 min-w-[18px] text-center shadow-sm shadow-teal-500/30">0</span>
+        </div>
+        <button id="btnClearFilters" onclick="clearFilters()"
+          class="hidden text-[10px] font-bold text-teal-500 hover:text-teal-700 dark:hover:text-teal-300 transition-colors px-1">
+          Limpiar
+        </button>
       </div>
 
-      <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-3.5 mb-2.5">Estado</p>
-      <div class="grid grid-cols-2 gap-1 text-[10px] text-gray-500 dark:text-gray-400">
-        <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-teal-500 shrink-0"></span>Activo</div>
-        <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>Completado</div>
-        <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-gray-400 shrink-0"></span>Borrador</div>
-        <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Cancelado</div>
+      <!-- Tipo: Eventos / Tareas -->
+      <div class="px-3 py-2.5 border-b border-gray-100/60 dark:border-gray-700/40">
+        <p class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Tipo</p>
+        <div class="flex gap-1.5 flex-wrap">
+          <button id="pillEv" onclick="toggleTypeFilter('event')" class="fp on">
+            <span class="w-2 h-2 rounded-sm bg-teal-400 shrink-0"></span>Eventos
+          </button>
+          <button id="pillTask" onclick="toggleTypeFilter('task')" class="fp on">
+            <span class="w-2 h-2 rounded-sm bg-amber-400 shrink-0"></span>Tareas
+          </button>
+        </div>
+      </div>
+
+      <!-- Por evento -->
+      <div class="px-3 py-2.5">
+        <p class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Por evento</p>
+        <div id="evFilterList" class="space-y-0.5 max-h-48 overflow-y-auto no-scroll"></div>
+      </div>
+
+      <!-- Leyenda de colores (compacta, no interactiva) -->
+      <div class="px-3 pb-3 pt-0.5 border-t border-gray-100/60 dark:border-gray-700/40 mt-1">
+        <p class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Estado</p>
+        <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-gray-500 dark:text-gray-400">
+          <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-teal-500 shrink-0"></span>Activo</div>
+          <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>Completado</div>
+          <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-gray-400 shrink-0"></span>Borrador</div>
+          <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Cancelado</div>
+        </div>
       </div>
     </div>
 
@@ -258,9 +335,18 @@
       </div>
       <!-- ubicación -->
       <div>
-        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Ubicación</label>
-        <input type="text" name="location" placeholder="Agregar ubicación"
-          class="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm text-gray-800 dark:text-white placeholder-gray-400 transition-all">
+        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+          Ubicación
+          {% if google_maps_api_key %}<span class="normal-case text-[10px] font-normal text-gray-400 ml-1">— autocompletado</span>{% endif %}
+        </label>
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <input type="text" name="location" id="mLocationInput" placeholder="Buscar lugar o dirección…"
+            class="w-full pl-9 pr-4 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm text-gray-800 dark:text-white placeholder-gray-400 transition-all">
+        </div>
       </div>
       <!-- fechas -->
       <div class="grid grid-cols-2 gap-3">
@@ -313,7 +399,9 @@
 // ─── Datos del servidor ───────────────────────────────────────
 const SRV = [
   {% for ev in all_events %}
-  { id:{{ ev.pk }}, title:"{{ ev.name|escapejs }}", status:"{{ ev.status }}",
+  { id:{{ ev.pk }}, eventId:{{ ev.pk }}, eventName:"{{ ev.name|escapejs }}",
+    eventColor:"{{ ev.template.color|default:'#14b8a6' }}",
+    title:"{{ ev.name|escapejs }}", status:"{{ ev.status }}",
     start:"{{ ev.start_date|date:'Y-m-d' }}", startFull:"{{ ev.start_date|date:'Y-m-d\TH:i' }}",
     end:"{{ ev.end_date|date:'Y-m-d'|default:'' }}" || "{{ ev.start_date|date:'Y-m-d' }}",
     loc:"{{ ev.location|escapejs }}", desc:"{{ ev.description|truncatechars:90|escapejs }}",
@@ -323,7 +411,9 @@ const SRV = [
     budgetUsed:{{ ev.budget_used|default:0 }}, budgetTotal:{{ ev.budget_total|default:0 }} },
   {% endfor %}
   {% for t in all_tasks %}
-  { id:{{ t.pk }}, title:"{{ t.title|escapejs }}", status:"{{ t.status }}",
+  { id:{{ t.pk }}, eventId:{{ t.event.pk }}, eventName:"{{ t.event.name|escapejs }}",
+    eventColor:"{{ t.event.template.color|default:'#f59e0b' }}",
+    title:"{{ t.title|escapejs }}", status:"{{ t.status }}",
     start:"{{ t.due_date|date:'Y-m-d' }}", startFull:"{{ t.due_date|date:'Y-m-d\T00:00' }}",
     end:"{{ t.due_date|date:'Y-m-d' }}", loc:"", desc:"{{ t.description|truncatechars:90|escapejs }}",
     viewUrl:"{% url 'modules:task_list' t.event.pk %}", editUrl:"{% url 'modules:task_edit' t.event.pk t.pk %}",
@@ -331,12 +421,23 @@ const SRV = [
   {% endfor %}
 ];
 
+// Lista única de eventos para el filtro por evento
+const EVENT_LIST = (()=>{
+  const seen = new Map();
+  SRV.forEach(item=>{
+    if(!seen.has(item.eventId))
+      seen.set(item.eventId, {id:item.eventId, name:item.eventName, color:item.eventColor||'#14b8a6'});
+  });
+  return [...seen.values()];
+})();
+
 // ─── Estado ───────────────────────────────────────────────────
-let VIEW       = 'month';
-let CUR        = new Date();
-let MINI       = new Date();
-let showEv     = true;
-let showTask   = true;
+let VIEW           = 'month';
+let CUR            = new Date();
+let MINI           = new Date();
+let showEv         = true;
+let showTask       = true;
+let activeEventIds = new Set(); // vacío = sin filtro (mostrar todo)
 
 const MES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIA  = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
@@ -357,9 +458,80 @@ const SL = {active:'Activo',completed:'Completado',draft:'Borrador',cancelled:'C
 function ymd(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function sameDay(a,b){ return ymd(a)===ymd(b); }
 function TODAY(){ return new Date(); }
-function filtered(){ return SRV.filter(e=>e.type==='event'?showEv:showTask); }
+function filtered(){
+  return SRV.filter(item=>{
+    if(item.type==='event' && !showEv) return false;
+    if(item.type==='task'  && !showTask) return false;
+    if(activeEventIds.size>0 && !activeEventIds.has(item.eventId)) return false;
+    return true;
+  });
+}
 function forDay(ds){ return filtered().filter(e=>e.start<=ds&&(e.end>=ds||e.start===ds)); }
 function col(ev){ return ev.type==='task'?C.task:(C[ev.status]||C.draft); }
+
+// ─── FILTROS — lógica ─────────────────────────────────────────
+function toggleTypeFilter(type){
+  if(type==='event'){ showEv=!showEv; }
+  else              { showTask=!showTask; }
+  syncFilterUI(); render();
+}
+
+function toggleEventFilter(evId){
+  if(activeEventIds.has(evId)){
+    activeEventIds.delete(evId);
+    // si queda vacío → mostrar todos
+  } else {
+    activeEventIds.add(evId);
+  }
+  syncFilterUI(); render();
+}
+
+function clearFilters(){
+  showEv=true; showTask=true; activeEventIds.clear();
+  syncFilterUI(); render();
+}
+
+function syncFilterUI(){
+  // Pills de tipo
+  const pEv   = document.getElementById('pillEv');
+  const pTask = document.getElementById('pillTask');
+  if(pEv)   { pEv.className   = pEv.className.replace(/\b(on|off)\b/g,'')  + (showEv   ? ' on' : ' off'); }
+  if(pTask) { pTask.className = pTask.className.replace(/\b(on|off)\b/g,'') + (showTask ? ' on' : ' off'); }
+
+  // Lista de eventos
+  renderEvFilterList();
+
+  // Contador y botón "Limpiar"
+  let count = 0;
+  if(!showEv)            count++;
+  if(!showTask)          count++;
+  if(activeEventIds.size) count += activeEventIds.size;
+  const badge   = document.getElementById('filterBadge');
+  const btnClear= document.getElementById('btnClearFilters');
+  if(badge){
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count===0);
+  }
+  if(btnClear) btnClear.classList.toggle('hidden', count===0);
+}
+
+function renderEvFilterList(){
+  const list = document.getElementById('evFilterList');
+  if(!list) return;
+  if(!EVENT_LIST.length){
+    list.innerHTML='<p class="text-[10px] text-gray-400 text-center py-2">Sin eventos</p>';
+    return;
+  }
+  list.innerHTML = EVENT_LIST.map(ev=>{
+    const isOn = activeEventIds.size===0 || activeEventIds.has(ev.id);
+    const cls  = isOn ? 'fi-on' : 'fi-off';
+    return `<button class="ev-filter-item ${cls}" onclick="toggleEventFilter(${ev.id})">
+      <span class="w-2.5 h-2.5 rounded-full shrink-0 border-2 border-white/50" style="background:${ev.color}"></span>
+      <span class="truncate flex-1">${ev.name}</span>
+      ${isOn&&activeEventIds.size>0?'<svg class="w-3 h-3 shrink-0 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}
+    </button>`;
+  }).join('');
+}
 
 // ─── RENDER PRINCIPAL ─────────────────────────────────────────
 function render(){
@@ -551,8 +723,11 @@ function showPop(e, evJson){
     dateEl.innerHTML=`<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`+d.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
     dateEl.classList.remove('hidden'); } else dateEl.classList.add('hidden');
   const locEl=document.getElementById('ploc');
-  if(ev.loc){ locEl.innerHTML=`<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>${ev.loc}`;
-    locEl.classList.remove('hidden'); } else locEl.classList.add('hidden');
+  if(ev.loc){
+    const mapsUrl=`https://maps.google.com/?q=${encodeURIComponent(ev.loc)}`;
+    locEl.innerHTML=`<svg class="w-3.5 h-3.5 shrink-0 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg><a href="${mapsUrl}" target="_blank" rel="noopener" class="hover:text-teal-600 dark:hover:text-teal-400 hover:underline transition-colors truncate">${ev.loc}</a>`;
+    locEl.classList.remove('hidden');
+  } else locEl.classList.add('hidden');
   const descEl=document.getElementById('pdesc');
   if(ev.desc){ descEl.textContent=ev.desc; descEl.classList.remove('hidden'); } else descEl.classList.add('hidden');
   document.getElementById('pview').href=ev.viewUrl;
@@ -631,11 +806,10 @@ document.getElementById('btnNext').onclick=()=>{
 };
 document.getElementById('miniPrev').onclick=()=>{ MINI=new Date(MINI.getFullYear(),MINI.getMonth()-1,1); renderMini(); };
 document.getElementById('miniNext').onclick=()=>{ MINI=new Date(MINI.getFullYear(),MINI.getMonth()+1,1); renderMini(); };
-document.getElementById('filterEvents').onchange=e=>{ showEv=e.target.checked; render(); };
-document.getElementById('filterTasks').onchange =e=>{ showTask=e.target.checked; render(); };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closePopup(); closeCreateModal(); } });
 
 // ─── INICIO ───────────────────────────────────────────────────
+renderEvFilterList();  // construye la lista de eventos en el panel
 render();
 </script>
 {% endblock %}
