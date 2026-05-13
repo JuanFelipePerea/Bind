@@ -7,10 +7,86 @@ siguiendo el principio de separación de responsabilidades.
 
 from django.utils import timezone
 from django.db.models import Count
-from datetime import timedelta
+from datetime import timedelta, datetime as dt
 
 from .models import Event
 from modules.models import Task, File, Checklist
+
+
+# ─── Time-state constants ────────────────────────────────────────────────────
+_STATE_ORDER = {'overdue': 0, 'critical': 1, 'coming_up': 2, 'soon': 3, 'normal': 4, 'no_date': 5}
+
+
+def _annotate_task_time(task, today, tomorrow):
+    """
+    Annotates a Task instance with:
+      task.time_state  — 'overdue' | 'critical' | 'coming_up' | 'soon' | 'normal' | 'no_date'
+      task.time_label  — human-readable Spanish label
+      task.due_date_iso — ISO date string or ''
+    Returns the annotated task.
+    """
+    if not task.due_date:
+        task.time_state   = 'no_date'
+        task.time_label   = 'Sin fecha límite'
+        task.due_date_iso = ''
+        return task
+
+    task.due_date_iso = task.due_date.isoformat()
+
+    if task.due_date < today:
+        days_over = (today - task.due_date).days
+        if days_over == 1:
+            task.time_label = 'Vencida hace 1 día'
+        elif days_over < 7:
+            task.time_label = f'Vencida hace {days_over} días'
+        elif days_over < 30:
+            w = days_over // 7
+            task.time_label = f"Vencida hace {w} semana{'s' if w > 1 else ''}"
+        else:
+            task.time_label = f'Vencida hace {days_over} días'
+        task.time_state = 'overdue'
+
+    elif task.due_date == today:
+        task.time_state = 'critical'
+        task.time_label = 'Vence hoy'
+
+    elif task.due_date == tomorrow:
+        task.time_state = 'coming_up'
+        task.time_label = 'Vence mañana'
+
+    elif (task.due_date - today).days <= 7:
+        days_left = (task.due_date - today).days
+        task.time_state = 'soon'
+        task.time_label = f'Faltan {days_left} días'
+
+    else:
+        task.time_state = 'normal'
+        task.time_label = f'Faltan {(task.due_date - today).days} días'
+
+    return task
+
+
+def compute_smart_tasks(user, today, tomorrow, tasks_qs):
+    """
+    Returns (smart_tasks, critical_task) where:
+      smart_tasks   — up to 6 pending/in_progress tasks sorted by urgency
+      critical_task — first task in 'overdue' or 'critical' state (for the banner)
+    """
+    qs = (
+        tasks_qs
+        .filter(status__in=['pending', 'in_progress'])
+        .select_related('event')
+        .order_by('due_date', '-priority')[:20]
+    )
+
+    annotated = [_annotate_task_time(t, today, tomorrow) for t in qs]
+    annotated.sort(key=lambda t: _STATE_ORDER.get(t.time_state, 5))
+
+    critical_task = next(
+        (t for t in annotated if t.time_state in ('overdue', 'critical')),
+        None
+    )
+    return annotated[:6], critical_task
 
 
 def compute_user_stats(user):
@@ -108,8 +184,12 @@ def compute_user_stats(user):
         done_t = featured_event.tasks.filter(status='done').count() if total_t > 0 else 0
         featured_event.task_progress = int((done_t / total_t) * 100) if total_t > 0 else 0
 
-    # urgent tasks
-    urgent_tasks = Task.objects.filter(event__owner=user, priority='high', status='pending').select_related('event')[:3]
+    # urgent tasks (kept for backward compat)
+    urgent_tasks = tasks_qs.filter(priority='high', status='pending').select_related('event')[:3]
+
+    # smart time-aware tasks
+    tomorrow = today + timedelta(days=1)
+    smart_tasks, critical_task = compute_smart_tasks(user, today, tomorrow, tasks_qs)
 
     # recent events
     recent_events = events_qs.order_by('-updated_at')[:6]
@@ -142,7 +222,9 @@ def compute_user_stats(user):
         'overdue_tasks': overdue_tasks,
         'checklists_data': checklists_data,
         'featured_event': featured_event,
-        'urgent_tasks': urgent_tasks,
+        'urgent_tasks':  urgent_tasks,
+        'smart_tasks':   smart_tasks,
+        'critical_task': critical_task,
         'recent_events': recent_events,
         'tasks_today': tasks_today,
         'today': today,

@@ -8,8 +8,12 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 import random
 import re
+from datetime import timedelta
+
+_2FA_CODE_EXPIRY_MINUTES = 5
 
 from .models import UserProfile
 
@@ -54,6 +58,7 @@ def login_view(request):
                 request.session['2fa_pending_user_id'] = user.id
                 code = _generate_2fa_code()
                 profile.two_factor_secret = code
+                profile.two_factor_sent_at = timezone.now()
                 profile.save()
                 send_mail(
                     subject='Tu código de verificación BIND',
@@ -81,12 +86,30 @@ def login_2fa_verify_view(request):
         if not user_id:
             return redirect('accounts:login')
 
-        user = User.objects.get(id=user_id)
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            request.session.pop('2fa_pending_user_id', None)
+            messages.error(request, 'Sesión inválida. Intenta de nuevo.')
+            return redirect('accounts:login')
+
         profile, _ = UserProfile.objects.get_or_create(user=user)
+
+        # Verificar expiración del código
+        if profile.two_factor_sent_at:
+            expires_at = profile.two_factor_sent_at + timedelta(minutes=_2FA_CODE_EXPIRY_MINUTES)
+            if timezone.now() > expires_at:
+                profile.two_factor_secret = None
+                profile.two_factor_sent_at = None
+                profile.save()
+                request.session.pop('2fa_pending_user_id', None)
+                messages.error(request, 'El código expiró. Vuelve a iniciar sesión.')
+                return redirect('accounts:login')
 
         code = request.POST.get('code', '').strip()
         if code == profile.two_factor_secret:
             profile.two_factor_secret = None
+            profile.two_factor_sent_at = None
             profile.save()
             login(request, user)
             del request.session['2fa_pending_user_id']
@@ -185,7 +208,15 @@ def profile_edit_view(request):
 
         profile.phone = raw_phone or None
         profile.bio   = request.POST.get('bio', '').strip()
-        profile.two_factor_enabled = request.POST.get('two_factor_enabled') == 'on'
+
+        wants_2fa = request.POST.get('two_factor_enabled') == 'on'
+        enabling_2fa = wants_2fa and not profile.two_factor_enabled
+
+        # Si intenta desactivar 2FA desde aquí, permitirlo directamente
+        if not wants_2fa and profile.two_factor_enabled:
+            profile.two_factor_enabled = False
+            profile.two_factor_secret = None
+            profile.two_factor_sent_at = None
 
         # Avatar (archivo)
         if 'avatar' in request.FILES:
@@ -193,6 +224,11 @@ def profile_edit_view(request):
 
         request.user.save()
         profile.save()
+
+        # Si quiere activar 2FA, redirigir al flujo de verificación por email
+        if enabling_2fa:
+            messages.info(request, 'Para activar la verificación en 2 pasos, confirma tu email.')
+            return redirect('accounts:2fa_enable')
 
         messages.success(request, 'Perfil actualizado correctamente.')
         return redirect('accounts:profile')
@@ -240,19 +276,20 @@ def enable_2fa_send(request):
 
     code = _generate_2fa_code()
     profile.two_factor_secret = code
+    profile.two_factor_sent_at = timezone.now()
     profile.save()
 
     try:
         send_mail(
             subject='Tu código de verificación BIND',
-            message=f'Hola {request.user.first_name or request.user.username},\n\nTu código de verificación es: {code}\n\nVálido por 5 minutos.',
+            message=f'Hola {request.user.first_name or request.user.username},\n\nTu código de verificación es: {code}\n\nVálido por {_2FA_CODE_EXPIRY_MINUTES} minutos.',
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[request.user.email],
             fail_silently=False,
         )
         messages.success(request, 'Código enviado a tu email.')
     except Exception:
-        messages.warning(request, 'No se pudo enviar el email (configura SMTP). Código: ' + code)
+        messages.error(request, 'No se pudo enviar el email. Verifica tu configuración SMTP.')
 
     return redirect('accounts:2fa_verify')
 
@@ -263,10 +300,21 @@ def verify_2fa_view(request):
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
     if request.method == 'POST':
+        # Verificar expiración del código
+        if profile.two_factor_sent_at:
+            expires_at = profile.two_factor_sent_at + timedelta(minutes=_2FA_CODE_EXPIRY_MINUTES)
+            if timezone.now() > expires_at:
+                profile.two_factor_secret = None
+                profile.two_factor_sent_at = None
+                profile.save()
+                messages.error(request, 'El código expiró. Solicita uno nuevo.')
+                return redirect('accounts:2fa_enable')
+
         code = request.POST.get('code', '').strip()
         if code == profile.two_factor_secret:
             profile.two_factor_enabled = True
             profile.two_factor_secret = None
+            profile.two_factor_sent_at = None
             profile.save()
             messages.success(request, 'Verificación en 2 pasos activada.')
             return redirect('accounts:profile')

@@ -41,6 +41,7 @@ class UserProfile(models.Model):
     # Verificación en 2 pasos
     two_factor_enabled = models.BooleanField(default=False)
     two_factor_secret = models.CharField(max_length=32, blank=True, null=True)
+    two_factor_sent_at = models.DateTimeField(null=True, blank=True)
 
     # Fecha de creación del perfil
     created_at = models.DateTimeField(auto_now_add=True)
