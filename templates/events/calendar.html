@@ -111,13 +111,16 @@
 {% if google_maps_api_key %}
 <script>
   function initBindCalendarMaps() {
-    // Places autocomplete en el modal de creación rápida
-    var locInput = document.getElementById('mLocationInput');
-    if (locInput && google.maps && google.maps.places) {
+    try {
+      var locInput = document.getElementById('mLocationInput');
+      if (!locInput) return;
+      if (!window.google || !window.google.maps || !window.google.maps.places) return;
       new google.maps.places.Autocomplete(locInput, {
         types: ['establishment', 'geocode'],
         fields: ['name', 'formatted_address'],
       });
+    } catch(err) {
+      console.warn('[BIND] Maps autocomplete no disponible:', err.message);
     }
   }
 </script>
@@ -393,13 +396,17 @@
 </div>
 {% endblock %}
 
-
-{{ srv_json|json_script:"bind-srv-data" }}
-
 {% block extra_js %}
+{{ srv_data|json_script:"bind-srv-data" }}
 <script>
-// ─── Datos del servidor (JSON construido en Python, sin bugs de locale) ───
-const SRV = JSON.parse(document.getElementById('bind-srv-data').textContent);
+// ─── Datos del servidor — json_script garantiza escape seguro ───
+const _srvEl = document.getElementById('bind-srv-data');
+if (!_srvEl) console.error('[BIND] bind-srv-data no encontrado — el calendario no tendrá datos.');
+const SRV = _srvEl ? JSON.parse(_srvEl.textContent) : [];
+
+// Mapa de lookup seguro: evita inyectar JSON crudo en atributos HTML onclick
+const _EV_MAP = {};
+SRV.forEach(e => { _EV_MAP[e.type + '_' + e.id] = e; });
 
 // Lista única de eventos para el filtro por evento
 const EVENT_LIST = (()=>{
@@ -577,7 +584,7 @@ function renderMonth(){
         </div>
         <div>${vis.map(ev=>`
           <div class="ev-pill" style="background:${col(ev).bg};color:${col(ev).fg};border-left:2.5px solid ${col(ev).dot};"
-            onclick="showPop(event,${encodeEv(ev)})">${ev.type==='task'?'✓ ':''}${ev.title}</div>
+            onclick="showPop(event,'${ev.type}_${ev.id}')">${ev.type==='task'?'✓ ':''}${ev.title}</div>
         `).join('')}${ex>0?`<div class="text-[10px] text-gray-400 pl-1 cursor-default">+${ex} más</div>`:''}</div>
       </div>`;
       cur.setDate(cur.getDate()+1);
@@ -621,7 +628,7 @@ function renderWeek(){
       html+=`<div class="absolute inset-x-0.5 top-1 space-y-0.5 pointer-events-none">`;
       evs.forEach(ev=>{
         html+=`<div class="ev-pill pointer-events-auto" style="background:${col(ev).bg};color:${col(ev).fg};border-left:2.5px solid ${col(ev).dot};"
-          onclick="showPop(event,${encodeEv(ev)})">${ev.type==='task'?'✓ ':''}${ev.title}</div>`;
+          onclick="showPop(event,'${ev.type}_${ev.id}')">${ev.type==='task'?'✓ ':''}${ev.title}</div>`;
       });
       html+=`</div>`;
     }
@@ -652,7 +659,7 @@ function renderDay(){
     html+=`<div class="absolute inset-x-1 top-1 space-y-1 pointer-events-none">`;
     evs.forEach(ev=>{
       html+=`<div class="ev-pill pointer-events-auto" style="background:${col(ev).bg};color:${col(ev).fg};border-left:3px solid ${col(ev).dot};font-size:13px;padding:6px 10px;"
-        onclick="showPop(event,${encodeEv(ev)})">${ev.type==='task'?'✓ ':''}${ev.title}${ev.loc?` <span style="opacity:.5;font-size:11px;margin-left:4px;">&#x2316; ${ev.loc}</span>`:''}
+        onclick="showPop(event,'${ev.type}_${ev.id}')">${ev.type==='task'?'✓ ':''}${ev.title}${ev.loc?` <span style="opacity:.5;font-size:11px;margin-left:4px;">&#x2316; ${ev.loc}</span>`:''}
       </div>`;
     });
     html+=`</div>`;
@@ -687,11 +694,11 @@ function renderMini(){
 function navTo(d){ CUR=d; MINI=new Date(d); render(); }
 
 // ─── POPUP ────────────────────────────────────────────────────
-function encodeEv(ev){ return "'"+JSON.stringify(ev).replace(/'/g,"\\'")+"'"; }
-
-function showPop(e, evJson){
+// Recibe una clave "type_id" y busca en _EV_MAP — sin inyección de JSON en atributos HTML
+function showPop(e, key){
   e.stopPropagation(); closePopup();
-  const ev = typeof evJson==='string' ? JSON.parse(evJson) : evJson;
+  const ev = _EV_MAP[key];
+  if (!ev) return;
   const c=col(ev);
   document.getElementById('ptitle').textContent=ev.title;
   document.getElementById('pdot').style.background=c.dot;
@@ -699,7 +706,7 @@ function showPop(e, evJson){
   badge.textContent=ev.type==='task'?'Tarea':(SL[ev.status]||ev.status);
   badge.style.background=c.bg; badge.style.color=c.fg;
   const dateEl=document.getElementById('pdate');
-  if(ev.startFull){ const d=new Date(ev.startFull.replace('T',' '));
+  if(ev.startFull){ const d=new Date(ev.startFull);
     dateEl.innerHTML=`<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`+d.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
     dateEl.classList.remove('hidden'); } else dateEl.classList.add('hidden');
   const locEl=document.getElementById('ploc');

@@ -1005,9 +1005,13 @@ def calendar_view(request):
     # que la localización es-co (coma decimal) rompa el JavaScript en producción.
     from django.core.serializers.json import DjangoJSONEncoder
 
+    from django.utils.timezone import localtime as _localtime
+
     srv_data = []
 
     for ev in all_events:
+        _start = _localtime(ev.start_date) if ev.start_date else None
+        _end   = _localtime(ev.end_date)   if ev.end_date   else None
         srv_data.append({
             'id':          ev.pk,
             'eventId':     ev.pk,
@@ -1015,10 +1019,10 @@ def calendar_view(request):
             'eventColor':  ev.template.color if ev.template else '#14b8a6',
             'title':       ev.name,
             'status':      ev.status,
-            'start':       ev.start_date.strftime('%Y-%m-%d') if ev.start_date else '',
-            'startFull':   ev.start_date.strftime('%Y-%m-%dT%H:%M') if ev.start_date else '',
-            'end':         (ev.end_date.strftime('%Y-%m-%d') if ev.end_date
-                            else (ev.start_date.strftime('%Y-%m-%d') if ev.start_date else '')),
+            'start':       _start.strftime('%Y-%m-%d') if _start else '',
+            'startFull':   _start.strftime('%Y-%m-%dT%H:%M') if _start else '',
+            'end':         (_end.strftime('%Y-%m-%d') if _end
+                            else (_start.strftime('%Y-%m-%d') if _start else '')),
             'loc':         ev.location or '',
             'desc':        (ev.description or '')[:90],
             'viewUrl':     reverse('events:event_detail', args=[ev.pk]),
@@ -1052,11 +1056,11 @@ def calendar_view(request):
         })
 
     context = {
-        'upcoming_events':   upcoming_events,
-        'status_choices':    Event.STATUS_CHOICES,
-        'today':             today,
+        'upcoming_events':     upcoming_events,
+        'status_choices':      Event.STATUS_CHOICES,
+        'today':               today,
         'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
-        'srv_json':          json.dumps(srv_data, ensure_ascii=False, cls=DjangoJSONEncoder),
+        'srv_data':            srv_data,  # lista Python — json_script serializa en template
     }
     return render(request, 'events/calendar.html', context)
 
