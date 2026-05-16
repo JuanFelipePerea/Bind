@@ -419,3 +419,39 @@ class EngineMetrics(models.Model):
 
     def __str__(self):
         return f"{self.decision_key} — {self.action_taken or 'sin respuesta'}"
+
+
+class BynixMessage(models.Model):
+    """
+    Persiste el historial de conversación con Bynix por usuario y evento.
+    Permite que el asistente recuerde contexto entre sesiones.
+    """
+    ROLE_CHOICES = [
+        ('user',      'Usuario'),
+        ('assistant', 'Bynix'),
+    ]
+
+    user       = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='bynix_messages', verbose_name='Usuario'
+    )
+    event      = models.ForeignKey(
+        Event, on_delete=models.CASCADE,
+        related_name='bynix_messages', null=True, blank=True,
+        verbose_name='Evento'
+    )
+    role       = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    content    = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes  = [
+            models.Index(fields=['user', 'event', 'created_at']),
+            models.Index(fields=['user', 'created_at']),
+        ]
+        verbose_name        = "Mensaje de Bynix"
+        verbose_name_plural = "Mensajes de Bynix"
+
+    def __str__(self):
+        return f"[{self.role}] {self.user.username} — {self.content[:50]}"

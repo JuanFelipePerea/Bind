@@ -569,6 +569,13 @@ def event_create(request):
                     )
                 messages.success(request, f'Evento "{event.name}" creado.')
 
+        try:
+            from accounts.services import push_event_to_google_calendar
+            if hasattr(request.user, 'profile') and request.user.profile.google_calendar_connected:
+                push_event_to_google_calendar(event, request.user)
+        except Exception:
+            pass  # El error de sync no debe impedir crear el evento
+
         return redirect('events:event_detail', pk=event.pk)
 
     selected_template = None
@@ -672,6 +679,13 @@ def event_edit(request, pk):
         event.start_date  = request.POST.get('start_date') or None
         event.end_date    = request.POST.get('end_date') or None
         event.save()
+
+        try:
+            from accounts.services import push_event_to_google_calendar
+            if hasattr(request.user, 'profile') and request.user.profile.google_calendar_connected:
+                push_event_to_google_calendar(event, request.user)
+        except Exception:
+            pass  # El error de sync no debe impedir editar el evento
 
         # Flujo de cierre: si el evento acaba de marcarse como completado
         if previous_status != 'completed' and event.status == 'completed':
@@ -1138,28 +1152,27 @@ def event_assistant_chat(request, pk):
     except Exception:
         pass
 
-    # Cargar y preparar historial de sesión (máx 10 interacciones = 20 entradas)
-    bynix_history = request.session.get('bynix_history', {})
-    event_key = str(pk)
-    event_history = bynix_history.get(event_key, [])[-20:]
+    # Cargar historial desde BD (últimas 10 interacciones = 20 mensajes)
+    from events.models import BynixMessage
+    history = list(
+        BynixMessage.objects.filter(user=request.user, event=event)
+        .order_by('-created_at')[:20]
+        .values('role', 'content')
+    )
+    history = list(reversed(history))
 
     try:
         from events.services.ai_service import (
             get_event_assistant_response, deduct_credits,
             get_credits_reset_info, BYNIX_DAILY_CREDITS,
         )
-        result    = get_event_assistant_response(query, event_context, history=event_history)
+        result    = get_event_assistant_response(query, event_context, history=history)
         remaining = deduct_credits(request.user.pk)
         usage_pct = round((1 - remaining / BYNIX_DAILY_CREDITS) * 100)
 
-        # Persistir turno en sesión (mantener solo las últimas 10 interacciones)
-        event_history = event_history + [
-            {'role': 'user',      'content': query},
-            {'role': 'assistant', 'content': result.get('response', '')},
-        ]
-        bynix_history[event_key] = event_history[-20:]
-        request.session['bynix_history'] = bynix_history
-        request.session.modified = True
+        # Persistir turno en BD
+        BynixMessage.objects.create(user=request.user, event=event, role='user', content=query)
+        BynixMessage.objects.create(user=request.user, event=event, role='assistant', content=result.get('response', ''))
 
         response_data = {
             'response':         result.get('response', ''),
@@ -1291,21 +1304,22 @@ def dashboard_assistant_chat(request):
         stats = compute_user_stats(request.user)
         dashboard_ctx = build_dashboard_context(request.user, engine_output, stats)
 
-        # Historial de sesión del dashboard (clave separada)
-        bynix_history = request.session.get('bynix_history', {})
-        event_history = bynix_history.get('dashboard', [])[-20:]
+        # Cargar historial del dashboard desde BD (event=None, últimas 10 interacciones)
+        from events.models import BynixMessage
+        history = list(
+            BynixMessage.objects.filter(user=request.user, event=None)
+            .order_by('-created_at')[:20]
+            .values('role', 'content')
+        )
+        history = list(reversed(history))
 
-        result = get_dashboard_assistant_response(query, dashboard_ctx, history=event_history)
+        result = get_dashboard_assistant_response(query, dashboard_ctx, history=history)
         remaining = deduct_credits(request.user.pk)
         usage_pct = round((1 - remaining / BYNIX_DAILY_CREDITS) * 100)
 
-        event_history = event_history + [
-            {'role': 'user',      'content': query},
-            {'role': 'assistant', 'content': result.get('response', '')},
-        ]
-        bynix_history['dashboard'] = event_history[-20:]
-        request.session['bynix_history'] = bynix_history
-        request.session.modified = True
+        # Persistir turno en BD
+        BynixMessage.objects.create(user=request.user, event=None, role='user', content=query)
+        BynixMessage.objects.create(user=request.user, event=None, role='assistant', content=result.get('response', ''))
 
         response_data = {
             'response':          result.get('response', ''),
