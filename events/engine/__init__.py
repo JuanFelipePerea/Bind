@@ -49,7 +49,7 @@ def run_engine_for_user(user) -> dict:
         prefetched_attendees = list(event.attendees.all())
         ctx = build_event_context(event, tasks=prefetched_tasks, attendees=prefetched_attendees)
         score = score_event(ctx)
-        decisions = derive_decisions(ctx, score)
+        decisions = derive_decisions(ctx, score, thresholds=_thresholds)
 
         event_scores[event.pk] = score
         event_contexts[event.pk] = ctx

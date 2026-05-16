@@ -1,0 +1,35 @@
+{
+  "name": "BIND — Asistente de Eventos",
+  "short_name": "BIND",
+  "description": "Tu asistente inteligente para planificar y gestionar eventos",
+  "start_url": "/dashboard/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0F172A",
+  "theme_color": "#14b8a6",
+  "lang": "es",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/static/img/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo evento",
+      "short_name": "Crear",
+      "url": "/events/create/",
+      "description": "Crear un nuevo evento rápidamente"
+    },
+    {
+      "name": "Calendario",
+      "short_name": "Calendario",
+      "url": "/calendar/",
+      "description": "Ver el calendario de eventos"
+    }
+  ],
+  "categories": ["productivity", "utilities"]
+}

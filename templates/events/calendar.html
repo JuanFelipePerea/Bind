@@ -447,14 +447,19 @@ function sameDay(a,b){ return ymd(a)===ymd(b); }
 function TODAY(){ return new Date(); }
 function filtered(){
   return SRV.filter(item=>{
-    if(item.type==='event' && !showEv) return false;
-    if(item.type==='task'  && !showTask) return false;
+    if(item.type==='event'   && !showEv)   return false;
+    if(item.type==='task'    && !showTask) return false;
+    if(item.type==='momento' && !showEv)   return false;
     if(activeEventIds.size>0 && !activeEventIds.has(item.eventId)) return false;
     return true;
   });
 }
 function forDay(ds){ return filtered().filter(e=>e.start<=ds&&(e.end>=ds||e.start===ds)); }
-function col(ev){ return ev.type==='task'?C.task:(C[ev.status]||C.draft); }
+function col(ev){
+  if(ev.type==='task') return C.task;
+  if(ev.type==='momento') return {bg:`${ev.eventColor}22`,fg:ev.eventColor,dot:ev.eventColor};
+  return C[ev.status]||C.draft;
+}
 
 // ─── FILTROS — lógica ─────────────────────────────────────────
 function toggleTypeFilter(type){

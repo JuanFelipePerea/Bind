@@ -1055,6 +1055,35 @@ def calendar_view(request):
             'priority':   t.priority,
         })
 
+    # Momentos (hitos) de todos los eventos del usuario
+    from django.utils.timezone import localtime as _localtime2
+    all_momentos = Momento.objects.filter(
+        evento__owner=request.user
+    ).select_related('evento', 'evento__template').order_by('hora_inicio')
+
+    for m in all_momentos:
+        _mstart = _localtime2(m.hora_inicio)
+        _mend   = _localtime2(m.hora_fin) if m.hora_fin else None
+        _color  = m._TIPO_COLOR.get(m.tipo, '#6366F1')
+        srv_data.append({
+            'id':          m.pk,
+            'eventId':     m.evento.pk,
+            'eventName':   m.evento.name,
+            'eventColor':  _color,
+            'title':       m.titulo,
+            'status':      m.tipo,
+            'start':       _mstart.strftime('%Y-%m-%d'),
+            'startFull':   _mstart.strftime('%Y-%m-%dT%H:%M'),
+            'end':         (_mend.strftime('%Y-%m-%d') if _mend else _mstart.strftime('%Y-%m-%d')),
+            'loc':         '',
+            'desc':        (m.descripcion or '')[:90],
+            'viewUrl':     reverse('events:event_detail', args=[m.evento.pk]),
+            'editUrl':     reverse('events:momento_edit', args=[m.evento.pk, m.pk]),
+            'delUrl':      reverse('events:momento_delete', args=[m.evento.pk, m.pk]),
+            'type':        'momento',
+            'importancia': m.importancia,
+        })
+
     context = {
         'upcoming_events':     upcoming_events,
         'status_choices':      Event.STATUS_CHOICES,

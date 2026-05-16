@@ -79,6 +79,14 @@
   </style>
 
   {% block extra_head %}{% endblock %}
+
+  <!-- PWA -->
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BIND">
+  <meta name="theme-color" content="#14b8a6">
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 font-poppins transition-colors duration-300 flex h-screen overflow-hidden relative">

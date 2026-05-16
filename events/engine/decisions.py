@@ -35,7 +35,7 @@ class Decision:
     alert_key: str = ''
 
 
-def derive_decisions(ctx, score) -> list:
+def derive_decisions(ctx, score, thresholds: dict = None) -> list:
     """
     Dado un EventContext y su score, retorna una lista de Decision.
     Cada decision representa una recomendación accionable.
@@ -45,9 +45,15 @@ def derive_decisions(ctx, score) -> list:
     today = timezone.now().date()
     week_number = today.isocalendar()[1]
 
+    thresholds = thresholds or {}
+    imminent_days = thresholds.get('imminent_days', 3)
+    warning_days  = thresholds.get('warning_days',  7)
+    stalled_days  = thresholds.get('stalled_days',  7)
+    upcoming_days = thresholds.get('upcoming_days', 30)
+
     # ── CRITICAL ─────────────────────────────────────────────────────────────
 
-    if ctx.days_until is not None and ctx.days_until <= 3 and ctx.task_high_pending > 0:
+    if ctx.days_until is not None and ctx.days_until <= imminent_days and ctx.task_high_pending > 0:
         decisions.append(Decision(
             title="Evento inminente con tareas críticas sin completar",
             message=f"Quedan {ctx.task_high_pending} tarea(s) de alta prioridad. El evento es en {ctx.days_until} día(s).",
@@ -58,7 +64,7 @@ def derive_decisions(ctx, score) -> list:
             alert_key=f"critical-imminent-hp-{ctx.event.pk}",
         ))
 
-    if (ctx.days_until is not None and ctx.days_until <= 7
+    if (ctx.days_until is not None and ctx.days_until <= warning_days
             and ctx.task_total > 0
             and ctx.progress_pct < 50):
         decisions.append(Decision(
@@ -73,11 +79,11 @@ def derive_decisions(ctx, score) -> list:
 
     # ── WARNING ──────────────────────────────────────────────────────────────
 
-    # Sin actividad 7+ días, evento en <=30 días
+    # Sin actividad stalled_days+ días, evento en <=upcoming_days días
     if (ctx.last_activity_days is not None
-            and ctx.last_activity_days >= 7
+            and ctx.last_activity_days >= stalled_days
             and ctx.days_until is not None
-            and 0 <= ctx.days_until <= 30):
+            and 0 <= ctx.days_until <= upcoming_days):
         decisions.append(Decision(
             title="Este evento lleva más de 7 días sin actividad",
             message=(
@@ -106,9 +112,9 @@ def derive_decisions(ctx, score) -> list:
             alert_key=f"overdue-tasks-{ctx.event.pk}",
         ))
 
-    # Asistentes pendientes, evento en <=7 días
+    # Asistentes pendientes, evento en <=warning_days días
     if (ctx.days_until is not None
-            and 0 <= ctx.days_until <= 7
+            and 0 <= ctx.days_until <= warning_days
             and ctx.attendee_pending > 0):
         decisions.append(Decision(
             title=f"{ctx.attendee_pending} asistente(s) no han confirmado su asistencia",
