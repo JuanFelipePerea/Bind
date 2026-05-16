@@ -114,6 +114,11 @@ class Event(models.Model):
         default=dict, blank=True,
         verbose_name='Configuración de layout',
     )
+    invitation_file = models.FileField(
+        upload_to='invitations/', blank=True, null=True,
+        verbose_name='Archivo de invitación',
+        help_text='PDF o imagen adjunta al email de invitación.'
+    )
 
     def __str__(self):
         return self.name

@@ -3,10 +3,27 @@
 {% block page_title %}Asistentes{% endblock %}
 
 {% block topbar_action %}
-<a href="{% url 'modules:attendee_create' event.pk %}" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all flex items-center gap-2 group">
-  <svg class="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-  Agregar asistente
-</a>
+<div class="flex items-center gap-2 flex-wrap">
+  {% if event.invitation_file %}
+  <span class="text-xs text-teal-400 flex items-center gap-1 px-3 py-2 bg-teal-900/20 rounded-xl border border-teal-800/40">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+    Archivo adjunto
+  </span>
+  {% endif %}
+  {% if attendees %}
+  <form method="post" action="{% url 'modules:send_invitations' event.pk %}" onsubmit="return confirm('¿Enviar invitaciones a todos los asistentes con email y estado no rechazado?')">
+    {% csrf_token %}
+    <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+      Enviar invitaciones
+    </button>
+  </form>
+  {% endif %}
+  <a href="{% url 'modules:attendee_create' event.pk %}" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all flex items-center gap-2 group">
+    <svg class="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    Agregar asistente
+  </a>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -55,6 +72,7 @@
           <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Asistente</th>
           <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:table-cell">Email</th>
           <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Estado</th>
+          <th class="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest hidden lg:table-cell">Invitación</th>
           <th class="text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Acciones</th>
         </tr>
       </thead>
@@ -79,6 +97,15 @@
               {% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% endif %}">
               {{ attendee.get_status_display }}
             </span>
+          </td>
+          <td class="px-5 py-3.5 hidden lg:table-cell">
+            {% if attendee.invitation_sent_at %}
+              <span class="text-xs text-gray-400">
+                {{ attendee.invitation_sent_at|date:"d M" }}
+              </span>
+            {% else %}
+              <span class="text-xs text-gray-600">—</span>
+            {% endif %}
           </td>
           <td class="px-5 py-3.5 text-right">
             <div class="flex items-center justify-end gap-2">

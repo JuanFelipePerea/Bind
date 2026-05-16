@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if event %}{{ event.name }} — Invitación{% else %}BIND — Invitación{% endif %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { brand: '#14b8a6' } } }
+    }
+  </script>
+  <style>
+    body { background: #0F172A; color: #F1F5F9; font-family: system-ui, sans-serif; }
+    .card { background: #1E293B; border: 1px solid #334155; border-radius: 1rem; }
+  </style>
+</head>
+<body class="min-h-full flex flex-col items-center justify-center px-4 py-12">
+
+  <!-- Header BIND -->
+  <div class="mb-8 text-center">
+    <span class="text-2xl font-black tracking-tight text-teal-400">BIND</span>
+    <p class="text-xs text-slate-500 mt-0.5">Asistente de eventos</p>
+  </div>
+
+  <div class="w-full max-w-md">
+
+    <!-- Estado: error -->
+    {% if error %}
+    <div class="card p-8 text-center">
+      <div class="w-14 h-14 rounded-full bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <p class="text-slate-300 text-sm leading-relaxed">{{ error }}</p>
+      {% if event %}
+      <p class="text-xs text-slate-500 mt-3">Evento: <span class="text-slate-400">{{ event.name }}</span></p>
+      {% endif %}
+    </div>
+
+    <!-- Estado: respuesta registrada -->
+    {% elif done %}
+    <div class="card p-8 text-center">
+      {% if confirmed %}
+      <div class="w-16 h-16 rounded-full bg-teal-900/40 flex items-center justify-center mx-auto mb-5">
+        <svg class="w-8 h-8 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h2 class="text-xl font-bold text-white mb-2">¡Asistencia confirmada!</h2>
+      <p class="text-slate-400 text-sm">Gracias, <strong class="text-slate-200">{{ attendee.name }}</strong>. Te esperamos en <strong class="text-teal-400">{{ event.name }}</strong>.</p>
+      {% if event.start_date %}
+      <p class="text-xs text-slate-500 mt-3">{{ event.start_date|date:"l d \d\e F, H:i" }}</p>
+      {% endif %}
+      {% if event.location %}
+      <p class="text-xs text-slate-500">{{ event.location }}</p>
+      {% endif %}
+      {% else %}
+      <div class="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center mx-auto mb-5">
+        <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </div>
+      <h2 class="text-xl font-bold text-white mb-2">Respuesta registrada</h2>
+      <p class="text-slate-400 text-sm">Lamentamos que no puedas asistir, <strong class="text-slate-200">{{ attendee.name }}</strong>. ¡Hasta la próxima!</p>
+      {% endif %}
+    </div>
+
+    <!-- Estado: formulario -->
+    {% else %}
+    <!-- Cabecera del evento -->
+    <div class="card p-6 mb-4">
+      <p class="text-xs text-teal-400 font-semibold uppercase tracking-wider mb-1">Invitación al evento</p>
+      <h1 class="text-2xl font-black text-white leading-tight">{{ event.name }}</h1>
+      <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3">
+        {% if event.start_date %}
+        <span class="flex items-center gap-1.5 text-xs text-slate-400">
+          <svg class="w-3.5 h-3.5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          {{ event.start_date|date:"d \d\e F\, Y" }}
+          {% if event.end_date and event.end_date.date != event.start_date.date %}
+           — {{ event.end_date|date:"d \d\e F" }}
+          {% endif %}
+        </span>
+        {% endif %}
+        {% if event.location %}
+        <span class="flex items-center gap-1.5 text-xs text-slate-400">
+          <svg class="w-3.5 h-3.5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          {{ event.location }}
+        </span>
+        {% endif %}
+      </div>
+      {% if event.description %}
+      <p class="text-xs text-slate-400 mt-3 leading-relaxed">{{ event.description }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Formulario de respuesta -->
+    <div class="card p-6">
+      <p class="text-sm text-slate-300 mb-5">
+        Hola, <strong class="text-white">{{ attendee.name }}</strong>. ¿Confirmas tu asistencia?
+      </p>
+
+      {% if error_form %}
+      <p class="text-xs text-red-400 bg-red-900/20 rounded-lg px-3 py-2 mb-4">{{ error_form }}</p>
+      {% endif %}
+
+      <form method="post" id="invite-form">
+        {% csrf_token %}
+        <input type="hidden" name="status" id="status-input" value="">
+
+        <!-- Botones de decisión -->
+        <div class="grid grid-cols-2 gap-3 mb-5">
+          <button type="button" onclick="selectConfirm()"
+            class="py-3 rounded-xl font-bold text-sm border-2 transition-all
+                   border-teal-500 text-teal-400 hover:bg-teal-500 hover:text-white"
+            id="btn-confirm">
+            ✓ Confirmo
+          </button>
+          <button type="button" onclick="selectDecline()"
+            class="py-3 rounded-xl font-bold text-sm border-2 transition-all
+                   border-slate-600 text-slate-400 hover:bg-slate-600 hover:text-white"
+            id="btn-decline">
+            ✗ No podré
+          </button>
+        </div>
+
+        <!-- Sección de preferencias (visible solo si confirma) -->
+        <div id="prefs-section" class="hidden border-t border-slate-700 pt-5 space-y-4">
+          <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Preferencias (opcional)</p>
+
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5">Alimentación</label>
+            <select name="dietary"
+              class="w-full bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-teal-500">
+              <option value="none">Sin restricciones</option>
+              <option value="vegetarian">Vegetariano</option>
+              <option value="vegan">Vegano</option>
+              <option value="gluten_free">Sin gluten</option>
+              <option value="halal">Halal</option>
+              <option value="kosher">Kosher</option>
+              <option value="other">Otro (indicar en notas)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <input type="checkbox" name="accessibility" id="accessibility"
+              class="w-4 h-4 accent-teal-500 rounded">
+            <label for="accessibility" class="text-sm text-slate-300">Necesito accesibilidad especial</label>
+          </div>
+
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5">Notas adicionales</label>
+            <textarea name="notes" rows="3" placeholder="Alergias, movilidad reducida, cualquier detalle…"
+              class="w-full bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-teal-500 resize-none placeholder-slate-600">{{ existing_pref.notes|default:'' }}</textarea>
+          </div>
+        </div>
+
+        <!-- Botón de envío (aparece al seleccionar) -->
+        <button type="submit" id="submit-btn"
+          class="hidden w-full mt-4 py-3 bg-teal-500 hover:bg-teal-400 text-white font-bold rounded-xl transition-colors text-sm">
+          Enviar respuesta
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <p class="text-xs text-slate-700 mt-10">Gestionado con BIND</p>
+
+  <script>
+    function selectConfirm() {
+      document.getElementById('status-input').value = 'confirmed';
+      document.getElementById('btn-confirm').classList.add('bg-teal-500', 'text-white');
+      document.getElementById('btn-confirm').classList.remove('text-teal-400');
+      document.getElementById('btn-decline').classList.remove('bg-slate-600', 'text-white');
+      document.getElementById('btn-decline').classList.add('text-slate-400');
+      document.getElementById('prefs-section').classList.remove('hidden');
+      document.getElementById('submit-btn').classList.remove('hidden');
+    }
+    function selectDecline() {
+      document.getElementById('status-input').value = 'declined';
+      document.getElementById('btn-decline').classList.add('bg-slate-600', 'text-white');
+      document.getElementById('btn-decline').classList.remove('text-slate-400');
+      document.getElementById('btn-confirm').classList.remove('bg-teal-500', 'text-white');
+      document.getElementById('btn-confirm').classList.add('text-teal-400');
+      document.getElementById('prefs-section').classList.add('hidden');
+      document.getElementById('submit-btn').classList.remove('hidden');
+      document.getElementById('submit-btn').textContent = 'Registrar respuesta';
+    }
+  </script>
+
+</body>
+</html>

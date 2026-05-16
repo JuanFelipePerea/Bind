@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import User
 from events.models import Event
@@ -87,6 +89,9 @@ class Attendee(models.Model):
         help_text='Cuenta BIND del asistente. Dejar vacío para invitados externos.'
     )
 
+    invitation_token   = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    invitation_sent_at = models.DateTimeField(null=True, blank=True)
+    token_expires_at   = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -288,3 +293,38 @@ class BudgetItem(models.Model):
         verbose_name = "Ítem de presupuesto"
         verbose_name_plural = "Ítems de presupuesto"
         ordering = ['-created_at']
+
+
+class AttendeePreference(models.Model):
+    """Preferencias del invitado, capturadas vía portal público."""
+
+    DIETARY_CHOICES = [
+        ('none',        'Sin restricciones'),
+        ('vegetarian',  'Vegetariano'),
+        ('vegan',       'Vegano'),
+        ('gluten_free', 'Sin gluten'),
+        ('halal',       'Halal'),
+        ('kosher',      'Kosher'),
+        ('other',       'Otro'),
+    ]
+
+    attendee      = models.OneToOneField(
+        Attendee, on_delete=models.CASCADE,
+        related_name='preference', verbose_name='Asistente'
+    )
+    dietary       = models.CharField(
+        max_length=20, choices=DIETARY_CHOICES, default='none',
+        verbose_name='Restricción alimentaria'
+    )
+    accessibility = models.BooleanField(
+        default=False, verbose_name='Necesidades de accesibilidad'
+    )
+    notes         = models.TextField(blank=True, verbose_name='Notas adicionales')
+    responded_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name        = "Preferencia de asistente"
+        verbose_name_plural = "Preferencias de asistentes"
+
+    def __str__(self):
+        return f"Preferencia de {self.attendee.name}"

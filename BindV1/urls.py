@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
+from modules import views_guest as _guest_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -12,6 +13,9 @@ urlpatterns = [
 
     # Alias conveniente que usa LOGIN_REDIRECT_URL
     path('dashboard/', RedirectView.as_view(url='/', permanent=False), name='dashboard_redirect'),
+
+    # Portal público de invitados (sin login)
+    path('i/<uuid:token>/', _guest_views.guest_respond, name='guest_respond'),
 
     path('', include('events.urls')),
     path('accounts/', include('accounts.urls')),
