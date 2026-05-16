@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from . import views_bynix
+from . import views_collaborator
 
 app_name = 'events'
 
@@ -23,8 +25,8 @@ urlpatterns = [
     path('alerts/<int:pk>/dismiss/', views.alert_dismiss, name='alert_dismiss'),
     path('alerts/<int:pk>/action/', views.alert_action, name='alert_action'),
     path('search/', views.global_search, name='search'),
-    path('events/<int:pk>/bynix/', views.event_assistant_chat, name='event_assistant_chat'),
-    path('events/<int:pk>/bynix/capture/', views.bynix_quick_capture, name='bynix_quick_capture'),
+    path('events/<int:pk>/bynix/', views_bynix.event_assistant_chat, name='event_assistant_chat'),
+    path('events/<int:pk>/bynix/capture/', views_bynix.bynix_quick_capture, name='bynix_quick_capture'),
     # Momentos
     path('events/<int:event_pk>/momentos/nuevo/',              views.momento_create, name='momento_create'),
     path('events/<int:event_pk>/momentos/<int:pk>/editar/',    views.momento_edit,   name='momento_edit'),
@@ -33,7 +35,11 @@ urlpatterns = [
     # Layout persistence
     path('events/<int:pk>/layout/', views.save_layout_config, name='save_layout_config'),
     # Bynix — Dashboard (global, sin evento específico)
-    path('bynix/', views.dashboard_assistant_chat, name='dashboard_assistant_chat'),
+    path('bynix/', views_bynix.dashboard_assistant_chat, name='dashboard_assistant_chat'),
     # Events API — creación rápida vía IA
     path('events/api/create/', views.event_api_create, name='event_api_create'),
+    # Colaboración
+    path('events/<int:pk>/collaborators/', views_collaborator.list_collaborators, name='list_collaborators'),
+    path('events/<int:pk>/collaborators/invite/', views_collaborator.invite_collaborator, name='invite_collaborator'),
+    path('events/<int:pk>/collaborators/accept/', views_collaborator.accept_invitation, name='accept_invitation'),
 ]

@@ -455,3 +455,39 @@ class BynixMessage(models.Model):
 
     def __str__(self):
         return f"[{self.role}] {self.user.username} — {self.content[:50]}"
+
+
+class EventCollaborator(models.Model):
+    """
+    Registro de colaboradores invitados a un evento.
+    Un colaborador puede ver y/o editar un evento aunque no sea el owner.
+    """
+    ROLE_CHOICES = [
+        ('editor', 'Editor'),   # puede editar tareas, budget, etc.
+        ('viewer', 'Visor'),    # sólo lectura
+    ]
+
+    event      = models.ForeignKey(
+        Event, on_delete=models.CASCADE,
+        related_name='collaborators', verbose_name='Evento'
+    )
+    user       = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='event_collaborations', verbose_name='Usuario'
+    )
+    invited_by = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='sent_invitations', verbose_name='Invitado por'
+    )
+    role       = models.CharField(max_length=10, choices=ROLE_CHOICES, default='viewer')
+    accepted   = models.BooleanField(default=False)
+    invited_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('event', 'user')]
+        ordering = ['-invited_at']
+        verbose_name        = "Colaborador de evento"
+        verbose_name_plural = "Colaboradores de evento"
+
+    def __str__(self):
+        return f"{self.user.username} → {self.event.name} ({self.role})"
