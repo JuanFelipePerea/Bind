@@ -143,8 +143,12 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGIN_URL = '/accounts/'
 
-# Email (para 2FA)
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# Email (para 2FA e invitaciones)
+# En desarrollo: EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend en .env
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.smtp.EmailBackend',
+)
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True

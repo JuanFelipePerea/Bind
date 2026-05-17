@@ -3,6 +3,13 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def _assign_unique_tokens(apps, schema_editor):
+    Attendee = apps.get_model('modules', 'Attendee')
+    for attendee in Attendee.objects.all():
+        attendee.invitation_token = uuid.uuid4()
+        attendee.save(update_fields=['invitation_token'])
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,7 +17,16 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # 1. Añadir sin unique para que filas existentes reciban un valor sin conflicto
         migrations.AddField(
+            model_name='attendee',
+            name='invitation_token',
+            field=models.UUIDField(default=uuid.uuid4, editable=False),
+        ),
+        # 2. Asignar un UUID único a cada fila existente
+        migrations.RunPython(_assign_unique_tokens, migrations.RunPython.noop),
+        # 3. Ahora sí aplicar la restricción unique
+        migrations.AlterField(
             model_name='attendee',
             name='invitation_token',
             field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),

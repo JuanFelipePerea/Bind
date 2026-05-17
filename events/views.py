@@ -678,6 +678,8 @@ def event_edit(request, pk):
         event.status      = request.POST.get('status', event.status)
         event.start_date  = request.POST.get('start_date') or None
         event.end_date    = request.POST.get('end_date') or None
+        if 'invitation_file' in request.FILES:
+            event.invitation_file = request.FILES['invitation_file']
         event.save()
 
         try:

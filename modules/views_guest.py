@@ -3,6 +3,7 @@ views_guest.py — Portal público de invitados y envío masivo de invitaciones.
 Desacoplado de views.py (directriz arquitectónica BIND).
 """
 import logging
+import urllib.request
 from datetime import timedelta
 
 from django.contrib import messages
@@ -36,17 +37,15 @@ def send_invitations(request, event_pk):
     sent    = 0
     errors  = 0
 
-    # Preparar adjunto si el evento tiene archivo de invitación
+    # Preparar adjunto usando el storage backend (soporta Cloudinary con auth)
     attachment = None
     if event.invitation_file:
         try:
-            event.invitation_file.open('rb')
-            attachment = (
-                event.invitation_file.name.split('/')[-1],
-                event.invitation_file.read(),
-                'application/octet-stream',
-            )
-            event.invitation_file.close()
+            storage = event.invitation_file.storage
+            filename = event.invitation_file.name.split('/')[-1] or 'invitacion.pdf'
+            with storage.open(event.invitation_file.name, 'rb') as f:
+                file_bytes = f.read()
+            attachment = (filename, file_bytes, 'application/octet-stream')
         except Exception as exc:
             logger.warning("No se pudo leer invitation_file evento %s: %s", event_pk, exc)
 

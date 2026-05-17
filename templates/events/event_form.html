@@ -301,6 +301,33 @@
 
       </div>
 
+      <!-- Archivo de invitación (solo en edición) -->
+      {% if object %}
+      <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+          Archivo de invitación
+        </label>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">
+          PDF o imagen que se adjuntará automáticamente al enviar invitaciones por email.
+        </p>
+        {% if event.invitation_file %}
+        <div class="flex items-center gap-2 mb-3 text-xs text-teal-600 dark:text-teal-400 bg-teal-50/50 dark:bg-teal-900/10 border border-teal-200 dark:border-teal-800/40 rounded-xl px-3 py-2">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+          <span class="flex-1 truncate">Archivo actual: {{ event.invitation_file.name|slice:":50" }}</span>
+          <a href="{{ event.invitation_file.url }}" target="_blank" class="underline hover:text-teal-700 flex-shrink-0">Ver</a>
+        </div>
+        {% endif %}
+        <input type="file" name="invitation_file" accept=".pdf,.jpg,.jpeg,.png,.gif"
+          class="w-full text-sm text-gray-500 dark:text-gray-400
+                 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0
+                 file:text-sm file:font-semibold
+                 file:bg-teal-50 file:text-teal-700
+                 dark:file:bg-teal-900/30 dark:file:text-teal-300
+                 hover:file:bg-teal-100 dark:hover:file:bg-teal-900/50
+                 cursor-pointer">
+      </div>
+      {% endif %}
+
       <!-- Botones -->
       <div class="flex gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
         <button type="submit"
