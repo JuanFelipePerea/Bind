@@ -3,9 +3,9 @@ views_guest.py — Portal público de invitados y envío masivo de invitaciones.
 Desacoplado de views.py (directriz arquitectónica BIND).
 """
 import logging
-import urllib.request
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.mail import EmailMessage
@@ -55,9 +55,11 @@ def send_invitations(request, event_pk):
         attendee.token_expires_at   = now + timedelta(days=30)
         attendee.save(update_fields=['invitation_sent_at', 'token_expires_at'])
 
-        magic_link = request.build_absolute_uri(
-            reverse('guest_respond', args=[str(attendee.invitation_token)])
-        )
+        path = reverse('guest_respond', args=[str(attendee.invitation_token)])
+        if getattr(settings, 'SITE_URL', ''):
+            magic_link = settings.SITE_URL + path
+        else:
+            magic_link = request.build_absolute_uri(path)
 
         body_lines = [
             f"Hola {attendee.name},",

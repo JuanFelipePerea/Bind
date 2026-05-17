@@ -183,6 +183,11 @@ SOCIALACCOUNT_ADAPTER = 'accounts.adapters.BindSocialAccountAdapter'
 
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 
+# URL canónica del sitio — usada para generar links en emails enviados desde el backend.
+# En producción debe coincidir con el dominio público (ej. https://bind-gexm.onrender.com).
+# Si no se define, los links se construyen a partir del request (funciona bien en local).
+SITE_URL = os.environ.get('SITE_URL', '').rstrip('/')
+
 # Persiste access_token + refresh_token en la tabla socialaccount_socialtoken
 SOCIALACCOUNT_STORE_TOKENS = True
 
