@@ -82,6 +82,7 @@ def send_invitations(request, event_pk):
             msg = EmailMessage(
                 subject=f"Invitación: {event.name}",
                 body='\n'.join(body_lines),
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 to=[attendee.email],
             )
             if attachment:
@@ -89,7 +90,10 @@ def send_invitations(request, event_pk):
             msg.send()
             sent += 1
         except Exception as exc:
-            logger.error("Error enviando invitación a %s: %s", attendee.email, exc)
+            logger.error(
+                "Error enviando invitación a %s (tipo: %s): %s",
+                attendee.email, type(exc).__name__, exc,
+            )
             errors += 1
 
     summary = f"{sent} invitación(es) enviada(s)."

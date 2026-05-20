@@ -122,3 +122,13 @@ def accept_invitation(request, pk):
         'event':  event.name,
         'role':   collab.role,
     })
+
+
+@login_required
+@require_http_methods(['POST'])
+def remove_collaborator(request, pk, collab_pk):
+    """Elimina un colaborador del evento. Solo el owner puede hacerlo."""
+    event  = get_object_or_404(Event, pk=pk, owner=request.user)
+    collab = get_object_or_404(EventCollaborator, pk=collab_pk, event=event)
+    collab.delete()
+    return JsonResponse({'status': 'removed'})

@@ -21,6 +21,7 @@ urlpatterns = [
     path('templates/<int:template_id>/quick-create/', views.quick_create_from_template, name='quick_create_from_template'),
     path('templates/<int:template_id>/preview.json', views.template_preview_json, name='template_preview_json'),
     path('report/', views.report_view, name='report'),
+    path('email-health/', views.email_health_check, name='email_health_check'),
     path('calendar/', views.calendar_view, name='calendar'),
     path('alerts/<int:pk>/dismiss/', views.alert_dismiss, name='alert_dismiss'),
     path('alerts/<int:pk>/action/', views.alert_action, name='alert_action'),
@@ -42,4 +43,5 @@ urlpatterns = [
     path('events/<int:pk>/collaborators/', views_collaborator.list_collaborators, name='list_collaborators'),
     path('events/<int:pk>/collaborators/invite/', views_collaborator.invite_collaborator, name='invite_collaborator'),
     path('events/<int:pk>/collaborators/accept/', views_collaborator.accept_invitation, name='accept_invitation'),
+    path('events/<int:pk>/collaborators/<int:collab_pk>/remove/', views_collaborator.remove_collaborator, name='remove_collaborator'),
 ]

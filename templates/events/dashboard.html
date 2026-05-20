@@ -312,6 +312,36 @@
 {% block content %}
 <div class="h-full flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-950">
 
+  <!-- ── INVITACIONES PENDIENTES ── -->
+  {% if pending_invitations %}
+  <div class="shrink-0 px-5 pt-3">
+    <div class="rounded-xl px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 flex flex-wrap items-start gap-x-4 gap-y-2">
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <svg class="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <span class="text-xs font-bold text-amber-800 dark:text-amber-300 whitespace-nowrap">
+          Tienes {{ pending_invitations|length }} invitación{{ pending_invitations|length|pluralize:"es" }} pendiente{{ pending_invitations|length|pluralize }}
+        </span>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+        {% for inv in pending_invitations %}
+        <div class="flex items-center gap-1.5 bg-white/70 dark:bg-amber-800/20 border border-amber-200/70 dark:border-amber-700/30 rounded-lg px-2.5 py-1">
+          <span class="text-[11px] font-semibold text-gray-700 dark:text-gray-200 max-w-[120px] truncate">{{ inv.event.name }}</span>
+          <span class="text-[10px] text-amber-700/70 dark:text-amber-400/70 whitespace-nowrap">· {{ inv.invited_by.username }} · {{ inv.role }}</span>
+          <form method="post" action="{% url 'events:accept_invitation' inv.event.pk %}" class="ml-1">
+            {% csrf_token %}
+            <button type="submit" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white transition-colors whitespace-nowrap">
+              Aceptar
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ── ALERTAS ── -->
   {% if alerts %}
   <div class="shrink-0 px-5 pt-3 space-y-2">
@@ -737,6 +767,36 @@
             {% endfor %}
           </div>
         </div>
+
+        <!-- Compartido conmigo -->
+        {% if shared_events %}
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <h4 class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Compartido conmigo</h4>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            {% for ev in shared_events %}
+            <a href="{% url 'events:event_detail' ev.pk %}"
+               class="glass rounded-2xl p-3 border border-gray-100 dark:border-gray-700 hover:border-teal-500/30 transition-all group card-hover flex flex-col gap-1.5">
+              <p class="text-xs font-semibold text-gray-800 dark:text-white truncate group-hover:text-teal-500 transition-colors leading-snug">{{ ev.name }}</p>
+              <p class="text-[10px] text-gray-400 dark:text-gray-500 truncate">{{ ev.owner.get_full_name|default:ev.owner.username }}</p>
+              <div class="mt-auto pt-1">
+                <span class="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full
+                  {% if ev.status == 'active' %}bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20
+                  {% elif ev.status == 'completed' %}bg-gray-200/70 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600
+                  {% elif ev.status == 'planning' %}bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20
+                  {% else %}bg-gray-100 dark:bg-gray-700/40 text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-gray-600/50{% endif %}">
+                  {{ ev.get_status_display }}
+                </span>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
 
       </div>
     </div>

@@ -3,7 +3,6 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.contrib.messages import get_messages
 from django.core.mail import send_mail
 from django.conf import settings
 from django.http import JsonResponse
@@ -111,7 +110,7 @@ def login_2fa_verify_view(request):
             profile.two_factor_secret = None
             profile.two_factor_sent_at = None
             profile.save()
-            login(request, user)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             del request.session['2fa_pending_user_id']
             messages.success(request, 'Verificación completada.')
             return redirect('events:dashboard')
@@ -126,42 +125,41 @@ def logout_view(request):
     return redirect('accounts:login')
 
 
+def _username_from_email(email):
+    """Auto-genera un username único a partir del email."""
+    base = re.sub(r'[^a-z0-9_]', '', email.split('@')[0].lower()) or 'user'
+    username, n = base, 1
+    while User.objects.filter(username=username).exists():
+        username = f"{base}{n}"
+        n += 1
+    return username
+
+
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('events:dashboard')
 
     if request.method == 'POST':
-        username   = request.POST.get('username', '').strip()
-        email      = request.POST.get('email', '').strip()
-        password1  = request.POST.get('password1', '')
-        password2  = request.POST.get('password2', '')
-        first_name = request.POST.get('first_name', '').strip()
-        last_name  = request.POST.get('last_name', '').strip()
+        email     = request.POST.get('email', '').strip().lower()
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
 
-        if not username:
-            messages.error(request, 'El nombre de usuario es obligatorio.')
-            response = render(request, 'registration/register.html')
-            get_messages(request)  # Consumir mensajes para que no persistan
-            return response
+        if not email:
+            messages.error(request, 'El correo electrónico es obligatorio.')
+            return render(request, 'registration/register.html')
+        if User.objects.filter(email__iexact=email).exists():
+            messages.error(request, 'Ya existe una cuenta con ese correo.')
+            return render(request, 'registration/register.html')
         if password1 != password2:
             messages.error(request, 'Las contraseñas no coinciden.')
-            response = render(request, 'registration/register.html')
-            get_messages(request)  # Consumir mensajes para que no persistan
-            return response
+            return render(request, 'registration/register.html')
         if len(password1) < 8:
             messages.error(request, 'La contraseña debe tener al menos 8 caracteres.')
-            response = render(request, 'registration/register.html')
-            get_messages(request)  # Consumir mensajes para que no persistan
-            return response
-        if User.objects.filter(username=username).exists():
-            messages.error(request, f'El usuario "{username}" ya está en uso.')
-            response = render(request, 'registration/register.html')
-            get_messages(request)  # Consumir mensajes para que no persistan
-            return response
+            return render(request, 'registration/register.html')
 
+        username = _username_from_email(email)
         user = User.objects.create_user(
             username=username, email=email, password=password1,
-            first_name=first_name, last_name=last_name,
         )
         # UserProfile is created automatically by the post_save signal in models.py
         if user.email:

@@ -164,7 +164,7 @@ ACCOUNT_SIGNUP_FIELDS = ['email*']
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = os.environ.get(
-    'ACCOUNT_HTTP_PROTOCOL', 'https'
+    'ACCOUNT_HTTP_PROTOCOL', 'http' if DEBUG else 'https'
 )
 
 # ── Social auth ──────────────────────────────────────────────────────────────

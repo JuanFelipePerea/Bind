@@ -109,6 +109,18 @@ def dashboard(request):
 
     show_tour = not getattr(getattr(request.user, 'profile', None), 'onboarding_completed', True)
 
+    from events.models import EventCollaborator as _EC
+    pending_invitations = list(
+        _EC.objects.filter(user=request.user, accepted=False)
+        .select_related('event', 'invited_by')
+        .order_by('-invited_at')[:10]
+    )
+    shared_events = list(
+        Event.objects.filter(collaborators__user=request.user, collaborators__accepted=True)
+        .select_related('owner')
+        .order_by('-updated_at')[:6]
+    )
+
     context = {
         'active_events_count': stats['active_events'],
         'total_events':        stats['total_events'],
@@ -131,10 +143,51 @@ def dashboard(request):
         'engine_output':       engine_output,
         'engine_summary':      engine_output['dashboard_summary'],
         'engine_decisions':    engine_output['all_decisions'],
-        'budget_events':       budget_events,
-        'show_tour':           show_tour,
+        'budget_events':         budget_events,
+        'show_tour':             show_tour,
+        'pending_invitations':   pending_invitations,
+        'shared_events':         shared_events,
     }
     return render(request, 'events/dashboard.html', context)
+
+
+@login_required
+def email_health_check(request):
+    """
+    Diagnóstico de configuración SMTP. Solo superadmins o admins de BIND.
+    GET  → muestra config (sin exponer la password completa)
+    POST → intenta enviar un email de prueba al usuario autenticado
+    """
+    from accounts.views import is_bind_admin
+    if not is_bind_admin(request.user):
+        return JsonResponse({'error': 'Sin permiso'}, status=403)
+
+    config = {
+        'EMAIL_BACKEND':     settings.EMAIL_BACKEND,
+        'EMAIL_HOST':        settings.EMAIL_HOST,
+        'EMAIL_PORT':        settings.EMAIL_PORT,
+        'EMAIL_USE_TLS':     settings.EMAIL_USE_TLS,
+        'EMAIL_HOST_USER':   settings.EMAIL_HOST_USER,
+        'EMAIL_HOST_PASSWORD_SET': bool(settings.EMAIL_HOST_PASSWORD),
+        'DEFAULT_FROM_EMAIL': settings.DEFAULT_FROM_EMAIL,
+        'SITE_URL':          settings.SITE_URL,
+    }
+
+    if request.method == 'POST':
+        from django.core.mail import send_mail
+        try:
+            send_mail(
+                subject='BIND — Test SMTP',
+                message=f'Diagnóstico desde {settings.SITE_URL or "localhost"}. Config: {config}',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[request.user.email],
+                fail_silently=False,
+            )
+            return JsonResponse({'ok': True, 'sent_to': request.user.email, 'config': config})
+        except Exception as exc:
+            return JsonResponse({'ok': False, 'error': str(exc), 'type': type(exc).__name__, 'config': config}, status=500)
+
+    return JsonResponse(config)
 
 
 def _get_event_score(event):
@@ -323,10 +376,21 @@ def eventos_en_curso(request):
 
 @login_required
 def event_detail(request, pk):
+    from django.http import Http404
+    from events.models import EventCollaborator as _EC
     event = get_object_or_404(
         Event.objects.select_related('budget', 'template', 'owner'),
-        pk=pk, owner=request.user,
+        pk=pk,
     )
+    is_owner = event.owner == request.user
+    if not is_owner:
+        _collab = _EC.objects.filter(event=event, user=request.user, accepted=True).first()
+        if not _collab:
+            raise Http404
+        user_role = _collab.role
+    else:
+        user_role = 'owner'
+    collaborators = list(_EC.objects.filter(event=event).select_related('user', 'invited_by').order_by('invited_at'))
 
     # Módulos activos de este evento
     active_modules = event.modules.filter(is_active=True).values_list('module_type', flat=True)
@@ -389,6 +453,9 @@ def event_detail(request, pk):
 
     context = {
         'event':               event,
+        'is_owner':            is_owner,
+        'user_role':           user_role,
+        'collaborators':       collaborators,
         'active_modules':      list(active_modules),
         'task_progress':       task_progress,
         'days_until':          days_until,

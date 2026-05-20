@@ -163,39 +163,6 @@
         <form method="post" id="registerForm" class="space-y-4" novalidate>
           {% csrf_token %}
 
-          <!-- Username -->
-          <div class="relative">
-            <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
-            </svg>
-            <input type="text" name="username" id="username"
-              placeholder="Nombre de usuario" required autocomplete="username"
-              value="{{ form.username.value|default:'' }}"
-              class="bind-input">
-          </div>
-
-          <!-- First + Last name (two columns) -->
-          <div class="grid grid-cols-2 gap-3">
-            <div class="relative">
-              <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-              </svg>
-              <input type="text" name="first_name" id="first_name"
-                placeholder="Nombre" autocomplete="given-name"
-                value="{{ form.first_name.value|default:'' }}"
-                class="bind-input">
-            </div>
-            <div class="relative">
-              <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-              </svg>
-              <input type="text" name="last_name" id="last_name"
-                placeholder="Apellido" autocomplete="family-name"
-                value="{{ form.last_name.value|default:'' }}"
-                class="bind-input">
-            </div>
-          </div>
-
           <!-- Email -->
           <div class="relative">
             <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
@@ -203,7 +170,7 @@
               <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
             </svg>
             <input type="email" name="email" id="email"
-              placeholder="Correo electrónico (opcional)" autocomplete="email"
+              placeholder="Correo electrónico" required autocomplete="email"
               value="{{ form.email.value|default:'' }}"
               class="bind-input">
           </div>
