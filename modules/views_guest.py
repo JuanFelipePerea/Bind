@@ -51,34 +51,31 @@ def send_invitations(request, event_pk):
 
     now = timezone.now()
     for attendee in to_send:
-        attendee.invitation_sent_at = now
-        attendee.token_expires_at   = now + timedelta(days=30)
-        attendee.save(update_fields=['invitation_sent_at', 'token_expires_at'])
-
-        path = reverse('guest_respond', args=[str(attendee.invitation_token)])
-        if getattr(settings, 'SITE_URL', ''):
-            magic_link = settings.SITE_URL + path
-        else:
-            magic_link = request.build_absolute_uri(path)
-
-        body_lines = [
-            f"Hola {attendee.name},",
-            "",
-            f"Has sido invitado/a a: {event.name}",
-        ]
-        if event.start_date:
-            body_lines.append(f"Fecha: {event.start_date.strftime('%d %b %Y, %H:%M')}")
-        if event.location:
-            body_lines.append(f"Lugar: {event.location}")
-        body_lines += [
-            "",
-            "Por favor confirma tu asistencia haciendo clic aquí:",
-            magic_link,
-            "",
-            "— Equipo BIND",
-        ]
-
         try:
+            path = reverse('guest_respond', args=[str(attendee.invitation_token)])
+            magic_link = (
+                settings.SITE_URL + path
+                if getattr(settings, 'SITE_URL', '')
+                else request.build_absolute_uri(path)
+            )
+
+            body_lines = [
+                f"Hola {attendee.name},",
+                "",
+                f"Has sido invitado/a a: {event.name}",
+            ]
+            if event.start_date:
+                body_lines.append(f"Fecha: {event.start_date.strftime('%d %b %Y, %H:%M')}")
+            if event.location:
+                body_lines.append(f"Lugar: {event.location}")
+            body_lines += [
+                "",
+                "Por favor confirma tu asistencia haciendo clic aquí:",
+                magic_link,
+                "",
+                "— Equipo BIND",
+            ]
+
             msg = EmailMessage(
                 subject=f"Invitación: {event.name}",
                 body='\n'.join(body_lines),
@@ -88,7 +85,13 @@ def send_invitations(request, event_pk):
             if attachment:
                 msg.attach(*attachment)
             msg.send()
+
+            # Solo actualizar timestamps si el envío fue exitoso
+            attendee.invitation_sent_at = now
+            attendee.token_expires_at   = now + timedelta(days=30)
+            attendee.save(update_fields=['invitation_sent_at', 'token_expires_at'])
             sent += 1
+
         except Exception as exc:
             logger.error(
                 "Error enviando invitación a %s (tipo: %s): %s",

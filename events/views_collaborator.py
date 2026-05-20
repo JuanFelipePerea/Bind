@@ -102,26 +102,35 @@ def invite_collaborator(request, pk):
 def accept_invitation(request, pk):
     """
     El usuario autenticado acepta su invitación al evento pk.
-    No requiere token — la sesión Django ya autentica al usuario.
+    - AJAX (X-Requested-With: XMLHttpRequest) → JsonResponse
+    - Form POST normal → redirect con mensaje flash
     """
-    event = get_object_or_404(Event, pk=pk)
+    from django.contrib import messages as _msgs
+    event   = get_object_or_404(Event, pk=pk)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     try:
         collab = EventCollaborator.objects.get(event=event, user=request.user)
     except EventCollaborator.DoesNotExist:
-        return JsonResponse({'error': 'No tienes una invitación para este evento'}, status=404)
+        if is_ajax:
+            return JsonResponse({'error': 'No tienes una invitación para este evento'}, status=404)
+        _msgs.error(request, 'No tienes una invitación para ese evento.')
+        return redirect('events:dashboard')
 
     if collab.accepted:
-        return JsonResponse({'status': 'already_accepted', 'role': collab.role})
+        if is_ajax:
+            return JsonResponse({'status': 'already_accepted', 'role': collab.role})
+        _msgs.info(request, f'Ya eres colaborador en "{event.name}".')
+        return redirect('events:event_detail', pk=pk)
 
     collab.accepted = True
     collab.save(update_fields=['accepted'])
 
-    return JsonResponse({
-        'status': 'accepted',
-        'event':  event.name,
-        'role':   collab.role,
-    })
+    if is_ajax:
+        return JsonResponse({'status': 'accepted', 'event': event.name, 'role': collab.role})
+
+    _msgs.success(request, f'¡Ahora colaboras en "{event.name}" como {collab.role}!')
+    return redirect('events:event_detail', pk=pk)
 
 
 @login_required
