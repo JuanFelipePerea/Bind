@@ -62,6 +62,9 @@ def push_event_to_google_calendar(event, user):
     start_local = localtime(event.start_date)
     end_local   = localtime(event.end_date)
 
+    _site = getattr(settings, 'SITE_URL', '').rstrip('/')
+    _event_url = f"{_site}/events/{event.pk}/" if _site else ''
+
     body = {
         'summary':     event.name,
         'description': event.description or '',
@@ -76,7 +79,7 @@ def push_event_to_google_calendar(event, user):
         },
         'source': {
             'title': 'BIND',
-            'url':   f"https://bind.onrender.com/events/{event.pk}/",
+            'url':   _event_url,
         },
     }
 

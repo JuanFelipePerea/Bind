@@ -140,6 +140,23 @@ STATICFILES_STORAGE = "BindV1.storage.ManifestStorage"
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# ---------------------------------------------------------------------------
+# Cache
+# En Render (producción) usa DatabaseCache para que los créditos de Bynix y
+# otros valores cacheados sobrevivan reinicios y sean compartidos entre
+# workers de Gunicorn.  En desarrollo local se mantiene LocMemCache (defecto
+# de Django) para no requerir infraestructura adicional.
+# IMPORTANTE: al desplegar por primera vez en Render ejecuta una sola vez:
+#   python manage.py createcachetable
+# ---------------------------------------------------------------------------
+if os.environ.get('RENDER'):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'bind_cache_table',
+        }
+    }
+
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGIN_URL = '/accounts/'
 

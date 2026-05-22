@@ -8,6 +8,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+import hmac
 import random
 import re
 from datetime import timedelta
@@ -106,7 +107,8 @@ def login_2fa_verify_view(request):
                 return redirect('accounts:login')
 
         code = request.POST.get('code', '').strip()
-        if code == profile.two_factor_secret:
+        secret = profile.two_factor_secret or ''
+        if secret and hmac.compare_digest(code, secret):
             profile.two_factor_secret = None
             profile.two_factor_sent_at = None
             profile.save()
@@ -309,7 +311,8 @@ def verify_2fa_view(request):
                 return redirect('accounts:2fa_enable')
 
         code = request.POST.get('code', '').strip()
-        if code == profile.two_factor_secret:
+        secret = profile.two_factor_secret or ''
+        if secret and hmac.compare_digest(code, secret):
             profile.two_factor_enabled = True
             profile.two_factor_secret = None
             profile.two_factor_sent_at = None

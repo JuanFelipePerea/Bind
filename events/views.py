@@ -244,15 +244,17 @@ def alert_action(request, pk):
     alert.save()
     try:
         health, risk = _get_event_score(alert.event)
-        EngineMetrics.objects.create(
+        EngineMetrics.objects.get_or_create(
             decision_key=alert.alert_key,
-            decision_type=alert.alert_type,
-            event=alert.event,
-            user=request.user,
-            health_score_at_decision=health,
-            risk_level_at_decision=risk,
-            user_acted=True,
-            action_taken='followed_action',
+            defaults={
+                'decision_type': alert.alert_type,
+                'event': alert.event,
+                'user': request.user,
+                'health_score_at_decision': health,
+                'risk_level_at_decision': risk,
+                'user_acted': True,
+                'action_taken': 'followed_action',
+            },
         )
     except Exception:
         pass
