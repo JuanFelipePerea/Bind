@@ -1,17 +1,21 @@
 """
 python manage.py setup_site
 
-Inicializa el registro django.contrib.sites.Site con el dominio correcto
-y crea el SocialApp de Google si no existe.
+Actualiza el registro django.contrib.sites.Site con el dominio correcto.
 
-Ejecutar en Render Shell después de cada deploy inicial o migración.
+NOTA: En allauth 65.x, list_apps() combina registros de DB + settings.
+Con APP configurado en SOCIALACCOUNT_PROVIDERS, NO debe haber SocialApp
+en la base de datos — de lo contrario get_app() recibe 2 apps y lanza
+MultipleObjectsReturned. Las credenciales viven en settings (env vars).
+
+Este comando solo gestiona Site, no SocialApp.
 """
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
 
 class Command(BaseCommand):
-    help = 'Configura Site domain y SocialApp de Google para allauth.'
+    help = 'Configura Site domain para django.contrib.sites (allauth).'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -23,6 +27,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         from django.contrib.sites.models import Site
+        from allauth.socialaccount.models import SocialApp
 
         # ── 1. Resolver dominio ───────────────────────────────────────────────
         domain = options['domain']
@@ -48,58 +53,20 @@ class Command(BaseCommand):
             f'{verb} Site(id={settings.SITE_ID}, domain={domain})'
         ))
 
-        # ── 3. Verificar SocialApp de Google ─────────────────────────────────
-        try:
-            from allauth.socialaccount.models import SocialApp
-
-            client_id = ''
-            secret = ''
-
-            providers_cfg = getattr(settings, 'SOCIALACCOUNT_PROVIDERS', {})
-            google_cfg = providers_cfg.get('google', {})
-            app_cfg = google_cfg.get('APP', {})
-            client_id = app_cfg.get('client_id', '')
-            secret = app_cfg.get('secret', '')
-
-            if not client_id:
-                self.stdout.write(self.style.WARNING(
-                    'GOOGLE_CLIENT_ID no está configurado — SocialApp no creado. '
-                    'Agrega GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET a las env vars de Render.'
-                ))
-                return
-
-            app, app_created = SocialApp.objects.get_or_create(
-                provider='google',
-                defaults={
-                    'name': 'Google OAuth',
-                    'client_id': client_id,
-                    'secret': secret,
-                }
-            )
-
-            if not app_created:
-                # Actualizar credenciales si cambiaron
-                updated = False
-                if app.client_id != client_id:
-                    app.client_id = client_id
-                    updated = True
-                if app.secret != secret:
-                    app.secret = secret
-                    updated = True
-                if updated:
-                    app.save()
-                    self.stdout.write(self.style.SUCCESS('SocialApp de Google actualizado.'))
-                else:
-                    self.stdout.write('SocialApp de Google ya estaba configurado correctamente.')
-            else:
-                self.stdout.write(self.style.SUCCESS('SocialApp de Google creado.'))
-
-            # Vincular al Site si no lo está
-            if site not in app.sites.all():
-                app.sites.add(site)
-                self.stdout.write(self.style.SUCCESS(
-                    f'SocialApp vinculado a Site(domain={domain}).'
-                ))
-
-        except Exception as exc:
-            self.stderr.write(self.style.ERROR(f'Error configurando SocialApp: {exc}'))
+        # ── 3. Sanity check: no debe haber SocialApp de Google en DB ─────────
+        google_apps = SocialApp.objects.filter(provider='google')
+        count = google_apps.count()
+        if count > 0:
+            self.stdout.write(self.style.WARNING(
+                f'ADVERTENCIA: {count} SocialApp(s) de Google en DB. '
+                'Con APP en SOCIALACCOUNT_PROVIDERS esto causa MultipleObjectsReturned. '
+                'Ejecutando limpieza...'
+            ))
+            google_apps.delete()
+            self.stdout.write(self.style.SUCCESS(
+                'SocialApps de Google eliminados. allauth usará SOCIALACCOUNT_PROVIDERS.'
+            ))
+        else:
+            self.stdout.write(self.style.SUCCESS(
+                'OK: 0 SocialApps de Google en DB (allauth usa settings).'
+            ))
