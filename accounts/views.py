@@ -60,19 +60,26 @@ def login_view(request):
                 profile.two_factor_secret = code
                 profile.two_factor_sent_at = timezone.now()
                 profile.save()
-                send_mail(
-                    subject='Tu código de verificación BIND',
-                    message=f'Hola {user.first_name or user.username},\n\nTu código de verificación es: {code}\n\nVálido por 5 minutos.',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-                messages.info(request, 'Ingresa el código enviado a tu email.')
-                return redirect('accounts:2fa_login_verify')
+                try:
+                    send_mail(
+                        subject='Tu código de verificación BIND',
+                        message=f'Hola {user.first_name or user.username},\n\nTu código de verificación es: {code}\n\nVálido por 5 minutos.',
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[user.email],
+                        fail_silently=False,
+                    )
+                    messages.info(request, 'Ingresa el código enviado a tu email.')
+                    return redirect('accounts:2fa_login_verify')
+                except Exception:
+                    request.session.pop('2fa_pending_user_id', None)
+                    messages.error(request, 'No pudimos enviar el código de verificación. Inténtalo de nuevo o contacta soporte.')
+                    return redirect('accounts:login')
 
             login(request, user)
-            next_url = request.GET.get('next', 'events:dashboard')
-            return redirect(next_url)
+            next_url = request.GET.get('next', '').strip()
+            if next_url and next_url.startswith('/'):
+                return redirect(next_url)
+            return redirect('events:dashboard')
         else:
             messages.error(request, 'Usuario o contraseña incorrectos.')
 
@@ -81,6 +88,10 @@ def login_view(request):
 
 def login_2fa_verify_view(request):
     """Verifica código 2FA al iniciar sesión."""
+    # Redirigir si no hay 2FA pendiente (acceso directo sin sesión válida)
+    if not request.session.get('2fa_pending_user_id'):
+        return redirect('accounts:login')
+
     if request.method == 'POST':
         user_id = request.session.get('2fa_pending_user_id')
         if not user_id:
