@@ -6,6 +6,8 @@ from django.db import migrations
 
 
 def fix_modules_fks(apps, schema_editor):
+    if schema_editor.connection.vendor != 'postgresql':
+        return
     with schema_editor.connection.cursor() as c:
 
         # ── FK → auth_user ──────────────────────────────────────────────────
@@ -208,6 +210,8 @@ def fix_modules_fks(apps, schema_editor):
 
 
 def reverse_modules_fks(apps, schema_editor):
+    if schema_editor.connection.vendor != 'postgresql':
+        return
     constraints = [
         ('modules_task',           'modules_task_assigned_to_id_fk'),
         ('modules_task',           'modules_task_event_id_fk'),

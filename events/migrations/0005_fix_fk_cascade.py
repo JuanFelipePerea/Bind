@@ -54,6 +54,8 @@ def _fix(cursor, table, column, ref_table, ref_col, on_delete):
 # ── forward ───────────────────────────────────────────────────────────────────
 
 def fix_events_fks(apps, schema_editor):
+    if schema_editor.connection.vendor != 'postgresql':
+        return
     with schema_editor.connection.cursor() as c:
 
         # ── FK → auth_user ──────────────────────────────────────────────────
@@ -234,6 +236,8 @@ def fix_events_fks(apps, schema_editor):
 
 def reverse_events_fks(apps, schema_editor):
     """Reverse: drop the new named constraints (Django will recreate originals on migrate)."""
+    if schema_editor.connection.vendor != 'postgresql':
+        return
     constraints = [
         ('events_event',                'events_event_owner_id_fk'),
         ('events_event',                'events_event_template_id_fk'),

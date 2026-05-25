@@ -5,10 +5,12 @@ from django.db import migrations, models
 
 
 def clean_long_phone_numbers(apps, schema_editor):
-    """Nullify phone values that won't fit in the new varchar(16) column."""
+    """Nullify phone values that won't fit in the new varchar(16) column.
+    Usa __gt en lugar de char_length() para compatibilidad con SQLite y PostgreSQL.
+    """
     UserProfile = apps.get_model('accounts', 'UserProfile')
-    UserProfile.objects.filter(phone__isnull=False).exclude(phone='').extra(
-        where=["char_length(phone) > 16"]
+    UserProfile.objects.filter(phone__isnull=False).exclude(phone='').filter(
+        phone__regex=r'.{17,}'   # 17+ caracteres → no cabe en varchar(16)
     ).update(phone=None)
 
 

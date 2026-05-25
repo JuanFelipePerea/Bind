@@ -9,6 +9,9 @@ from django.db import migrations
 
 
 def fix_account_fks(apps, schema_editor):
+    # PL/pgSQL solo aplica en PostgreSQL; SQLite maneja FKs vía ORM y PRAGMA
+    if schema_editor.connection.vendor != 'postgresql':
+        return
     with schema_editor.connection.cursor() as c:
         # accounts_userprofile.user_id  →  ON DELETE CASCADE
         c.execute("""
@@ -40,6 +43,8 @@ def fix_account_fks(apps, schema_editor):
 
 
 def reverse_account_fks(apps, schema_editor):
+    if schema_editor.connection.vendor != 'postgresql':
+        return
     with schema_editor.connection.cursor() as c:
         c.execute("""
             DO $$
