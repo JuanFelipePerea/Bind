@@ -1,9 +1,9 @@
 """
-Servicio centralizado para llamadas a Google Gemini.
+Servicio centralizado para llamadas a xAI Grok (compatible con la API de OpenAI).
 
 Expone:
   - generate_structured_data(prompt, system_instruction, model_name)
-      Función base: llama a Gemini y devuelve un dict JSON limpio.
+      Función base: llama a Grok y devuelve un dict JSON limpio.
   - generate_report_insights(stats)
       Genera análisis ejecutivo del reporte del usuario (resumen, riesgos,
       recomendaciones, tendencia y score de salud).
@@ -15,20 +15,21 @@ import os
 import time
 
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+from openai import OpenAI
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-_API_KEY = os.getenv("GEMINI_API_KEY", "")
-DEFAULT_MODEL = "gemini-2.5-flash-lite"
+_API_KEY = os.getenv("GROK_API_KEY", "")
+DEFAULT_MODEL = "grok-2-1212"
 
 if not _API_KEY:
-    logger.warning("GEMINI_API_KEY no definida — el servicio de IA estará inactivo.")
+    logger.warning("GROK_API_KEY no definida — el servicio de IA estará inactivo.")
 
-_client: genai.Client | None = genai.Client(api_key=_API_KEY) if _API_KEY else None
+_client: OpenAI | None = (
+    OpenAI(api_key=_API_KEY, base_url="https://api.x.ai/v1") if _API_KEY else None
+)
 
 
 # ─── Sistema de créditos Bynix ───────────────────────────────────────────────
@@ -107,29 +108,31 @@ def generate_structured_data(
     model_name: str = DEFAULT_MODEL,
 ) -> dict:
     """
-    Llama a Gemini y devuelve un dict parseado desde JSON.
+    Llama a Grok (xAI) y devuelve un dict parseado desde JSON.
+
+    Construye la lista de mensajes en el formato estándar de OpenAI:
+      [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
 
     Raises:
-        ValueError   – si GEMINI_API_KEY no está configurada.
+        ValueError   – si GROK_API_KEY no está configurada.
         RuntimeError – en errores de red, cuota o parseo.
     """
     if _client is None:
-        raise ValueError("GEMINI_API_KEY no está configurada en las variables de entorno.")
+        raise ValueError("GROK_API_KEY no está configurada en las variables de entorno.")
 
-    config_kwargs: dict = {
-        "response_mime_type": "application/json",
-        "temperature": 0.3,
-    }
+    messages: list[dict] = []
     if system_instruction:
-        config_kwargs["system_instruction"] = system_instruction
+        messages.append({"role": "system", "content": system_instruction})
+    messages.append({"role": "user", "content": prompt})
 
     try:
-        response = _client.models.generate_content(
+        response = _client.chat.completions.create(
             model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(**config_kwargs),
+            messages=messages,
+            temperature=0.3,
+            response_format={"type": "json_object"},
         )
-        raw = (response.text or "").strip()
+        raw = (response.choices[0].message.content or "").strip()
 
         # Protección extra por si el modelo envuelve en bloques markdown
         if raw.startswith("```"):
@@ -139,11 +142,11 @@ def generate_structured_data(
         return json.loads(raw)
 
     except json.JSONDecodeError as exc:
-        logger.error("Gemini devolvió respuesta no-JSON: %s", exc)
-        raise RuntimeError(f"No se pudo parsear la respuesta de Gemini como JSON: {exc}") from exc
+        logger.error("Grok devolvió respuesta no-JSON: %s", exc)
+        raise RuntimeError(f"No se pudo parsear la respuesta de Grok como JSON: {exc}") from exc
     except Exception as exc:
-        logger.error("Error en llamada a Gemini API: %s", exc)
-        raise RuntimeError(f"La llamada a Gemini falló: {exc}") from exc
+        logger.error("Error en llamada a Grok API: %s", exc)
+        raise RuntimeError(f"La llamada a Grok falló: {exc}") from exc
 
 
 # ─── función de dominio: insights del reporte ───────────────────────────────
