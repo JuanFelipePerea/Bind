@@ -144,8 +144,8 @@
           <div class="flex-1 h-px bg-white/10"></div>
         </div>
 
-        <!-- Google OAuth -->
-        <a href="{% provider_login_url 'google' %}"
+        <!-- Google OAuth — URL fija para evitar get_app() en cada render -->
+        <a href="/auth/google/login/"
            class="mt-4 w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-700 font-medium py-3.5 px-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 text-sm">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5 flex-shrink-0" aria-hidden="true">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

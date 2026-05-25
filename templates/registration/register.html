@@ -140,8 +140,8 @@
           {% endfor %}
         {% endif %}
 
-        <!-- Google OAuth -->
-        <a href="{% provider_login_url 'google' %}"
+        <!-- Google OAuth — URL fija para evitar get_app() en cada render -->
+        <a href="/auth/google/login/"
           class="btn-google flex items-center justify-center gap-3 w-full bg-gray-800 border border-gray-700 text-gray-200 text-sm font-medium py-3 rounded-xl mb-5">
           <svg class="w-5 h-5" viewBox="0 0 48 48" fill="none">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
