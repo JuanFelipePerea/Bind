@@ -158,7 +158,7 @@ if os.environ.get('RENDER'):
     }
 
 LOGIN_REDIRECT_URL = '/dashboard/'
-LOGIN_URL = '/accounts/'
+LOGIN_URL = '/accounts/login/'
 
 # Email (para 2FA e invitaciones)
 # En desarrollo: EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend en .env
