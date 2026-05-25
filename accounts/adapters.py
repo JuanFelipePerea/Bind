@@ -1,7 +1,11 @@
+import logging
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+
+logger = logging.getLogger(__name__)
 
 
 class BindSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -27,19 +31,31 @@ class BindSocialAccountAdapter(DefaultSocialAccountAdapter):
             return
 
         try:
-            existing_user = User.objects.get(email__iexact=email)
-        except User.DoesNotExist:
-            return
+            # Usar filter().first() en lugar de get() para evitar
+            # MultipleObjectsReturned cuando varios usuarios comparten email.
+            existing_user = User.objects.filter(email__iexact=email).first()
+            if existing_user is None:
+                return
 
-        # Conecta el SocialAccount al User existente y continúa la sesión.
-        # Esto evita el bucle a /3rdparty/signup/ cuando el email ya está
-        # registrado manualmente.
-        sociallogin.connect(request, existing_user)
+            # Conecta el SocialAccount al User existente y continúa la sesión.
+            # Esto evita el bucle a /3rdparty/signup/ cuando el email ya está
+            # registrado manualmente.
+            sociallogin.connect(request, existing_user)
+
+        except Exception as exc:
+            # Loguear sin propagar: un fallo aquí no debe bloquear el login.
+            logger.exception("pre_social_login error para email=%s: %s", email, exc)
 
     def save_user(self, request, sociallogin, form=None):
-        user = super().save_user(request, sociallogin, form)
+        try:
+            user = super().save_user(request, sociallogin, form)
+        except Exception as exc:
+            logger.exception("save_user falló en BindSocialAccountAdapter: %s", exc)
+            raise  # re-raise: allauth necesita este error para manejar el flujo
+
         from accounts.models import UserProfile
         UserProfile.objects.get_or_create(user=user)
+
         if user.email:
             name = user.first_name or user.username
             try:
@@ -57,6 +73,7 @@ class BindSocialAccountAdapter(DefaultSocialAccountAdapter):
                 )
             except Exception:
                 pass
+
         return user
 
     def is_open_for_signup(self, request, sociallogin):
