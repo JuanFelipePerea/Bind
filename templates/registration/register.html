@@ -17,69 +17,85 @@
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: { extend: { fontFamily: { poppins: ['Poppins','sans-serif'] } } }
+      theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } }
     }
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Inter: consistente con el app-shell -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Poppins', sans-serif; }
+    body { font-family: 'Inter', sans-serif; }
 
-    @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-    .fade-up { animation: fadeUp 0.55s ease-out forwards; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.5s ease-out forwards; }
 
-    /* ── Decorative blobs ── */
-    .blob {
-      position: absolute; border-radius: 50%;
-      filter: blur(90px); opacity: 0.18; pointer-events: none;
-    }
-
-    /* ── Base input ── */
+    /* ── Base input — CORREGIDO: responde a light/dark mode ──────────── */
     .bind-input {
       width: 100%;
-      padding: 0.875rem 3rem 0.875rem 2.75rem;
-      background: #1a1f2e;
-      border: 2px solid #2a3040;
-      border-radius: 0.75rem;
-      color: #e2e8f0;
+      padding: 0.75rem 3rem 0.75rem 2.5rem;
+      background: #ffffff;           /* light: fondo blanco                */
+      border: 1.5px solid #e4e4e7;  /* light: zinc-200                    */
+      border-radius: 0.625rem;
+      color: #09090b;                /* light: zinc-950                    */
       font-size: 0.875rem;
+      font-family: 'Inter', sans-serif;
       outline: none;
-      transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+      transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
     }
-    .bind-input::placeholder { color: #4a5568; }
-    .bind-input:hover:not(:focus) { border-color: #374151; }
-    .bind-input:focus { border-color: #14b8a6; background: #1e2535; box-shadow: 0 0 0 3px rgba(20,184,166,0.12); }
+    .bind-input::placeholder { color: #a1a1aa; }   /* zinc-400 */
+    .bind-input:hover:not(:focus) { border-color: #d4d4d8; }
+    .bind-input:focus {
+      border-color: #14b8a6;
+      background: #f0fdfb;
+      box-shadow: 0 0 0 3px rgba(20,184,166,0.10);
+    }
+    /* Dark mode overrides — corrección del bug de fondo siempre oscuro */
+    .dark .bind-input {
+      background: #18181b;    /* zinc-900 */
+      border-color: #3f3f46;  /* zinc-700 */
+      color: #fafafa;         /* zinc-50  */
+    }
+    .dark .bind-input::placeholder { color: #52525b; }  /* zinc-600 */
+    .dark .bind-input:hover:not(:focus) { border-color: #52525b; }
+    .dark .bind-input:focus {
+      background: #1c2535;
+      border-color: #14b8a6;
+      box-shadow: 0 0 0 3px rgba(20,184,166,0.14);
+    }
 
-    /* Validation border states */
-    .inp-weak   { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.10) !important; }
-    .inp-medium { border-color: #f59e0b !important; box-shadow: 0 0 0 3px rgba(245,158,11,0.10) !important; }
-    .inp-strong { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.10) !important; }
-    .inp-match  { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.10) !important; }
+    /* Validation border states — funcionan en ambos modos */
+    .inp-weak     { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.10) !important; }
+    .inp-medium   { border-color: #f59e0b !important; box-shadow: 0 0 0 3px rgba(245,158,11,0.10) !important; }
+    .inp-strong   { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.10) !important; }
+    .inp-match    { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.10) !important; }
     .inp-no-match { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.10) !important; }
 
     /* Strength bar */
-    .bar-track { height: 3px; border-radius: 9999px; background: #1e293b; overflow: hidden; }
+    .bar-track { height: 3px; border-radius: 9999px; background: #e4e4e7; overflow: hidden; }
+    .dark .bar-track { background: #27272a; }
     .bar-fill  { height: 100%; border-radius: 9999px; transition: width 0.3s ease, background-color 0.3s ease; }
 
-    /* Password toggle */
+    /* Password toggle — adaptado a light/dark */
     .eye-btn {
-      position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
-      color: #4a5568; transition: color 0.2s;
+      position: absolute; right: 0.875rem; top: 50%; transform: translateY(-50%);
+      color: #a1a1aa; transition: color 0.15s; padding: 2px;
     }
-    .eye-btn:hover { color: #94a3b8; }
+    .eye-btn:hover { color: #71717a; }
+    .dark .eye-btn { color: #52525b; }
+    .dark .eye-btn:hover { color: #a1a1aa; }
 
     /* Submit button */
     .btn-primary {
-      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
     }
-    .btn-primary:hover:not(:disabled)  { transform: scale(1.02); box-shadow: 0 8px 28px rgba(20,184,166,0.30); }
-    .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+    .btn-primary:hover:not(:disabled)  { transform: scale(1.015); box-shadow: 0 6px 20px rgba(20,184,166,0.25); }
+    .btn-primary:active:not(:disabled) { transform: scale(0.985); }
     .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* Google button */
-    .btn-google {
-      transition: background 0.2s ease, box-shadow 0.2s ease;
-    }
-    .btn-google:hover { background: #2d3748; box-shadow: 0 4px 16px rgba(0,0,0,0.30); }
+    .btn-google { transition: background 0.15s ease, border-color 0.15s ease; }
+    .btn-google:hover { background: #f4f4f5; border-color: #d4d4d8; }
+    .dark .btn-google { background: #27272a; border-color: #3f3f46; color: #fafafa; }
+    .dark .btn-google:hover { background: #3f3f46; }
   </style>
 </head>
 
