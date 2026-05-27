@@ -15,23 +15,28 @@
 {% block content %}
 <div class="p-6 md:p-8">
 
+  {# ── Mensajes de alerta ───────────────────────────────────────────────── #}
   {% if messages %}
-  <div class="mb-6 space-y-2">
+  <div class="mb-6 space-y-2" id="bind-messages">
     {% for message in messages %}
-    <div class="glass px-4 py-3 rounded-xl text-sm
-      {% if message.tags == 'error' %}border-l-4 border-red-500 text-red-700 dark:text-red-300
-      {% else %}border-l-4 border-teal-500 text-teal-700 dark:text-teal-300{% endif %}">
-      {{ message }}
+    <div class="flex items-start gap-3 px-4 py-3 rounded-xl text-sm font-medium
+      {% if message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300
+      {% elif message.tags == 'success' %}bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700 text-teal-700 dark:text-teal-300
+      {% else %}bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300{% endif %}">
+      <span class="text-lg leading-none mt-0.5">
+        {% if message.tags == 'error' %}🚫{% elif message.tags == 'success' %}✅{% else %}ℹ️{% endif %}
+      </span>
+      <span>{{ message }}</span>
     </div>
     {% endfor %}
   </div>
   {% endif %}
 
-  <!-- A) Header con 3 números grandes -->
+  {# ── Header: 3 números grandes ────────────────────────────────────────── #}
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <div class="glass p-6 rounded-2xl text-center">
       <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Presupuesto Total</p>
-      <p class="text-3xl font-bold text-gray-800 dark:text-white">
+      <p class="text-3xl font-bold text-gray-800 dark:text-white" id="stat-total">
         {{ budget.total_budget|floatformat:0 }}
       </p>
       <p class="text-sm text-gray-400 mt-1">{{ budget.currency }}</p>
@@ -52,7 +57,7 @@
     </div>
   </div>
 
-  <!-- Barra de progreso del presupuesto -->
+  {# ── Barra de progreso ────────────────────────────────────────────────── #}
   <div class="glass p-4 rounded-2xl mb-8">
     <div class="flex justify-between text-xs mb-2">
       <span class="text-gray-500 dark:text-gray-400 font-medium">Uso del presupuesto</span>
@@ -71,46 +76,99 @@
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-    <!-- B+C) Formularios de edición y nuevo ítem -->
+    {# ── Columna izquierda: formularios ───────────────────────────────── #}
     <div class="space-y-6">
 
-      <!-- B) Editar presupuesto total -->
+      {# Editar presupuesto total #}
       <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <h3 class="font-bold text-sm text-gray-500 dark:text-gray-400 uppercase mb-4">Ajustar Presupuesto</h3>
-        <form method="post" action="{% url 'modules:budget_update' event.pk %}">
+        <h3 class="font-bold text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
+          Ajustar Presupuesto
+        </h3>
+        <form method="post" action="{% url 'modules:budget_update' event.pk %}" id="budget-form">
           {% csrf_token %}
           <div class="space-y-3">
+
+            {# Monto #}
             <div>
               <label class="block text-xs text-gray-500 mb-1">Presupuesto total</label>
-              <input type="number" name="total_budget" step="0.01" min="0"
+              <input type="number" name="total_budget" id="budget-amount"
+                     step="0.01" min="0" max="{{ budget_max }}"
                      value="{{ budget.total_budget }}"
-                     class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+                     class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 border border-transparent"
+                     oninput="validateBudgetAmount(this)">
+              <p id="budget-amount-warn" class="hidden mt-1 text-xs text-red-500 font-medium"></p>
             </div>
+
+            {# ── Selector de moneda ────────────────────────────────────── #}
             <div>
               <label class="block text-xs text-gray-500 mb-1">Moneda</label>
-              <input type="text" name="currency" maxlength="3"
-                     value="{{ budget.currency }}"
-                     class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-                     placeholder="COP">
+
+              {# Botón que muestra la moneda actual y abre el modal #}
+              <button type="button" id="currency-btn"
+                      onclick="openCurrencyModal()"
+                      class="w-full flex items-center justify-between bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white hover:border-teal-400 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+                <span class="flex items-center gap-2">
+                  <span id="currency-btn-code" class="font-bold text-teal-600 dark:text-teal-400 font-mono">{{ budget.currency }}</span>
+                  <span id="currency-btn-name" class="text-gray-500 dark:text-gray-400 truncate text-xs">
+                    {% for code, label in currency_choices %}{% if code == budget.currency %}{{ label|slice:"6:" }}{% endif %}{% endfor %}
+                  </span>
+                </span>
+                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              <input type="hidden" name="currency" id="currency-value" value="{{ budget.currency }}">
             </div>
-            <button type="submit"
-                    class="w-full py-2 px-4 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl text-sm transition-colors">
+
+            {# ── Preview de conversión ────────────────────────────────── #}
+            <div id="conversion-preview"
+                 class="hidden bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border border-teal-200 dark:border-teal-700 rounded-xl p-3">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-lg">💱</span>
+                <p class="text-xs font-bold text-teal-700 dark:text-teal-300">Conversión automática al guardar</p>
+              </div>
+              <div id="conversion-loading" class="hidden flex items-center gap-2 text-xs text-gray-500">
+                <svg class="w-3 h-3 animate-spin text-teal-500" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                Obteniendo tasa…
+              </div>
+              <div id="conversion-result">
+                <p id="conversion-text" class="text-sm font-semibold text-gray-800 dark:text-gray-200"></p>
+                <p id="conversion-rate" class="text-xs text-gray-500 mt-0.5"></p>
+              </div>
+              <p class="text-xs text-teal-600 dark:text-teal-400 mt-2 font-medium">
+                ✓ El presupuesto y todos los ítems serán convertidos automáticamente
+              </p>
+            </div>
+
+            <button type="submit" id="budget-submit-btn"
+                    class="w-full py-2 px-4 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               Actualizar
             </button>
           </div>
         </form>
       </div>
 
-      <!-- C) Agregar gasto/ingreso -->
+      {# Agregar gasto/ingreso #}
       <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
-        <h3 class="font-bold text-sm text-gray-500 dark:text-gray-400 uppercase mb-4">Agregar ítem</h3>
+        <h3 class="font-bold text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
+          Agregar Ítem
+        </h3>
         <form method="post" action="{% url 'modules:budget_item_create' event.pk %}">
           {% csrf_token %}
           <div class="space-y-3">
             <input type="text" name="name" required placeholder="Nombre del ítem"
                    class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
-            <input type="number" name="amount" step="0.01" min="0" required placeholder="Monto"
-                   class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+            <div>
+              <input type="number" name="amount" id="item-amount"
+                     step="0.01" min="0" max="{{ item_max }}"
+                     required placeholder="Monto ({{ budget.currency }})"
+                     class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                     oninput="validateItemAmount(this)">
+              <p id="item-amount-warn" class="hidden mt-1 text-xs text-red-500 font-medium"></p>
+            </div>
             <select name="item_type"
                     class="w-full bg-white/50 dark:bg-black/20 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50">
               {% for val, label in type_choices %}
@@ -149,10 +207,10 @@
 
     </div>
 
-    <!-- D+E) Tabla de ítems -->
+    {# ── Columna derecha: tablas de ítems ─────────────────────────────── #}
     <div class="lg:col-span-2 space-y-6">
 
-      <!-- Gastos -->
+      {# Gastos #}
       <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-center mb-4">
           <h3 class="font-bold text-gray-800 dark:text-white flex items-center gap-2">
@@ -182,20 +240,12 @@
                 <td class="py-2 hidden sm:table-cell">
                   {% if item.related_task %}
                   <a href="{% url 'modules:task_edit' event.pk item.related_task.pk %}"
-                     class="text-xs text-teal-500 hover:underline">
-                    ↗ {{ item.related_task.title|truncatechars:20 }}
-                  </a>
-                  {% else %}
-                  <span class="text-xs text-gray-400">—</span>
-                  {% endif %}
+                     class="text-xs text-teal-500 hover:underline">↗ {{ item.related_task.title|truncatechars:20 }}</a>
+                  {% else %}<span class="text-xs text-gray-400">—</span>{% endif %}
                 </td>
                 <td class="py-2 text-right font-mono text-gray-800 dark:text-white">{{ item.amount|floatformat:0 }}</td>
                 <td class="py-2 text-center">
-                  {% if item.paid %}
-                  <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-                  {% else %}
-                  <span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
-                  {% endif %}
+                  <span class="w-2 h-2 rounded-full inline-block {% if item.paid %}bg-green-500{% else %}bg-gray-300{% endif %}"></span>
                 </td>
                 <td class="py-2 text-right">
                   <form method="post" action="{% url 'modules:budget_item_delete' event.pk item.pk %}" class="inline">
@@ -213,7 +263,7 @@
         {% endif %}
       </div>
 
-      <!-- Ingresos -->
+      {# Ingresos #}
       <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-center mb-4">
           <h3 class="font-bold text-gray-800 dark:text-white flex items-center gap-2">
@@ -243,20 +293,12 @@
                 <td class="py-2 hidden sm:table-cell">
                   {% if item.related_task %}
                   <a href="{% url 'modules:task_edit' event.pk item.related_task.pk %}"
-                     class="text-xs text-teal-500 hover:underline">
-                    ↗ {{ item.related_task.title|truncatechars:20 }}
-                  </a>
-                  {% else %}
-                  <span class="text-xs text-gray-400">—</span>
-                  {% endif %}
+                     class="text-xs text-teal-500 hover:underline">↗ {{ item.related_task.title|truncatechars:20 }}</a>
+                  {% else %}<span class="text-xs text-gray-400">—</span>{% endif %}
                 </td>
                 <td class="py-2 text-right font-mono text-gray-800 dark:text-white">{{ item.amount|floatformat:0 }}</td>
                 <td class="py-2 text-center">
-                  {% if item.paid %}
-                  <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-                  {% else %}
-                  <span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
-                  {% endif %}
+                  <span class="w-2 h-2 rounded-full inline-block {% if item.paid %}bg-green-500{% else %}bg-gray-300{% endif %}"></span>
                 </td>
                 <td class="py-2 text-right">
                   <form method="post" action="{% url 'modules:budget_item_delete' event.pk item.pk %}" class="inline">
@@ -274,7 +316,7 @@
         {% endif %}
       </div>
 
-      <!-- E) Balance neto -->
+      {# Balance neto #}
       <div class="glass p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-center text-sm">
           <span class="text-gray-500 font-medium">Total gastos</span>
@@ -294,6 +336,288 @@
 
     </div>
   </div>
-
 </div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   Modal selector de monedas — lista renderizada server-side
+══════════════════════════════════════════════════════════════════════════════ #}
+<div id="currency-modal"
+     class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+     onclick="if(event.target===this) closeCurrencyModal()">
+
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+
+  <div class="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden"
+       style="max-height:85vh;display:flex;flex-direction:column;">
+
+    {# Header #}
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
+      <div>
+        <h2 class="text-base font-bold text-gray-800 dark:text-white">Seleccionar moneda</h2>
+        <p class="text-xs text-gray-400 mt-0.5">{{ currency_choices|length }} monedas · escribe para filtrar</p>
+      </div>
+      <button type="button" onclick="closeCurrencyModal()"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    {# Buscador #}
+    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
+      <div class="relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input type="text" id="modal-search"
+               placeholder="USD, Euro, Peso, Dollar…"
+               autocomplete="off"
+               oninput="filterCurrencies(this.value)"
+               class="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-sm
+                      text-gray-800 dark:text-white placeholder-gray-400
+                      focus:outline-none focus:ring-2 focus:ring-teal-500/50
+                      border border-gray-200 dark:border-gray-600">
+      </div>
+    </div>
+
+    {# Lista — server-side render, JS solo muestra/oculta #}
+    <div id="modal-currency-list" class="overflow-y-auto flex-1">
+
+      {# Mensaje "sin resultados" (oculto por defecto) #}
+      <div id="no-results" class="hidden py-12 text-center text-gray-400 text-sm">
+        <div class="text-3xl mb-2">🔍</div>No se encontraron monedas
+      </div>
+
+      {% for code, label in currency_choices %}
+      {% with name=label|slice:"6:" %}
+      <button type="button"
+              data-code="{{ code }}"
+              data-search="{{ code|lower }} {{ label|lower }}"
+              onclick="selectCurrency('{{ code }}', '{{ name|escapejs }}')"
+              class="cur-item w-full flex items-center gap-3 px-5 py-3 text-left
+                     transition-colors border-b border-gray-50 dark:border-gray-800/50
+                     last:border-0
+                     {% if code == budget.currency %}
+                       bg-teal-50 dark:bg-teal-900/30
+                     {% else %}
+                       hover:bg-gray-50 dark:hover:bg-gray-800/60
+                     {% endif %}">
+        <span class="font-mono font-bold text-sm w-12 shrink-0
+                     {% if code == budget.currency %}text-teal-600 dark:text-teal-400
+                     {% else %}text-gray-500 dark:text-gray-400{% endif %}">
+          {{ code }}
+        </span>
+        <span class="text-sm truncate flex-1
+                     {% if code == budget.currency %}text-teal-700 dark:text-teal-300 font-semibold
+                     {% else %}text-gray-700 dark:text-gray-200{% endif %}">
+          {{ name }}
+        </span>
+        {% if code == budget.currency %}
+        <span id="check-{{ code }}" class="text-teal-500 shrink-0">✓</span>
+        {% else %}
+        <span id="check-{{ code }}" class="hidden text-teal-500 shrink-0">✓</span>
+        {% endif %}
+      </button>
+      {% endwith %}
+      {% endfor %}
+
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   Scripts
+══════════════════════════════════════════════════════════════════════════════ #}
+<script>
+// ─── Datos ────────────────────────────────────────────────────────────────────
+const CONVERT_URL     = "{% url 'modules:currency_convert' %}";
+const CURRENT_FROM    = "{{ budget.currency }}";
+const ORIGINAL_AMOUNT = {{ budget.total_budget }};
+const BUDGET_MAX      = {{ budget_max }};
+const ITEM_MAX        = {{ item_max }};
+
+let selectedCurrency  = CURRENT_FROM;
+let conversionDebounce = null;
+let cachedRate = null;   // guardamos la tasa para no repetir llamadas
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
+function openCurrencyModal() {
+  document.getElementById('currency-modal').classList.remove('hidden');
+  const search = document.getElementById('modal-search');
+  search.value = '';
+  filterCurrencies('');              // mostrar todos
+  setTimeout(() => search.focus(), 80);
+}
+function closeCurrencyModal() {
+  document.getElementById('currency-modal').classList.add('hidden');
+}
+
+// Filtro de búsqueda — muestra/oculta botones ya renderizados
+function filterCurrencies(q) {
+  const term = q.toLowerCase().trim();
+  let visible = 0;
+  document.querySelectorAll('.cur-item').forEach(btn => {
+    const match = !term || btn.dataset.search.includes(term);
+    btn.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  document.getElementById('no-results').classList.toggle('hidden', visible > 0);
+}
+
+// ─── Seleccionar moneda ───────────────────────────────────────────────────────
+function selectCurrency(code, name) {
+  // Quitar marca de la anterior
+  const prevCheck = document.getElementById('check-' + selectedCurrency);
+  if (prevCheck) { prevCheck.classList.add('hidden'); }
+  const prevBtn = document.querySelector(`.cur-item[data-code="${selectedCurrency}"]`);
+  if (prevBtn) {
+    prevBtn.classList.remove('bg-teal-50','dark:bg-teal-900/30');
+    prevBtn.classList.add('hover:bg-gray-50','dark:hover:bg-gray-800/60');
+  }
+
+  // Marcar la nueva
+  selectedCurrency = code;
+  document.getElementById('currency-value').value = code;
+  const newCheck = document.getElementById('check-' + code);
+  if (newCheck) { newCheck.classList.remove('hidden'); }
+  const newBtn = document.querySelector(`.cur-item[data-code="${code}"]`);
+  if (newBtn) {
+    newBtn.classList.add('bg-teal-50','dark:bg-teal-900/30');
+    newBtn.classList.remove('hover:bg-gray-50','dark:hover:bg-gray-800/60');
+  }
+
+  // Actualizar botón visible
+  document.getElementById('currency-btn-code').textContent = code;
+  document.getElementById('currency-btn-name').textContent = name;
+
+  closeCurrencyModal();
+
+  const submitBtn = document.getElementById('budget-submit-btn');
+  if (code !== CURRENT_FROM) {
+    submitBtn.textContent = `💱 Convertir a ${code} y guardar`;
+    submitBtn.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)';
+    cachedRate = null;
+    fetchAndUpdateAmount(CURRENT_FROM, code);
+  } else {
+    // Restaurar monto original
+    document.getElementById('budget-amount').value = ORIGINAL_AMOUNT;
+    submitBtn.textContent = 'Actualizar';
+    submitBtn.style.background = '';
+    document.getElementById('conversion-preview').classList.add('hidden');
+    cachedRate = null;
+  }
+}
+
+// ─── Conversión: obtiene tasa y actualiza el campo de monto ──────────────────
+function fetchAndUpdateAmount(fromCur, toCur) {
+  clearTimeout(conversionDebounce);
+  const amountInput = document.getElementById('budget-amount');
+  const currentAmt  = parseFloat(amountInput.value) || 0;
+  const preview     = document.getElementById('conversion-preview');
+  const loading     = document.getElementById('conversion-loading');
+  const result      = document.getElementById('conversion-result');
+
+  preview.classList.remove('hidden');
+  loading.classList.remove('hidden');
+  result.style.opacity = '0.4';
+  amountInput.style.opacity = '0.5';
+
+  conversionDebounce = setTimeout(() => {
+    const amt = Math.max(currentAmt, 1);
+    fetch(`${CONVERT_URL}?from=${fromCur}&to=${toCur}&amount=${amt}`)
+      .then(r => r.json())
+      .then(data => {
+        loading.classList.add('hidden');
+        result.style.opacity = '1';
+        amountInput.style.opacity = '1';
+
+        if (data.error) {
+          document.getElementById('conversion-text').textContent = '⚠️ No se pudo convertir';
+          document.getElementById('conversion-rate').textContent = data.error;
+          return;
+        }
+
+        cachedRate = data.rate;
+        const fmt = n => Number(n).toLocaleString('es-CO', { maximumFractionDigits: 4 });
+
+        if (currentAmt > 0) {
+          amountInput.value = data.converted;
+          document.getElementById('conversion-text').textContent =
+            `${fmt(currentAmt)} ${fromCur}  →  ${fmt(data.converted)} ${toCur}`;
+        } else {
+          document.getElementById('conversion-text').textContent =
+            `Tasa lista: 1 ${fromCur} = ${fmt(data.rate)} ${toCur}`;
+        }
+        document.getElementById('conversion-rate').textContent =
+          `1 ${fromCur} = ${fmt(data.rate)} ${toCur}  ·  open.er-api.com`;
+      })
+      .catch(() => {
+        loading.classList.add('hidden');
+        result.style.opacity = '1';
+        amountInput.style.opacity = '1';
+        document.getElementById('conversion-text').textContent = '⚠️ Sin conexión';
+        document.getElementById('conversion-rate').textContent = 'El monto no fue modificado';
+      });
+  }, 400);
+}
+
+// Si el usuario escribe un monto manualmente, recalcular con la tasa cacheada
+document.getElementById('budget-amount').addEventListener('input', function () {
+  if (selectedCurrency !== CURRENT_FROM && cachedRate) {
+    const amt = parseFloat(this.value) || 0;
+    const fmt = n => Number(n).toLocaleString('es-CO', { maximumFractionDigits: 4 });
+    document.getElementById('conversion-text').textContent =
+      amt > 0
+        ? `Monto a guardar: ${fmt(amt)} ${selectedCurrency}`
+        : `Tasa: 1 ${CURRENT_FROM} = ${fmt(cachedRate)} ${selectedCurrency}`;
+  }
+});
+
+// ─── Validaciones de monto ────────────────────────────────────────────────────
+function validateBudgetAmount(input) {
+  const warn = document.getElementById('budget-amount-warn');
+  const btn  = document.getElementById('budget-submit-btn');
+  const val  = parseFloat(input.value);
+  if (isNaN(val) || val < 0) {
+    warn.textContent = '⚠️ Ingresa un número válido y positivo.';
+    warn.classList.remove('hidden'); btn.disabled = true;
+  } else if (val > BUDGET_MAX) {
+    warn.textContent = `⚠️ Máximo permitido: ${BUDGET_MAX.toLocaleString()}. Revisa el valor.`;
+    warn.classList.remove('hidden'); btn.disabled = true;
+  } else {
+    warn.classList.add('hidden'); btn.disabled = false;
+  }
+}
+
+function validateItemAmount(input) {
+  const warn = document.getElementById('item-amount-warn');
+  const val  = parseFloat(input.value);
+  if (val > ITEM_MAX) {
+    warn.textContent = `⚠️ Máximo por ítem: ${ITEM_MAX.toLocaleString()}.`;
+    warn.classList.remove('hidden');
+    input.setCustomValidity('Monto demasiado alto');
+  } else {
+    warn.classList.add('hidden');
+    input.setCustomValidity('');
+  }
+}
+
+// ─── Cerrar modal con Escape ──────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeCurrencyModal();
+});
+
+// ─── Auto-cerrar mensajes después de 6 s ─────────────────────────────────────
+setTimeout(() => {
+  const msgs = document.getElementById('bind-messages');
+  if (msgs) {
+    msgs.style.transition = 'opacity 0.5s';
+    msgs.style.opacity = '0';
+    setTimeout(() => msgs.remove(), 500);
+  }
+}, 6000);
+</script>
 {% endblock %}

@@ -11,6 +11,7 @@ from django.core.management.base import BaseCommand
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.models import User
+from events.email_utils import send_bind_email
 import logging
 
 logger = logging.getLogger(__name__)
@@ -93,45 +94,31 @@ class Command(BaseCommand):
 
     def _send_alert_email(self, user, decisions):
         nombre = user.get_full_name() or user.username
-        critical = [d for d in decisions if d.severity == 'critical']
-        warnings  = [d for d in decisions if d.severity == 'warning']
+        criticos    = [d for d in decisions if d.severity == 'critical']
+        advertencias = [d for d in decisions if d.severity == 'warning']
 
-        subject_prefix = 'Accion urgente' if critical else 'Atencion requerida'
-        subject = f'{subject_prefix} en BIND — {nombre}'
+        # Cargar plantilla personalizada del usuario (si existe)
+        from accounts.models import EmailTemplate
+        alert_tpl = EmailTemplate.objects.filter(user=user, email_type='alert').first()
 
-        lines = [
-            f'Hola {nombre},',
-            '',
-            'Bynix detectó situaciones que requieren tu atención:',
-            '',
-        ]
+        if alert_tpl and alert_tpl.custom_subject:
+            subject = alert_tpl.get_subject()
+        else:
+            subject_prefix = '🚨 Acción urgente' if criticos else '⚠️ Atención requerida'
+            subject = f'{subject_prefix} en BIND — {nombre}'
 
-        if critical:
-            lines.append('CRITICO — actua hoy:')
-            for d in critical:
-                lines.append(f'  · {d.title}')
-                lines.append(f'    {d.message}')
-                if d.action_url:
-                    lines.append(f'    -> {SITE_URL}{d.action_url}')
-                lines.append('')
+        custom_message = alert_tpl.get_body() if alert_tpl else ''
 
-        if warnings:
-            lines.append('Advertencias:')
-            for d in warnings:
-                lines.append(f'  · {d.title}')
-                lines.append(f'    {d.message}')
-                lines.append('')
-
-        lines += [
-            f'Ver tu panel: {SITE_URL}/dashboard/',
-            '',
-            '— Bynix, asistente de BIND',
-        ]
-
-        send_mail(
+        send_bind_email(
+            template_name='alertas_engine',
             subject=subject,
-            message='\n'.join(lines),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
+            recipient=user.email,
+            context={
+                'nombre': nombre,
+                'hay_criticos': bool(criticos),
+                'criticos': criticos,
+                'advertencias': advertencias,
+                'site_url': SITE_URL,
+                'custom_message': custom_message,
+            },
         )

@@ -39,6 +39,7 @@ urlpatterns = [
     path('events/<int:event_pk>/budget/update/', views.budget_update, name='budget_update'),
     path('events/<int:event_pk>/budget/items/new/', views.budget_item_create, name='budget_item_create'),
     path('events/<int:event_pk>/budget/items/<int:pk>/delete/', views.budget_item_delete, name='budget_item_delete'),
+    path('currency-convert/', views.currency_convert, name='currency_convert'),
 
     # Invitaciones — envío masivo (owner only)
     path('events/<int:event_pk>/attendees/send/', views_guest.send_invitations, name='send_invitations'),

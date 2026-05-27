@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from events.models import Event
+from events.email_utils import send_bind_email
 from modules.models import Attendee, AttendeePreference
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,24 @@ def send_invitations(request, event_pk):
         except Exception as exc:
             logger.warning("No se pudo leer invitation_file evento %s: %s", event_pk, exc)
 
+    # Leer contenido personalizado del formulario de composición
+    custom_subject = request.POST.get('custom_subject', '').strip()
+    custom_message = request.POST.get('custom_message', '').strip()
+
+    # Si no hay asunto personalizado, usar el asunto por defecto
+    # (también se puede haber guardado una plantilla del usuario)
+    if not custom_subject:
+        from accounts.models import EmailTemplate
+        tpl = EmailTemplate.objects.filter(
+            user=request.user, email_type='invitation'
+        ).first()
+        if tpl:
+            custom_subject = tpl.get_subject(event=event.name)
+            if not custom_message:
+                custom_message = tpl.get_body()
+
+    subject = custom_subject or f"🎟 Invitación: {event.name}"
+
     now = timezone.now()
     for attendee in to_send:
         try:
@@ -59,32 +78,18 @@ def send_invitations(request, event_pk):
                 else request.build_absolute_uri(path)
             )
 
-            body_lines = [
-                f"Hola {attendee.name},",
-                "",
-                f"Has sido invitado/a a: {event.name}",
-            ]
-            if event.start_date:
-                body_lines.append(f"Fecha: {event.start_date.strftime('%d %b %Y, %H:%M')}")
-            if event.location:
-                body_lines.append(f"Lugar: {event.location}")
-            body_lines += [
-                "",
-                "Por favor confirma tu asistencia haciendo clic aquí:",
-                magic_link,
-                "",
-                "— Equipo BIND",
-            ]
-
-            msg = EmailMessage(
-                subject=f"Invitación: {event.name}",
-                body='\n'.join(body_lines),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[attendee.email],
+            send_bind_email(
+                template_name='invitacion_evento',
+                subject=subject,
+                recipient=attendee.email,
+                context={
+                    'nombre': attendee.name,
+                    'event': event,
+                    'magic_link': magic_link,
+                    'custom_message': custom_message,
+                },
+                attachments=[attachment] if attachment else None,
             )
-            if attachment:
-                msg.attach(*attachment)
-            msg.send()
 
             # Solo actualizar timestamps si el envío fue exitoso
             attendee.invitation_sent_at = now

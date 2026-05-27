@@ -82,3 +82,67 @@ class UserProfile(models.Model):
 def auto_create_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.get_or_create(user=instance)
+
+
+class EmailTemplate(models.Model):
+    """Plantillas de email personalizables por usuario."""
+
+    TYPE_CHOICES = [
+        ('invitation', '🎟 Invitación a evento'),
+        ('welcome',    '🎉 Bienvenida'),
+        ('digest',     '🤖 Resumen semanal (Bynix)'),
+        ('alert',      '🚨 Alertas del sistema'),
+    ]
+
+    DEFAULT_SUBJECTS = {
+        'invitation': '🎟 Invitación: {event}',
+        'welcome':    '¡Bienvenido a BIND! 🎉',
+        'digest':     'Bynix · Tu semana en BIND',
+        'alert':      '⚠️ Atención requerida en BIND',
+    }
+
+    DEFAULT_BODIES = {
+        'invitation': (
+            'Te esperamos en este evento especial. '
+            'Confirma tu asistencia usando el botón de abajo.'
+        ),
+        'welcome': (
+            'Nos alegra tenerte en BIND. '
+            'Empieza creando tu primer evento y deja que Bynix te ayude a gestionarlo.'
+        ),
+        'digest': (
+            'Aquí tienes el resumen semanal de tus eventos. '
+            'Revisa las recomendaciones de Bynix para mantener todo en orden.'
+        ),
+        'alert': (
+            'Bynix detectó situaciones que requieren tu atención. '
+            'Revisa los detalles a continuación.'
+        ),
+    }
+
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, related_name='email_templates')
+    email_type   = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    custom_subject = models.CharField(max_length=200, blank=True,
+                                      help_text='Deja vacío para usar el asunto por defecto.')
+    custom_body  = models.TextField(blank=True,
+                                    help_text='Mensaje que aparece en el cuerpo del email.')
+    updated_at   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'email_type')
+        verbose_name = 'Plantilla de email'
+        verbose_name_plural = 'Plantillas de email'
+
+    def get_subject(self, **kwargs):
+        """Retorna el asunto final (personalizado o por defecto)."""
+        if self.custom_subject:
+            return self.custom_subject.format(**kwargs)
+        tpl = self.DEFAULT_SUBJECTS.get(self.email_type, '')
+        return tpl.format(**kwargs)
+
+    def get_body(self):
+        """Retorna el cuerpo personalizado o el por defecto."""
+        return self.custom_body or self.DEFAULT_BODIES.get(self.email_type, '')
+
+    def __str__(self):
+        return f"{self.user.username} · {self.get_email_type_display()}"

@@ -1,0 +1,75 @@
+{% extends "emails/base_email.html" %}
+{% block subject %}¡Bienvenido a BIND!{% endblock %}
+
+{% block content %}
+  <!-- Greeting icon -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td align="center" style="padding-bottom:28px;">
+        <div style="display:inline-block;background:linear-gradient(135deg,#ccfbf1,#99f6e4);width:72px;height:72px;border-radius:50%;text-align:center;line-height:72px;font-size:32px;">
+          🎉
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;color:#0f172a;text-align:center;letter-spacing:-0.5px;">
+    ¡Bienvenido, {{ nombre }}!
+  </h1>
+  <p style="margin:0 0 28px;font-size:15px;color:#64748b;text-align:center;">
+    Tu cuenta en <strong style="color:#14b8a6;">BIND</strong> está lista
+  </p>
+
+  <p style="margin:0 0 20px;font-size:15px;color:#334155;line-height:1.7;">
+    Hola <strong>{{ nombre }}</strong>, nos alegra tenerte aquí. A partir de ahora puedes gestionar todos tus eventos desde un solo lugar con la ayuda de <strong>Bynix</strong>, tu asistente inteligente.
+  </p>
+
+  {% if custom_message %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+    <tr>
+      <td style="background:linear-gradient(135deg,#f0fdfa,#e6fffa);border-left:4px solid #14b8a6;border-radius:0 10px 10px 0;padding:16px 20px;">
+        <p style="margin:0;font-size:14px;color:#1e293b;line-height:1.7;white-space:pre-line;">{{ custom_message }}</p>
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  <!-- Feature highlights -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
+    <tr>
+      <td style="background-color:#f0fdfa;border-left:3px solid #14b8a6;border-radius:0 8px 8px 0;padding:14px 18px;margin-bottom:12px;">
+        <p style="margin:0;font-size:14px;color:#134e4a;"><strong>📅 Crea y gestiona eventos</strong> con fechas, categorías y estados en tiempo real.</p>
+      </td>
+    </tr>
+    <tr><td style="height:10px;"></td></tr>
+    <tr>
+      <td style="background-color:#f0fdfa;border-left:3px solid #14b8a6;border-radius:0 8px 8px 0;padding:14px 18px;">
+        <p style="margin:0;font-size:14px;color:#134e4a;"><strong>👥 Invita asistentes</strong> y sigue el estado de confirmaciones con un clic.</p>
+      </td>
+    </tr>
+    <tr><td style="height:10px;"></td></tr>
+    <tr>
+      <td style="background-color:#f0fdfa;border-left:3px solid #14b8a6;border-radius:0 8px 8px 0;padding:14px 18px;">
+        <p style="margin:0;font-size:14px;color:#134e4a;"><strong>🤖 Bynix AI</strong> analiza tus eventos y te da alertas, recomendaciones y reportes semanales.</p>
+      </td>
+    </tr>
+  </table>
+
+  <!-- CTA Button -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:32px 0 8px;">
+    <tr>
+      <td align="center">
+        <a href="{{ site_url }}/dashboard/" style="display:inline-block;background:linear-gradient(135deg,#14b8a6,#0d9488);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;">
+          Ir a mi Dashboard →
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  {% if via_google %}
+  <p style="margin:20px 0 0;font-size:13px;color:#94a3b8;text-align:center;">
+    Cuenta vinculada con Google ·
+    <a href="{{ site_url }}" style="color:#14b8a6;text-decoration:none;">bind.onrender.com</a>
+  </p>
+  {% endif %}
+{% endblock %}

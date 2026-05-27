@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
+from events.email_utils import send_bind_email
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
@@ -15,7 +16,7 @@ from datetime import timedelta
 
 _2FA_CODE_EXPIRY_MINUTES = 5
 
-from .models import UserProfile
+from .models import UserProfile, EmailTemplate
 
 def index_view(request):
     """Landing page pública de BIND."""
@@ -61,12 +62,14 @@ def login_view(request):
                 profile.two_factor_sent_at = timezone.now()
                 profile.save()
                 try:
-                    send_mail(
+                    send_bind_email(
+                        template_name='codigo_2fa',
                         subject='Tu código de verificación BIND',
-                        message=f'Hola {user.first_name or user.username},\n\nTu código de verificación es: {code}\n\nVálido por 5 minutos.',
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[user.email],
-                        fail_silently=False,
+                        recipient=user.email,
+                        context={
+                            'nombre': user.first_name or user.username,
+                            'codigo': code,
+                        },
                     )
                     messages.info(request, 'Ingresa el código enviado a tu email.')
                     return redirect('accounts:2fa_login_verify')
@@ -259,21 +262,18 @@ def _generate_2fa_code():
 def _send_welcome_email(user):
     """Envía correo de bienvenida a un usuario recién registrado. Silencia errores de SMTP."""
     name = user.first_name or user.username
-    try:
-        send_mail(
-            subject='¡Bienvenido a BIND!',
-            message=(
-                f'Hola {name},\n\n'
-                'Tu cuenta en BIND ha sido creada exitosamente. '
-                'Ya puedes acceder a la plataforma y comenzar a gestionar tus eventos.\n\n'
-                '— El equipo de BIND'
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+    # Usar plantilla personalizada si el usuario ya la configuró (poco probable en bienvenida,
+    # pero posible si alguien importó usuarios con plantillas pre-existentes)
+    welcome_tpl = EmailTemplate.objects.filter(user=user, email_type='welcome').first()
+    subject = welcome_tpl.get_subject() if (welcome_tpl and welcome_tpl.custom_subject) else '¡Bienvenido a BIND! 🎉'
+    custom_message = welcome_tpl.get_body() if welcome_tpl else ''
+    send_bind_email(
+        template_name='bienvenida',
+        subject=subject,
+        recipient=user.email,
+        context={'nombre': name, 'via_google': False, 'custom_message': custom_message},
+        fail_silently=True,
+    )
 
 
 @login_required
@@ -291,12 +291,14 @@ def enable_2fa_send(request):
     profile.save()
 
     try:
-        send_mail(
+        send_bind_email(
+            template_name='codigo_2fa',
             subject='Tu código de verificación BIND',
-            message=f'Hola {request.user.first_name or request.user.username},\n\nTu código de verificación es: {code}\n\nVálido por {_2FA_CODE_EXPIRY_MINUTES} minutos.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[request.user.email],
-            fail_silently=False,
+            recipient=request.user.email,
+            context={
+                'nombre': request.user.first_name or request.user.username,
+                'codigo': code,
+            },
         )
         messages.success(request, 'Código enviado a tu email.')
     except Exception:
@@ -455,3 +457,48 @@ def tour_complete_view(request):
     profile.onboarding_completed = True
     profile.save(update_fields=['onboarding_completed'])
     return JsonResponse({'ok': True})
+
+
+# ─── Editor de plantillas de email ──────────────────────────────────────────
+
+@login_required
+def email_templates_view(request):
+    """Página para editar las plantillas de email del usuario."""
+    user = request.user
+
+    if request.method == 'POST':
+        email_type = request.POST.get('email_type', '').strip()
+        valid_types = [t for t, _ in EmailTemplate.TYPE_CHOICES]
+        if email_type not in valid_types:
+            messages.error(request, 'Tipo de plantilla no válido.')
+            return redirect('accounts:email_templates')
+
+        custom_subject = request.POST.get('custom_subject', '').strip()
+        custom_body    = request.POST.get('custom_body', '').strip()
+
+        tpl, _ = EmailTemplate.objects.get_or_create(
+            user=user, email_type=email_type
+        )
+        tpl.custom_subject = custom_subject
+        tpl.custom_body    = custom_body
+        tpl.save()
+
+        messages.success(request, f'✅ Plantilla "{tpl.get_email_type_display()}" guardada.')
+        return redirect('accounts:email_templates')
+
+    # GET — cargar todas las plantillas (o defaults si no existen)
+    templates_by_type = {}
+    for code, label in EmailTemplate.TYPE_CHOICES:
+        tpl = EmailTemplate.objects.filter(user=user, email_type=code).first()
+        templates_by_type[code] = {
+            'label':          label,
+            'code':           code,
+            'custom_subject': tpl.custom_subject if tpl else '',
+            'custom_body':    tpl.custom_body    if tpl else '',
+            'default_subject': EmailTemplate.DEFAULT_SUBJECTS.get(code, ''),
+            'default_body':    EmailTemplate.DEFAULT_BODIES.get(code, ''),
+        }
+
+    return render(request, 'accounts/email_templates.html', {
+        'templates': templates_by_type,
+    })

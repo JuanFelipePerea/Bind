@@ -21,4 +21,5 @@ urlpatterns = [
     path('users/<int:pk>/delete/', views.user_delete_view, name='user_delete'),
 
     path('tour/complete/', views.tour_complete_view, name='tour_complete'),
+    path('email-templates/', views.email_templates_view, name='email_templates'),
 ]

@@ -1,14 +1,23 @@
+from decimal import Decimal, InvalidOperation
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.urls import reverse
+from django.views.decorators.http import require_GET
 from types import SimpleNamespace
 import csv
+import logging
 
 from events.models import Event
-from .models import Task, Attendee, Checklist, ChecklistItem, File, Budget, BudgetItem
+from .models import (
+    Task, Attendee, Checklist, ChecklistItem, File,
+    Budget, BudgetItem, CURRENCY_CHOICES, BUDGET_MAX_AMOUNT, ITEM_MAX_AMOUNT,
+)
 from .forms import TaskForm, AttendeeForm, ChecklistForm, FileForm
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -158,9 +167,18 @@ def task_delete(request, event_pk, pk):
 
 @login_required
 def attendee_list(request, event_pk):
+    from accounts.models import EmailTemplate
     event     = get_object_or_404(Event, pk=event_pk, owner=request.user)
     attendees = event.attendees.all().order_by('name')
-    context   = {'event': event, 'attendees': attendees}
+    # Cargar plantilla de invitación guardada (si existe) para pre-llenar el modal de composición
+    invitation_tpl = EmailTemplate.objects.filter(
+        user=request.user, email_type='invitation'
+    ).first()
+    context = {
+        'event': event,
+        'attendees': attendees,
+        'invitation_tpl': invitation_tpl,
+    }
     return render(request, 'modules/attendee_list.html', context)
 
 
@@ -518,6 +536,9 @@ def budget_detail(request, event_pk):
         'category_choices': BudgetItem.CATEGORY_CHOICES,
         'type_choices': BudgetItem.TYPE_CHOICES,
         'event_tasks': event.tasks.exclude(status='done').order_by('title'),
+        'currency_choices': CURRENCY_CHOICES,
+        'budget_max': BUDGET_MAX_AMOUNT,
+        'item_max': ITEM_MAX_AMOUNT,
     }
     return render(request, 'modules/budget_detail.html', context)
 
@@ -529,14 +550,89 @@ def budget_update(request, event_pk):
     budget, _ = Budget.objects.get_or_create(event=event, defaults={'total_budget': 0})
 
     if request.method == 'POST':
+        raw_amount = request.POST.get('total_budget', '').strip()
+        new_currency = request.POST.get('currency', budget.currency).strip()[:3].upper()
+        notes = request.POST.get('notes', '').strip()
+
+        # Validar monto
         try:
-            budget.total_budget = request.POST.get('total_budget', budget.total_budget)
-            budget.currency = request.POST.get('currency', budget.currency).strip()[:3]
-            budget.notes = request.POST.get('notes', '').strip()
+            new_amount = Decimal(raw_amount)
+        except (InvalidOperation, ValueError):
+            messages.error(request, '⚠️ El monto ingresado no es un número válido.')
+            return redirect('modules:budget_detail', event_pk=event.pk)
+
+        if new_amount < 0:
+            messages.error(request, '⚠️ El presupuesto no puede ser negativo.')
+            return redirect('modules:budget_detail', event_pk=event.pk)
+
+        if new_amount > BUDGET_MAX_AMOUNT:
+            messages.error(
+                request,
+                f'⚠️ El monto máximo permitido es {BUDGET_MAX_AMOUNT:,} {new_currency}. '
+                f'Ingresa un valor real para tu evento.'
+            )
+            return redirect('modules:budget_detail', event_pk=event.pk)
+
+        # Validar que la moneda esté en la lista
+        valid_codes = {code for code, _ in CURRENCY_CHOICES}
+        if new_currency not in valid_codes:
+            messages.error(request, f'⚠️ Moneda "{new_currency}" no reconocida.')
+            return redirect('modules:budget_detail', event_pk=event.pk)
+
+        old_currency = budget.currency
+
+        # ── Conversión automática si cambia la moneda ──────────────────────
+        if new_currency != old_currency and new_amount > 0:
+            try:
+                import urllib.request, json as _json
+                url = f'https://open.er-api.com/v6/latest/{old_currency}'
+                with urllib.request.urlopen(url, timeout=8) as resp:
+                    rate_data = _json.loads(resp.read().decode())
+                if rate_data.get('result') != 'success':
+                    raise ValueError('API retornó error')
+                rate = Decimal(str(rate_data['rates'][new_currency]))
+
+                # Convertir presupuesto total
+                new_amount = (new_amount * rate).quantize(Decimal('0.01'))
+
+                # Convertir todos los ítems
+                items_converted = 0
+                for item in budget.items.all():
+                    item.amount = (item.amount * rate).quantize(Decimal('0.01'))
+                    item.save(update_fields=['amount'])
+                    items_converted += 1
+
+                extra = f' (tasa 1 {old_currency} = {rate} {new_currency}'
+                if items_converted:
+                    extra += f', {items_converted} ítem(s) convertido(s)'
+                extra += ')'
+                budget.total_budget = new_amount
+                budget.currency = new_currency
+                budget.notes = notes
+                budget.save()
+                messages.success(
+                    request,
+                    f'✅ Convertido de {old_currency} a {new_currency}: '
+                    f'presupuesto ahora {new_amount:,.2f} {new_currency}{extra}.'
+                )
+            except Exception as exc:
+                logger.warning('Error convirtiendo moneda: %s', exc)
+                # Guardar igual pero sin conversión y avisar
+                budget.total_budget = new_amount
+                budget.currency = new_currency
+                budget.notes = notes
+                budget.save()
+                messages.warning(
+                    request,
+                    f'⚠️ Moneda cambiada a {new_currency}, pero no se pudo obtener la tasa '
+                    f'de cambio. Los montos no fueron convertidos. Ajústalos manualmente.'
+                )
+        else:
+            budget.total_budget = new_amount
+            budget.currency = new_currency
+            budget.notes = notes
             budget.save()
-            messages.success(request, 'Presupuesto actualizado.')
-        except Exception:
-            messages.error(request, 'Error al actualizar el presupuesto.')
+            messages.success(request, f'✅ Presupuesto actualizado a {new_amount:,.2f} {new_currency}.')
 
     return redirect('modules:budget_detail', event_pk=event.pk)
 
@@ -576,10 +672,23 @@ def budget_item_create(request, event_pk):
                 pass
 
         if not name:
-            messages.error(request, 'El nombre del ítem es obligatorio.')
+            messages.error(request, '⚠️ El nombre del ítem es obligatorio.')
         else:
             try:
-                amount = float(amount_str)
+                amount = Decimal(amount_str)
+            except (InvalidOperation, ValueError):
+                messages.error(request, '⚠️ El monto ingresado no es un número válido.')
+                return redirect('modules:budget_detail', event_pk=event.pk)
+
+            if amount < 0:
+                messages.error(request, '⚠️ El monto no puede ser negativo.')
+            elif amount > ITEM_MAX_AMOUNT:
+                messages.error(
+                    request,
+                    f'⚠️ El monto máximo por ítem es {ITEM_MAX_AMOUNT:,} {budget.currency}. '
+                    f'Verifica el valor ingresado.'
+                )
+            else:
                 BudgetItem.objects.create(
                     budget=budget,
                     name=name,
@@ -590,9 +699,7 @@ def budget_item_create(request, event_pk):
                     due_date=due_date,
                     related_task=related_task,
                 )
-                messages.success(request, f'"{name}" agregado al presupuesto.')
-            except ValueError:
-                messages.error(request, 'El monto ingresado no es válido.')
+                messages.success(request, f'✅ "{name}" agregado al presupuesto.')
 
         next_url = request.POST.get('next', '')
         if next_url:
@@ -622,6 +729,65 @@ def budget_item_delete(request, event_pk, pk):
         messages.success(request, 'Ítem eliminado.')
 
     return redirect('modules:budget_detail', event_pk=event.pk)
+
+
+@login_required
+@require_GET
+def currency_convert(request):
+    """
+    Endpoint AJAX: convierte un monto entre monedas usando open.er-api.com (gratis, sin key).
+    Soporta 170+ monedas incluyendo COP, MXN, ARS, BRL, etc.
+    GET /modules/currency-convert/?from=COP&to=EUR&amount=50000
+    Retorna: {"converted": 11.80, "rate": 0.000236, "from": "COP", "to": "EUR"}
+    """
+    import urllib.request
+    import json as json_lib
+
+    from_cur   = request.GET.get('from', '').upper()
+    to_cur     = request.GET.get('to', '').upper()
+    amount_str = request.GET.get('amount', '1')
+
+    if not from_cur or not to_cur:
+        return JsonResponse({'error': 'Parámetros from y to requeridos.'}, status=400)
+
+    if from_cur == to_cur:
+        try:
+            amount = float(amount_str)
+        except ValueError:
+            amount = 1.0
+        return JsonResponse({'converted': amount, 'rate': 1.0, 'from': from_cur, 'to': to_cur})
+
+    try:
+        amount = float(amount_str)
+    except ValueError:
+        return JsonResponse({'error': 'Monto inválido.'}, status=400)
+
+    try:
+        url = f'https://open.er-api.com/v6/latest/{from_cur}'
+        req = urllib.request.Request(url, headers={'User-Agent': 'BIND/1.0'})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json_lib.loads(resp.read().decode())
+
+        if data.get('result') != 'success':
+            return JsonResponse({'error': f'La moneda {from_cur} no está disponible.'}, status=400)
+
+        if to_cur not in data['rates']:
+            return JsonResponse({'error': f'La moneda {to_cur} no está disponible.'}, status=400)
+
+        rate = data['rates'][to_cur]
+        converted = round(amount * rate, 4)
+        return JsonResponse({
+            'converted': converted,
+            'rate': rate,
+            'from': from_cur,
+            'to': to_cur,
+        })
+    except Exception as exc:
+        logger.warning('currency_convert error %s→%s: %s', from_cur, to_cur, exc)
+        return JsonResponse(
+            {'error': 'No se pudo obtener la tasa de cambio. Verifica tu conexión.'},
+            status=503
+        )
 
 
 @login_required

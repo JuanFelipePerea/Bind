@@ -7,6 +7,7 @@ from django.core.management.base import BaseCommand
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.models import User
+from events.email_utils import send_bind_email, SITE_URL
 import logging
 
 logger = logging.getLogger(__name__)
@@ -71,59 +72,43 @@ class Command(BaseCommand):
         nombre = user.get_full_name() or user.username
         resumen = insights.get('resumen', 'Resumen de tu semana')
         score = insights.get('score_salud', 0)
-        # riesgos es una lista de dicts: {"nivel": "...", "descripcion": "..."}
         riesgos_raw = insights.get('riesgos', [])
-        recomendaciones = insights.get('recomendaciones', [])
+        recomendaciones = insights.get('recomendaciones', [])[:3]
         tendencia = insights.get('tendencia', 'estable')
 
-        # Construir cuerpo del email
-        lines = [
-            f"Hola {nombre},",
-            "",
-            "Bynix tiene tu resumen de la semana:",
-            "",
-            f"📊 {resumen}",
-            f"Salud general: {score}/100  |  Tendencia: {tendencia}",
-            "",
-        ]
+        # Normalizar riesgos a lista de dicts
+        riesgos = []
+        for r in riesgos_raw[:3]:
+            if isinstance(r, dict):
+                riesgos.append(r)
+            else:
+                riesgos.append({'nivel': '', 'descripcion': str(r)})
 
-        active = stats.get('active_events', 0)
-        pending = stats.get('pending_tasks', 0)
-        lines.append(f"Tienes {active} evento(s) activo(s) y {pending} tarea(s) pendiente(s).")
-        lines.append("")
+        # Cargar plantilla personalizada del usuario (si existe)
+        from accounts.models import EmailTemplate
+        digest_tpl = EmailTemplate.objects.filter(user=user, email_type='digest').first()
 
-        if riesgos_raw:
-            lines.append("⚠️ Puntos de atención:")
-            for r in riesgos_raw[:3]:
-                # Cada riesgo es un dict con claves "nivel" y "descripcion"
-                if isinstance(r, dict):
-                    descripcion = r.get('descripcion', str(r))
-                    nivel = r.get('nivel', '')
-                    prefix = f"[{nivel.upper()}] " if nivel else ""
-                    lines.append(f"  · {prefix}{descripcion}")
-                else:
-                    lines.append(f"  · {r}")
-            lines.append("")
+        if digest_tpl and digest_tpl.custom_subject:
+            subject = digest_tpl.get_subject()
+        else:
+            subject = f"Bynix · Tu semana: {resumen[:60]}"
 
-        if recomendaciones:
-            lines.append("✅ Recomendaciones de Bynix:")
-            for rec in recomendaciones[:3]:
-                lines.append(f"  · {rec}")
-            lines.append("")
+        custom_message = digest_tpl.get_body() if digest_tpl else ''
 
-        lines += [
-            "— Bynix, tu asistente BIND",
-            "",
-            f"Ver tu dashboard: {getattr(settings, 'SITE_URL', 'https://bind.onrender.com')}/dashboard/",
-        ]
-
-        body = "\n".join(lines)
-        subject = f"Bynix · Tu semana: {resumen[:60]}"
-
-        send_mail(
+        send_bind_email(
+            template_name='resumen_semanal',
             subject=subject,
-            message=body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
+            recipient=user.email,
+            context={
+                'nombre': nombre,
+                'resumen': resumen,
+                'score': score,
+                'tendencia': tendencia,
+                'active_events': stats.get('active_events', 0),
+                'pending_tasks': stats.get('pending_tasks', 0),
+                'riesgos': riesgos,
+                'recomendaciones': recomendaciones,
+                'site_url': SITE_URL,
+                'custom_message': custom_message,
+            },
         )
