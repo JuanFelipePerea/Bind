@@ -17,121 +17,131 @@
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: { extend: { fontFamily: { poppins: ['Poppins','sans-serif'] } } }
+      theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } }
     }
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Inter: consistente con el app-shell -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Poppins', sans-serif; }
+    body { font-family: 'Inter', sans-serif; }
 
-    @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-    .fade-up { animation: fadeUp 0.55s ease-out forwards; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.5s ease-out forwards; }
 
-    /* ── Decorative blobs ── */
-    .blob {
-      position: absolute; border-radius: 50%;
-      filter: blur(90px); opacity: 0.18; pointer-events: none;
-    }
-
-    /* ── Base input ── */
+    /* ── Base input — CORREGIDO: responde a light/dark mode ──────────── */
     .bind-input {
       width: 100%;
-      padding: 0.875rem 3rem 0.875rem 2.75rem;
-      background: #1a1f2e;
-      border: 2px solid #2a3040;
-      border-radius: 0.75rem;
-      color: #e2e8f0;
+      padding: 0.75rem 3rem 0.75rem 2.5rem;
+      background: #ffffff;           /* light: fondo blanco                */
+      border: 1.5px solid #e4e4e7;  /* light: zinc-200                    */
+      border-radius: 0.625rem;
+      color: #09090b;                /* light: zinc-950                    */
       font-size: 0.875rem;
+      font-family: 'Inter', sans-serif;
       outline: none;
-      transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+      transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
     }
-    .bind-input::placeholder { color: #4a5568; }
-    .bind-input:hover:not(:focus) { border-color: #374151; }
-    .bind-input:focus { border-color: #14b8a6; background: #1e2535; box-shadow: 0 0 0 3px rgba(20,184,166,0.12); }
+    .bind-input::placeholder { color: #a1a1aa; }   /* zinc-400 */
+    .bind-input:hover:not(:focus) { border-color: #d4d4d8; }
+    .bind-input:focus {
+      border-color: #14b8a6;
+      background: #f0fdfb;
+      box-shadow: 0 0 0 3px rgba(20,184,166,0.10);
+    }
+    /* Dark mode overrides — corrección del bug de fondo siempre oscuro */
+    .dark .bind-input {
+      background: #18181b;    /* zinc-900 */
+      border-color: #3f3f46;  /* zinc-700 */
+      color: #fafafa;         /* zinc-50  */
+    }
+    .dark .bind-input::placeholder { color: #52525b; }  /* zinc-600 */
+    .dark .bind-input:hover:not(:focus) { border-color: #52525b; }
+    .dark .bind-input:focus {
+      background: #1c2535;
+      border-color: #14b8a6;
+      box-shadow: 0 0 0 3px rgba(20,184,166,0.14);
+    }
 
-    /* Validation border states */
-    .inp-weak   { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.10) !important; }
-    .inp-medium { border-color: #f59e0b !important; box-shadow: 0 0 0 3px rgba(245,158,11,0.10) !important; }
-    .inp-strong { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.10) !important; }
-    .inp-match  { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.10) !important; }
+    /* Validation border states — funcionan en ambos modos */
+    .inp-weak     { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.10) !important; }
+    .inp-medium   { border-color: #f59e0b !important; box-shadow: 0 0 0 3px rgba(245,158,11,0.10) !important; }
+    .inp-strong   { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.10) !important; }
+    .inp-match    { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16,185,129,0.10) !important; }
     .inp-no-match { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.10) !important; }
 
     /* Strength bar */
-    .bar-track { height: 3px; border-radius: 9999px; background: #1e293b; overflow: hidden; }
+    .bar-track { height: 3px; border-radius: 9999px; background: #e4e4e7; overflow: hidden; }
+    .dark .bar-track { background: #27272a; }
     .bar-fill  { height: 100%; border-radius: 9999px; transition: width 0.3s ease, background-color 0.3s ease; }
 
-    /* Password toggle */
+    /* Password toggle — adaptado a light/dark */
     .eye-btn {
-      position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
-      color: #4a5568; transition: color 0.2s;
+      position: absolute; right: 0.875rem; top: 50%; transform: translateY(-50%);
+      color: #a1a1aa; transition: color 0.15s; padding: 2px;
     }
-    .eye-btn:hover { color: #94a3b8; }
+    .eye-btn:hover { color: #71717a; }
+    .dark .eye-btn { color: #52525b; }
+    .dark .eye-btn:hover { color: #a1a1aa; }
 
     /* Submit button */
     .btn-primary {
-      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
     }
-    .btn-primary:hover:not(:disabled)  { transform: scale(1.02); box-shadow: 0 8px 28px rgba(20,184,166,0.30); }
-    .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+    .btn-primary:hover:not(:disabled)  { transform: scale(1.015); box-shadow: 0 6px 20px rgba(20,184,166,0.25); }
+    .btn-primary:active:not(:disabled) { transform: scale(0.985); }
     .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* Google button */
-    .btn-google {
-      transition: background 0.2s ease, box-shadow 0.2s ease;
-    }
-    .btn-google:hover { background: #2d3748; box-shadow: 0 4px 16px rgba(0,0,0,0.30); }
+    .btn-google { transition: background 0.15s ease, border-color 0.15s ease; }
+    .btn-google:hover { background: #f4f4f5; border-color: #d4d4d8; }
+    .dark .btn-google { background: #27272a; border-color: #3f3f46; color: #fafafa; }
+    .dark .btn-google:hover { background: #3f3f46; }
   </style>
 </head>
 
-<body class="bg-gray-950 text-gray-100 min-h-screen relative overflow-hidden">
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen transition-colors duration-300 relative font-inter">
 
-  <!-- Ambient blobs -->
-  <div class="blob w-96 h-96 bg-teal-600  top-[-8rem]  right-[-6rem]"></div>
-  <div class="blob w-72 h-72 bg-cyan-700  bottom-[-6rem] left-[-4rem]"></div>
-
-  <!-- Header -->
+  <!-- Header minimalista — marca + toggle de tema -->
   <header class="absolute top-0 left-0 w-full py-5 px-6 z-20">
-    <div class="max-w-7xl mx-auto flex justify-between items-center">
+    <div class="max-w-sm mx-auto flex justify-between items-center">
       <a href="{% url 'accounts:index' %}" class="flex items-center gap-2.5 fade-up">
-        <div class="w-10 h-10 rounded-xl overflow-hidden shadow">
+        <div class="w-8 h-8 rounded-lg overflow-hidden shadow-sm">
           <img src="{% static 'img/logo.svg' %}" alt="BIND" class="w-full h-full object-cover">
         </div>
-        <span class="text-xl font-bold tracking-tight text-white">Bind</span>
+        <span class="text-lg font-bold tracking-tight text-zinc-800 dark:text-zinc-100">Bind</span>
       </a>
       <button id="themeToggle"
-        class="p-2 rounded-xl border border-gray-700 hover:bg-gray-800 transition-colors"
+        class="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 transition-colors"
         aria-label="Cambiar tema">
-        <!-- sun -->
-        <svg class="w-5 h-5 text-gray-300 block dark:hidden" fill="currentColor" viewBox="0 0 20 20">
+        <svg class="w-4 h-4 text-zinc-600 dark:text-zinc-300 block dark:hidden" fill="currentColor" viewBox="0 0 20 20">
           <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0z"/>
         </svg>
-        <!-- moon -->
-        <svg class="w-5 h-5 text-gray-300 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
+        <svg class="w-4 h-4 text-zinc-300 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
           <path d="M17.293 13.293A8 8 0 016.707 2.707a7 7 0 1010.586 10.586z"/>
         </svg>
       </button>
     </div>
   </header>
 
-  <!-- Main -->
+  <!-- Contenedor centrado -->
   <main class="min-h-screen flex items-center justify-center px-4 py-24 relative z-10">
-    <div class="w-full max-w-md">
+    <div class="w-full max-w-sm">
 
-      <!-- Card -->
-      <div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl p-8 fade-up" style="animation-delay:0.1s;">
+      <!-- Card: fondo sólido + borde sutil — estilo Shadcn -->
+      <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm p-8 fade-up" style="animation-delay:0.1s;">
 
-        <!-- Title -->
-        <div class="text-center mb-7">
-          <h1 class="text-3xl font-bold bg-gradient-to-r from-white to-teal-300 bg-clip-text text-transparent">
+        <!-- Encabezado -->
+        <div class="text-center mb-6">
+          <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight">
             Crear cuenta
           </h1>
-          <p class="text-gray-500 text-sm mt-1">Únete a BIND y organiza eventos sin límites</p>
+          <p class="text-zinc-500 dark:text-zinc-400 text-sm mt-1.5">Únete a BIND y organiza eventos sin límites</p>
         </div>
 
         <!-- Server messages -->
         {% if messages %}
           {% for message in messages %}
-          <div class="flex items-start gap-2 bg-red-500/10 border border-red-500/25 text-red-400 text-sm px-4 py-3 rounded-xl mb-5">
+          <div class="flex items-start gap-2.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 text-red-700 dark:text-red-400 text-sm px-4 py-3 rounded-lg mb-5">
             <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
             </svg>
@@ -142,7 +152,7 @@
 
         <!-- Google OAuth — URL fija para evitar get_app() en cada render -->
         <a href="/auth/google/login/"
-          class="btn-google flex items-center justify-center gap-3 w-full bg-gray-800 border border-gray-700 text-gray-200 text-sm font-medium py-3 rounded-xl mb-5">
+          class="btn-google flex items-center justify-center gap-3 w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 text-sm font-medium py-2.5 rounded-lg mb-5 shadow-sm">
           <svg class="w-5 h-5" viewBox="0 0 48 48" fill="none">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
             <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -153,20 +163,20 @@
           Continuar con Google
         </a>
 
-        <!-- Divider -->
+        <!-- Divisor -->
         <div class="flex items-center gap-3 mb-5">
-          <div class="flex-1 h-px bg-gray-800"></div>
-          <span class="text-gray-600 text-xs font-medium">o regístrate manualmente</span>
-          <div class="flex-1 h-px bg-gray-800"></div>
+          <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-700"></div>
+          <span class="text-zinc-400 dark:text-zinc-500 text-xs font-medium">o regístrate manualmente</span>
+          <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-700"></div>
         </div>
 
-        <!-- Form -->
+        <!-- ── Formulario Django — name / id / csrf intactos ─────────── -->
         <form method="post" id="registerForm" class="space-y-4" novalidate>
           {% csrf_token %}
 
           <!-- Email -->
           <div class="relative">
-            <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
               <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
             </svg>
@@ -179,7 +189,7 @@
           <!-- Password 1 -->
           <div class="space-y-2">
             <div class="relative">
-              <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
               </svg>
               <input type="password" name="password1" id="password1"
@@ -197,22 +207,22 @@
               </button>
             </div>
 
-            <!-- Strength bar -->
+            <!-- Strength bar — ids intactos para el JS -->
             <div id="barWrap" class="bar-track hidden">
               <div id="barFill" class="bar-fill w-0"></div>
             </div>
 
-            <!-- Strength label + hints -->
+            <!-- Strength label + hints — ids intactos para el JS -->
             <div id="passHints" class="hidden space-y-1 px-0.5">
               <div class="flex items-center justify-between">
-                <span id="strengthLabel" class="text-xs font-medium text-gray-500"></span>
+                <span id="strengthLabel" class="text-xs font-medium text-zinc-500"></span>
               </div>
-              <div id="hintLen"  class="flex items-center gap-1.5 text-xs text-gray-500">
-                <span id="dotLen"  class="w-1.5 h-1.5 rounded-full bg-gray-600 flex-shrink-0"></span>
+              <div id="hintLen" class="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <span id="dotLen" class="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600 flex-shrink-0"></span>
                 Mínimo 8 caracteres
               </div>
-              <div id="hintNum"  class="flex items-center gap-1.5 text-xs text-gray-500">
-                <span id="dotNum"  class="w-1.5 h-1.5 rounded-full bg-gray-600 flex-shrink-0"></span>
+              <div id="hintNum" class="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <span id="dotNum" class="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600 flex-shrink-0"></span>
                 Números o símbolos (recomendado)
               </div>
             </div>
@@ -221,7 +231,7 @@
           <!-- Password 2 -->
           <div class="space-y-2">
             <div class="relative">
-              <svg class="w-4 h-4 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
               </svg>
               <input type="password" name="password2" id="password2"
@@ -239,7 +249,7 @@
               </button>
             </div>
 
-            <!-- Match hint -->
+            <!-- Match hint — ids intactos para el JS -->
             <div id="matchHintRow" class="hidden flex items-center gap-1.5 px-0.5">
               <span id="matchIcon" class="text-sm leading-none"></span>
               <span id="matchText" class="text-xs font-medium"></span>
@@ -247,22 +257,27 @@
           </div>
 
           <!-- Submit -->
-          <div class="pt-2">
+          <div class="pt-1">
             <button type="submit" id="submitBtn"
-              class="btn-primary w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white font-semibold py-3.5 rounded-xl shadow-lg text-sm">
+              class="btn-primary w-full bg-teal-500 hover:bg-teal-600 active:bg-teal-700 text-white font-semibold py-2.5 rounded-lg shadow-sm text-sm">
               Crear cuenta
             </button>
           </div>
         </form>
 
         <!-- Footer link -->
-        <p class="text-center mt-5 text-xs text-gray-600">
+        <p class="text-center mt-5 text-sm text-zinc-500 dark:text-zinc-400">
           ¿Ya tienes cuenta?
-          <a href="{% url 'accounts:login' %}" class="text-teal-400 hover:text-teal-300 font-medium ml-1 transition-colors">
+          <a href="{% url 'accounts:login' %}" class="text-teal-600 dark:text-teal-400 font-semibold hover:text-teal-700 dark:hover:text-teal-300 ml-1 transition-colors">
             Iniciar sesión
           </a>
         </p>
       </div>
+
+      <!-- Link externo debajo de la card -->
+      <p class="text-center mt-4 text-xs text-zinc-400 dark:text-zinc-500 fade-up" style="animation-delay:0.25s;">
+        Al crear tu cuenta aceptas nuestros términos de uso
+      </p>
 
     </div>
   </main>

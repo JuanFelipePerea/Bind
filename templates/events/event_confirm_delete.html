@@ -3,25 +3,35 @@
 {% block page_title %}Eliminar Evento{% endblock %}
 
 {% block content %}
-<div class="p-6 md:p-8 max-w-lg mx-auto animate-fade-in">
-  <div class="glass rounded-3xl p-8 border border-red-100 dark:border-red-900/30 text-center">
+<div class="p-6 md:p-8 max-w-md mx-auto animate-fade-in">
+  <div class="bg-white dark:bg-zinc-900 rounded-xl border border-red-200 dark:border-red-900/40 shadow-sm text-center p-8">
 
-    <div class="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-6">
-      <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Ícono -->
+    <div class="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-5 border border-red-200 dark:border-red-800/40">
+      <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
       </svg>
     </div>
 
-    <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-3">¿Eliminar "{{ event.name }}"?</h2>
-    <p class="text-gray-500 dark:text-gray-400 mb-2">Se eliminarán también todas las tareas, asistentes, checklists y archivos asociados.</p>
-    <p class="text-red-500 text-sm font-medium mb-8">Esta acción no se puede deshacer.</p>
+    <h2 class="text-xl font-bold text-zinc-900 dark:text-zinc-50 mb-2 leading-snug">
+      ¿Eliminar <span class="text-red-600 dark:text-red-400">"{{ event.name }}"</span>?
+    </h2>
+    <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
+      Se eliminarán también todas las tareas, asistentes, checklists y archivos asociados.
+    </p>
+    <p class="text-sm text-red-500 font-semibold mb-7">Esta acción no se puede deshacer.</p>
 
     <form method="post" class="flex gap-3 justify-center">
       {% csrf_token %}
-      <button type="submit" class="px-8 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl shadow-lg transition-all">
+      <button type="submit"
+        class="px-6 py-2.5 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold rounded-lg shadow-sm text-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900">
         Sí, eliminar
       </button>
-      <a href="{% url 'events:event_detail' event.pk %}" class="px-8 py-3 glass hover:bg-white/80 dark:hover:bg-gray-700 rounded-xl font-medium text-gray-700 dark:text-gray-300 transition-all">
+      <a href="{% url 'events:event_detail' event.pk %}"
+         class="px-6 py-2.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700
+                hover:bg-zinc-50 dark:hover:bg-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600
+                rounded-lg font-medium text-sm text-zinc-600 dark:text-zinc-300 transition-all duration-150
+                focus:outline-none focus:ring-2 focus:ring-zinc-500/40">
         Cancelar
       </a>
     </form>

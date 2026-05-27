@@ -3,8 +3,11 @@
 {% block page_title %}Proyectos{% endblock %}
 
 {% block topbar_action %}
-<a href="{% url 'events:event_create' %}" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all flex items-center gap-2 group">
-  <svg class="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+<a href="{% url 'events:event_create' %}"
+   class="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 active:bg-teal-700 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow-sm hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950">
+  <svg class="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
   Nuevo evento
 </a>
 {% endblock %}
@@ -12,127 +15,194 @@
 {% block content %}
 <div class="p-6 md:p-8 animate-fade-in">
 
-  <!-- Filtros de estado — activo inequívocamente diferenciado -->
-  <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
-    <a href="?" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all
-      {% if not request.GET.status %}bg-teal-500 text-white shadow-sm shadow-teal-500/20{% else %}glass text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-teal-400/50{% endif %}">
+  <!-- Filtros de estado -->
+  <div class="flex gap-1.5 mb-7 overflow-x-auto pb-1 scrollbar-hide">
+    <a href="?"
+       class="px-3.5 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-teal-500/40
+         {% if not request.GET.status %}
+           bg-teal-500 text-white shadow-sm
+         {% else %}
+           bg-white dark:bg-zinc-800/70 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-600
+         {% endif %}">
       Todos
     </a>
-    <a href="?status=active" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all
-      {% if request.GET.status == 'active' %}bg-teal-500 text-white shadow-sm shadow-teal-500/20{% else %}glass text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-teal-400/50{% endif %}">
+    <a href="?status=active"
+       class="px-3.5 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-teal-500/40
+         {% if request.GET.status == 'active' %}
+           bg-teal-500 text-white shadow-sm
+         {% else %}
+           bg-white dark:bg-zinc-800/70 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-600
+         {% endif %}">
       Activos
     </a>
-    <a href="?status=draft" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all
-      {% if request.GET.status == 'draft' %}bg-teal-500 text-white shadow-sm shadow-teal-500/20{% else %}glass text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-teal-400/50{% endif %}">
+    <a href="?status=draft"
+       class="px-3.5 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-teal-500/40
+         {% if request.GET.status == 'draft' %}
+           bg-teal-500 text-white shadow-sm
+         {% else %}
+           bg-white dark:bg-zinc-800/70 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-600
+         {% endif %}">
       Borrador
     </a>
-    <a href="?status=completed" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all
-      {% if request.GET.status == 'completed' %}bg-teal-500 text-white shadow-sm shadow-teal-500/20{% else %}glass text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-teal-400/50{% endif %}">
+    <a href="?status=completed"
+       class="px-3.5 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-teal-500/40
+         {% if request.GET.status == 'completed' %}
+           bg-teal-500 text-white shadow-sm
+         {% else %}
+           bg-white dark:bg-zinc-800/70 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-600
+         {% endif %}">
       Completados
     </a>
   </div>
 
   <!-- Grid de eventos -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-    <!-- Tarjeta: crear nuevo — visualmente distinta, no compite con los eventos reales -->
+    <!-- Tarjeta: crear nuevo -->
     <a href="{% url 'events:event_create' %}"
-       class="glass rounded-2xl p-5 border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center gap-4 hover:border-teal-500 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 transition-all group">
-      <div class="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform flex-shrink-0">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+       class="bg-white dark:bg-zinc-900 rounded-xl p-5 border-2 border-dashed border-zinc-300 dark:border-zinc-700
+              flex items-center gap-4 transition-all duration-200
+              hover:border-teal-500 hover:bg-teal-50/60 dark:hover:bg-teal-950/20 hover:shadow-sm
+              focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950
+              group">
+      <div class="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
       </div>
       <div>
-        <p class="font-bold text-gray-700 dark:text-gray-200 text-sm">Nuevo evento</p>
-        <p class="text-xs text-gray-400 mt-0.5">Empieza algo hoy</p>
+        <p class="font-semibold text-zinc-700 dark:text-zinc-200 text-sm">Nuevo evento</p>
+        <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">Empieza algo hoy</p>
       </div>
     </a>
 
-    <!-- Tarjetas de eventos reales — altura natural, sin h-64 fija -->
+    <!-- Tarjetas de eventos reales -->
     {% for event in events %}
-    <div class="glass rounded-2xl p-5 flex flex-col gap-4 transition-all duration-200 hover:shadow-xl border border-transparent hover:border-teal-500/40 cursor-pointer group"
+    <div class="bg-white dark:bg-zinc-900 rounded-xl p-5 flex flex-col gap-4
+                border border-zinc-200 dark:border-zinc-800 shadow-sm
+                transition-all duration-200 hover:shadow-md hover:border-teal-500/50 dark:hover:border-teal-500/40
+                cursor-pointer group"
          onclick="window.location.href='{% url 'events:event_detail' event.pk %}'">
 
       <!-- Fila superior: estado + health score + acciones -->
-      <div class="flex justify-between items-start">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs font-bold px-2.5 py-1 rounded-full border
-            {% if event.status == 'active' %}bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800
-            {% elif event.status == 'draft' %}bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700
-            {% elif event.status == 'completed' %}bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800
-            {% else %}bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800{% endif %}">
+      <div class="flex justify-between items-start gap-2">
+        <div class="flex items-center gap-1.5 flex-wrap">
+
+          <!-- Badge de estado -->
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-md border
+            {% if event.status == 'active' %}
+              bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800/60
+            {% elif event.status == 'draft' %}
+              bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700
+            {% elif event.status == 'completed' %}
+              bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800/60
+            {% else %}
+              bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800/60
+            {% endif %}">
             {{ event.get_status_display }}
           </span>
+
+          <!-- Health score -->
           {% if event.health_label %}
-          <span class="text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1
-            {% if event.health_score == 100 %}bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400
-            {% elif event.health_score >= 80 %}bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400
-            {% elif event.health_score >= 50 %}bg-teal-100 text-teal-700 dark:bg-slate-700/50 dark:text-teal-300
-            {% elif event.health_score > 0 %}bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400
-            {% else %}bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+          <span class="text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1
+            {% if event.health_score == 100 %}bg-teal-50 text-teal-600 dark:bg-teal-900/20 dark:text-teal-400
+            {% elif event.health_score >= 80 %}bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400
+            {% elif event.health_score >= 50 %}bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300
+            {% elif event.health_score > 0 %}bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400
+            {% else %}bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400{% endif %}">
             {% if event.health_score == 100 %}
-            <i data-lucide="award" class="w-3.5 h-3.5"></i>
+            <i data-lucide="award" class="w-3 h-3"></i>
             {% else %}
             <span class="w-1.5 h-1.5 rounded-full
               {% if event.health_score >= 80 %}bg-green-500
-              {% elif event.health_score >= 50 %}bg-teal-500
-              {% elif event.health_score > 0 %}bg-amber-500 animate-pulse
-              {% else %}bg-red-500 animate-pulse{% endif %}">
-            </span>
+              {% elif event.health_score >= 50 %}bg-amber-500
+              {% elif event.health_score > 0 %}bg-orange-500 animate-pulse
+              {% else %}bg-red-500 animate-pulse{% endif %}"></span>
             {% endif %}
             {{ event.health_score }}
           </span>
           {% endif %}
         </div>
-        <!-- Acciones visibles solo en hover -->
-        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+
+        <!-- Acciones — siempre presentes en mobile, hover en desktop -->
+        <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity duration-150 flex-shrink-0">
           <a href="{% url 'events:event_edit' event.pk %}" onclick="event.stopPropagation()"
-             class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors" title="Editar">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+             class="w-8 h-8 flex items-center justify-center rounded-lg
+                    hover:bg-zinc-100 dark:hover:bg-zinc-700/80
+                    text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300
+                    transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+             title="Editar">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
           </a>
           <a href="{% url 'events:event_delete' event.pk %}" onclick="event.stopPropagation()"
-             class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+             class="w-8 h-8 flex items-center justify-center rounded-lg
+                    hover:bg-red-50 dark:hover:bg-red-900/20
+                    text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400
+                    transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+             title="Eliminar">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
           </a>
         </div>
       </div>
 
       <!-- Nombre y ubicación -->
-      <div>
-        <h3 class="text-base font-bold text-gray-800 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors leading-snug">{{ event.name }}</h3>
+      <div class="flex-1">
+        <h3 class="text-sm font-semibold text-zinc-800 dark:text-zinc-100 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors duration-150 leading-snug">{{ event.name }}</h3>
         {% if event.location %}
-        <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
-          <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mt-1.5">
+          <svg class="w-3 h-3 flex-shrink-0 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+          </svg>
           {{ event.location }}
         </p>
         {% endif %}
       </div>
 
       <!-- Fecha + progreso -->
-      <div>
+      <div class="space-y-2">
         {% if event.start_date %}
-        <p class="text-xs text-gray-400 flex items-center gap-1 mb-2">
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <p class="text-xs text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
+          <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
           {{ event.start_date|date:"d M Y" }}
         </p>
         {% endif %}
-        <div class="flex justify-between text-xs mb-1">
-          <span class="text-gray-400">Progreso</span>
-          <span class="font-semibold text-gray-600 dark:text-gray-300">{{ event.task_progress|default:"0" }}%</span>
-        </div>
-        <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div class="bg-teal-400 h-1.5 rounded-full" style="width: {{ event.task_progress|default:'0' }}%"></div>
+        <div>
+          <div class="flex justify-between text-xs mb-1.5">
+            <span class="text-zinc-400 dark:text-zinc-500">Progreso</span>
+            <span class="font-semibold text-zinc-600 dark:text-zinc-400">{{ event.task_progress|default:"0" }}%</span>
+          </div>
+          <div class="w-full h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div class="bg-teal-500 h-1 rounded-full transition-all duration-500" style="width: {{ event.task_progress|default:'0' }}%"></div>
+          </div>
         </div>
       </div>
+
     </div>
     {% empty %}
-    <div class="glass rounded-2xl p-8 flex flex-col items-center justify-center text-center border-2 border-dashed border-gray-200 dark:border-gray-700 col-span-1 md:col-span-2 lg:col-span-3">
-      <svg class="w-10 h-10 mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-      <p class="font-semibold text-gray-600 dark:text-gray-400 mb-1 text-sm">Sin eventos en esta categoría</p>
-      <p class="text-xs text-gray-400 mb-4">Cambia el filtro o crea uno nuevo</p>
-      <a href="{% url 'events:event_create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors text-sm">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        Crear nuevo evento
-      </a>
+    <!-- Estado vacío con filtro activo -->
+    <div class="col-span-1 md:col-span-2 lg:col-span-3">
+      <div class="bg-white dark:bg-zinc-900 rounded-xl p-10 flex flex-col items-center justify-center text-center border-2 border-dashed border-zinc-200 dark:border-zinc-700">
+        <div class="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+          </svg>
+        </div>
+        <p class="font-semibold text-zinc-700 dark:text-zinc-300 text-sm mb-1">Sin eventos en esta categoría</p>
+        <p class="text-xs text-zinc-400 dark:text-zinc-500 mb-5">Cambia el filtro o crea uno nuevo</p>
+        <a href="{% url 'events:event_create' %}"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-lg transition-colors duration-150 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Crear nuevo evento
+        </a>
+      </div>
     </div>
     {% endfor %}
 
@@ -140,32 +210,56 @@
 
   <!-- Paginación -->
   {% if page_obj.has_other_pages %}
-  <div class="flex items-center justify-center gap-3 mt-8 pt-6 border-t border-gray-200/40 dark:border-gray-700/40">
+  <div class="flex items-center justify-center gap-2 mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
     {% if page_obj.has_previous %}
     <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
-       class="glass px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-700 transition-all">
-      ← Anterior
+       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium
+              bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700
+              text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100
+              hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700
+              transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-teal-500/40">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Anterior
     </a>
     {% endif %}
-    <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">
+
+    <span class="text-sm text-zinc-500 dark:text-zinc-400 font-medium px-2">
       {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
     </span>
+
     {% if page_obj.has_next %}
     <a href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
-       class="glass px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-700 transition-all">
-      Siguiente →
+       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium
+              bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700
+              text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100
+              hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700
+              transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-teal-500/40">
+      Siguiente
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
     </a>
     {% endif %}
   </div>
   {% endif %}
 
+  <!-- Estado vacío global (sin ningún evento) -->
   {% if not events %}
-  <div class="text-center py-16">
-    <svg class="w-14 h-14 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-    <p class="font-semibold text-gray-600 dark:text-gray-400 mb-1">No hay proyectos aún</p>
-    <p class="text-sm text-gray-400 mb-5">Crea tu primer evento para comenzar</p>
-    <a href="{% url 'events:event_create' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+  <div class="text-center py-20">
+    <div class="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-5">
+      <svg class="w-8 h-8 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+      </svg>
+    </div>
+    <p class="font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5 text-base">No hay proyectos aún</p>
+    <p class="text-sm text-zinc-400 dark:text-zinc-500 mb-6">Crea tu primer evento para comenzar</p>
+    <a href="{% url 'events:event_create' %}"
+       class="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-lg transition-colors duration-150 text-sm shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
       Crear primer evento
     </a>
   </div>

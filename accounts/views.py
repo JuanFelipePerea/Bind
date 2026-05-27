@@ -339,6 +339,7 @@ def verify_2fa_view(request):
 
 
 @login_required
+@require_POST
 def disable_2fa_view(request):
     """Desactiva verificación en 2 pasos."""
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
