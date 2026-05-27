@@ -227,7 +227,7 @@ def alert_dismiss(request, pk):
             pass
         # Validar next: solo rutas relativas del mismo sitio
         next_url = request.POST.get('next', '')
-        if next_url and next_url.startswith('/'):
+        if next_url and next_url.startswith('/') and not next_url.startswith('//'):
             return redirect(next_url)
         return redirect('events:dashboard')
     return redirect('events:dashboard')

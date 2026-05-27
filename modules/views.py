@@ -481,7 +481,7 @@ def task_toggle_done(request, pk):
     task.status = 'pending' if task.status == 'done' else 'done'
     task.save()
     next_val = request.POST.get('next', '')
-    if next_val and next_val.startswith('/'):
+    if next_val and next_val.startswith('/') and not next_val.startswith('//'):
         return redirect(next_val)
     return redirect('modules:task_overview')
 
@@ -598,7 +598,7 @@ def budget_item_create(request, event_pk):
                 messages.error(request, 'El monto ingresado no es válido.')
 
         next_url = request.POST.get('next', '')
-        if next_url and next_url.startswith('/'):
+        if next_url and next_url.startswith('/') and not next_url.startswith('//'):
             return redirect(next_url)
         return redirect('modules:budget_detail', event_pk=event.pk)
 

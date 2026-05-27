@@ -513,3 +513,453 @@ class EventCompletionTest(TestCase):
         self.assertIsNotNone(metric)
         self.assertTrue(metric.user_acted)
         self.assertTrue(metric.issue_resolved)
+
+
+# =============================================================================
+#  HTTP ENDPOINT TESTS — events app views
+# =============================================================================
+
+import json as _json
+from django.urls import reverse as _reverse
+from events.models import EventTemplate as _EventTemplate
+
+
+class DashboardViewTest(TestCase):
+    """GET / — dashboard view."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('dash_owner', 'dash@test.com', 'pass1234!')
+        self.client.login(username='dash_owner', password='pass1234!')
+
+    def test_authenticated_user_gets_200(self):
+        url = _reverse('events:dashboard')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_anonymous_user_redirected_to_login(self):
+        self.client.logout()
+        url = _reverse('events:dashboard')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+    def test_dashboard_uses_correct_template(self):
+        url = _reverse('events:dashboard')
+        response = self.client.get(url)
+        self.assertTemplateUsed(response, 'events/dashboard.html')
+
+
+class EventListViewTest(TestCase):
+    """GET /events/ — event list view."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('list_owner', 'list@test.com', 'pass1234!')
+        self.client.login(username='list_owner', password='pass1234!')
+        Event.objects.create(
+            name='Evento Lista', owner=self.user, status='active',
+            start_date=timezone.now() + timedelta(days=5),
+        )
+
+    def test_authenticated_user_gets_200(self):
+        url = _reverse('events:event_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_anonymous_user_redirected_to_login(self):
+        self.client.logout()
+        url = _reverse('events:event_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+    def test_response_contains_event_name(self):
+        url = _reverse('events:event_list')
+        response = self.client.get(url)
+        self.assertContains(response, 'Evento Lista')
+
+
+class EventCreateViewTest(TestCase):
+    """GET/POST /events/new/ — event creation."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('create_owner', 'create@test.com', 'pass1234!')
+        self.client.login(username='create_owner', password='pass1234!')
+
+    def test_get_form_returns_200(self):
+        url = _reverse('events:event_create')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_valid_creates_event_and_redirects(self):
+        url = _reverse('events:event_create')
+        count_before = Event.objects.filter(owner=self.user).count()
+        response = self.client.post(url, {
+            'name': 'Nuevo Evento HTTP',
+            'status': 'active',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Event.objects.filter(owner=self.user).count(), count_before + 1)
+        new_event = Event.objects.filter(owner=self.user, name='Nuevo Evento HTTP').first()
+        self.assertIsNotNone(new_event)
+
+    def test_post_without_name_returns_error(self):
+        url = _reverse('events:event_create')
+        count_before = Event.objects.filter(owner=self.user).count()
+        response = self.client.post(url, {'name': '', 'status': 'draft'})
+        # Should stay on page (200) or redirect back — no new event created
+        self.assertEqual(Event.objects.filter(owner=self.user).count(), count_before)
+        # Response must not be a successful redirect to event_detail
+        if response.status_code == 302:
+            self.assertNotIn('events/', response['Location'].lstrip('/'))
+
+    def test_anonymous_user_redirected(self):
+        self.client.logout()
+        url = _reverse('events:event_create')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+
+class EventDetailViewTest(TestCase):
+    """GET /events/<pk>/ — event detail, owner & isolation checks."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user('det_owner', 'det_o@test.com', 'pass1234!')
+        self.other = User.objects.create_user('det_other', 'det_x@test.com', 'pass1234!')
+        self.event = Event.objects.create(
+            name='Detalle Evento', owner=self.owner, status='active',
+            start_date=timezone.now() + timedelta(days=10),
+        )
+
+    def test_owner_can_view_own_event(self):
+        self.client.login(username='det_owner', password='pass1234!')
+        url = _reverse('events:event_detail', kwargs={'pk': self.event.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_other_user_gets_404(self):
+        self.client.login(username='det_other', password='pass1234!')
+        url = _reverse('events:event_detail', kwargs={'pk': self.event.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_user_redirected(self):
+        url = _reverse('events:event_detail', kwargs={'pk': self.event.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+    def test_detail_contains_event_name(self):
+        self.client.login(username='det_owner', password='pass1234!')
+        url = _reverse('events:event_detail', kwargs={'pk': self.event.pk})
+        response = self.client.get(url)
+        self.assertContains(response, 'Detalle Evento')
+
+
+class EventEditViewTest(TestCase):
+    """POST /events/<pk>/edit/ — edit event, ownership enforced."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user('edit_owner', 'edit_o@test.com', 'pass1234!')
+        self.other = User.objects.create_user('edit_other', 'edit_x@test.com', 'pass1234!')
+        self.event = Event.objects.create(
+            name='Nombre Original', owner=self.owner, status='active',
+            start_date=timezone.now() + timedelta(days=10),
+        )
+
+    def test_owner_can_edit_event_name(self):
+        self.client.login(username='edit_owner', password='pass1234!')
+        url = _reverse('events:event_edit', kwargs={'pk': self.event.pk})
+        self.client.post(url, {'name': 'Nombre Editado', 'status': 'active'})
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.name, 'Nombre Editado')
+
+    def test_edit_redirects_after_success(self):
+        self.client.login(username='edit_owner', password='pass1234!')
+        url = _reverse('events:event_edit', kwargs={'pk': self.event.pk})
+        response = self.client.post(url, {'name': 'Nombre Editado 2', 'status': 'active'})
+        self.assertEqual(response.status_code, 302)
+
+    def test_other_user_gets_404_on_edit(self):
+        self.client.login(username='edit_other', password='pass1234!')
+        url = _reverse('events:event_edit', kwargs={'pk': self.event.pk})
+        response = self.client.post(url, {'name': 'Hack Nombre', 'status': 'active'})
+        self.assertEqual(response.status_code, 404)
+
+    def test_other_user_cannot_change_event_name(self):
+        self.client.login(username='edit_other', password='pass1234!')
+        url = _reverse('events:event_edit', kwargs={'pk': self.event.pk})
+        self.client.post(url, {'name': 'Nombre Inyectado', 'status': 'active'})
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.name, 'Nombre Original')
+
+
+class EventDeleteViewTest(TestCase):
+    """POST /events/<pk>/delete/ — delete event, ownership enforced."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user('del_owner', 'del_o@test.com', 'pass1234!')
+        self.other = User.objects.create_user('del_other', 'del_x@test.com', 'pass1234!')
+
+    def _make_event(self, owner):
+        return Event.objects.create(
+            name='Evento Borrar', owner=owner, status='active',
+            start_date=timezone.now() + timedelta(days=5),
+        )
+
+    def test_owner_can_delete_event(self):
+        self.client.login(username='del_owner', password='pass1234!')
+        event = self._make_event(self.owner)
+        pk = event.pk
+        url = _reverse('events:event_delete', kwargs={'pk': pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Event.objects.filter(pk=pk).exists())
+
+    def test_other_user_gets_404_on_delete(self):
+        self.client.login(username='del_other', password='pass1234!')
+        event = self._make_event(self.owner)
+        pk = event.pk
+        url = _reverse('events:event_delete', kwargs={'pk': pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_other_user_cannot_delete_event(self):
+        self.client.login(username='del_other', password='pass1234!')
+        event = self._make_event(self.owner)
+        pk = event.pk
+        url = _reverse('events:event_delete', kwargs={'pk': pk})
+        self.client.post(url)
+        self.assertTrue(Event.objects.filter(pk=pk).exists())
+
+    def test_get_request_renders_confirmation_page(self):
+        self.client.login(username='del_owner', password='pass1234!')
+        event = self._make_event(self.owner)
+        url = _reverse('events:event_delete', kwargs={'pk': event.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+
+class TemplateViewTest(TestCase):
+    """GET /templates/ and POST /templates/<id>/quick-create/ — template list & IDOR fix."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user('tmpl_owner', 'tmpl_o@test.com', 'pass1234!')
+        self.other = User.objects.create_user('tmpl_other', 'tmpl_x@test.com', 'pass1234!')
+        self.template = _EventTemplate.objects.create(
+            name='Plantilla Test',
+            description='Desc plantilla',
+            category='business',
+            created_by=self.owner,
+        )
+
+    def test_template_list_authenticated_200(self):
+        self.client.login(username='tmpl_owner', password='pass1234!')
+        url = _reverse('events:template_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_template_list_anonymous_redirects(self):
+        url = _reverse('events:template_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+    def test_quick_create_post_creates_event(self):
+        self.client.login(username='tmpl_owner', password='pass1234!')
+        url = _reverse('events:quick_create_from_template', kwargs={'template_id': self.template.pk})
+        count_before = Event.objects.filter(owner=self.owner).count()
+        response = self.client.post(url, {'name': 'Quick Event'})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Event.objects.filter(owner=self.owner).count(), count_before + 1)
+
+    def test_quick_create_get_redirects_to_template_list(self):
+        self.client.login(username='tmpl_owner', password='pass1234!')
+        url = _reverse('events:quick_create_from_template', kwargs={'template_id': self.template.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_idor_fix_modify_template_by_non_owner_returns_403(self):
+        """Other user with modify_template=1 on a template they don't own must get 403."""
+        self.client.login(username='tmpl_other', password='pass1234!')
+        url = _reverse('events:quick_create_from_template', kwargs={'template_id': self.template.pk})
+        customization = _json.dumps({'excluded_task_pks': []})
+        response = self.client.post(url, {
+            'name': 'IDOR Attempt',
+            'modify_template': '1',
+            'template_customization': customization,
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_can_use_modify_template(self):
+        """Template owner posting modify_template=1 should succeed (redirect, not 403)."""
+        self.client.login(username='tmpl_owner', password='pass1234!')
+        url = _reverse('events:quick_create_from_template', kwargs={'template_id': self.template.pk})
+        customization = _json.dumps({'excluded_task_pks': []})
+        response = self.client.post(url, {
+            'name': 'Owner Modify',
+            'modify_template': '1',
+            'template_customization': customization,
+        })
+        self.assertNotEqual(response.status_code, 403)
+
+
+class SearchViewTest(TestCase):
+    """GET /search/ — global search."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('search_user', 'srch@test.com', 'pass1234!')
+        self.client.login(username='search_user', password='pass1234!')
+        self.event = Event.objects.create(
+            name='Conferencia Anual', owner=self.user, status='active',
+            start_date=timezone.now() + timedelta(days=30),
+        )
+
+    def test_get_without_query_returns_200(self):
+        url = _reverse('events:search')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_with_matching_query_returns_200(self):
+        url = _reverse('events:search') + '?q=Conferencia'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_search_result_contains_matching_event(self):
+        url = _reverse('events:search') + '?q=Conferencia'
+        response = self.client.get(url)
+        self.assertContains(response, 'Conferencia Anual')
+
+    def test_search_with_short_query_returns_too_short_flag(self):
+        """Query shorter than 2 chars triggers too_short context flag."""
+        url = _reverse('events:search') + '?q=C'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context.get('too_short', False))
+
+    def test_anonymous_user_redirected(self):
+        self.client.logout()
+        url = _reverse('events:search') + '?q=Conferencia'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+
+class AlertDismissTest(TestCase):
+    """POST /alerts/<pk>/dismiss/ — dismiss alert, open-redirect blocked."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user('alert_owner', 'alrt_o@test.com', 'pass1234!')
+        self.other = User.objects.create_user('alert_other', 'alrt_x@test.com', 'pass1234!')
+        self.event = Event.objects.create(
+            name='Evento Alerta', owner=self.owner, status='active',
+            start_date=timezone.now() + timedelta(days=10),
+        )
+        self.alert = EventAlert.objects.create(
+            event=self.event,
+            alert_type='deadline',
+            severity='warning',
+            title='Alerta Dismiss Test',
+            message='Mensaje de prueba',
+            alert_key=f'dismiss-test-key-{self.event.pk}',
+        )
+
+    def test_post_dismisses_own_alert(self):
+        self.client.login(username='alert_owner', password='pass1234!')
+        url = _reverse('events:alert_dismiss', kwargs={'pk': self.alert.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.alert.refresh_from_db()
+        self.assertTrue(self.alert.is_dismissed)
+
+    def test_post_redirects_to_dashboard_by_default(self):
+        self.client.login(username='alert_owner', password='pass1234!')
+        url = _reverse('events:alert_dismiss', kwargs={'pk': self.alert.pk})
+        response = self.client.post(url)
+        self.assertRedirects(response, _reverse('events:dashboard'), fetch_redirect_response=False)
+
+    def test_post_with_safe_next_redirects_to_next(self):
+        self.client.login(username='alert_owner', password='pass1234!')
+        url = _reverse('events:alert_dismiss', kwargs={'pk': self.alert.pk})
+        safe_next = _reverse('events:event_list')
+        response = self.client.post(url, {'next': safe_next})
+        self.assertRedirects(response, safe_next, fetch_redirect_response=False)
+
+    def test_open_redirect_blocked_when_next_is_external(self):
+        """next pointing to an external domain must NOT be followed."""
+        self.client.login(username='alert_owner', password='pass1234!')
+        url = _reverse('events:alert_dismiss', kwargs={'pk': self.alert.pk})
+        response = self.client.post(url, {'next': 'https://evil.com/steal'})
+        # Must redirect to dashboard, not the external URL
+        location = response['Location']
+        self.assertFalse(location.startswith('https://evil.com'))
+
+    def test_other_user_cannot_dismiss_alert(self):
+        self.client.login(username='alert_other', password='pass1234!')
+        url = _reverse('events:alert_dismiss', kwargs={'pk': self.alert.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 404)
+        self.alert.refresh_from_db()
+        self.assertFalse(self.alert.is_dismissed)
+
+    def test_anonymous_user_redirected(self):
+        url = _reverse('events:alert_dismiss', kwargs={'pk': self.alert.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+
+class EventApiCreateTest(TestCase):
+    """POST /events/api/create/ — JSON API endpoint."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('api_user', 'api@test.com', 'pass1234!')
+        self.client.login(username='api_user', password='pass1234!')
+
+    def _post_json(self, payload):
+        return self.client.post(
+            _reverse('events:event_api_create'),
+            data=_json.dumps(payload),
+            content_type='application/json',
+        )
+
+    def test_valid_post_returns_200_with_event_id(self):
+        response = self._post_json({'name': 'API Evento'})
+        self.assertEqual(response.status_code, 200)
+        data = _json.loads(response.content)
+        self.assertIn('id', data)
+        self.assertIsNotNone(data['id'])
+
+    def test_valid_post_creates_event_in_db(self):
+        count_before = Event.objects.filter(owner=self.user).count()
+        self._post_json({'name': 'API Evento DB'})
+        self.assertEqual(Event.objects.filter(owner=self.user).count(), count_before + 1)
+
+    def test_valid_post_response_contains_url(self):
+        response = self._post_json({'name': 'API URL Test'})
+        data = _json.loads(response.content)
+        self.assertIn('url', data)
+        self.assertTrue(data['url'].startswith('/'))
+
+    def test_missing_name_returns_400(self):
+        response = self._post_json({'name': ''})
+        self.assertEqual(response.status_code, 400)
+        data = _json.loads(response.content)
+        self.assertIn('error', data)
+
+    def test_invalid_json_returns_400(self):
+        response = self.client.post(
+            _reverse('events:event_api_create'),
+            data='not-valid-json{{{',
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_method_returns_405(self):
+        response = self.client.get(_reverse('events:event_api_create'))
+        self.assertEqual(response.status_code, 405)
+
+    def test_anonymous_user_redirected(self):
+        self.client.logout()
+        response = self._post_json({'name': 'Anon API'})
+        self.assertEqual(response.status_code, 302)
