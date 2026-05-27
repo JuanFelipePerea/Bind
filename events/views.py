@@ -707,7 +707,10 @@ def quick_create_from_template(request, template_id):
         apply_template_to_event(event, template, owner=request.user, customization=customization)
 
     # Modificación permanente de la plantilla si el usuario lo solicitó
+    # Solo el creador o staff pueden alterar la plantilla de forma permanente (fix IDOR)
     if request.POST.get('modify_template') == '1' and customization:
+        if template.created_by != request.user and not request.user.is_staff:
+            return JsonResponse({'error': 'Sin permiso para modificar esta plantilla'}, status=403)
         from events.models import TemplateTask, TemplateBudgetItem, TemplateChecklistItem
         exc_task_pks   = customization.get('excluded_task_pks', [])
         exc_budget_pks = customization.get('excluded_budget_item_pks', [])

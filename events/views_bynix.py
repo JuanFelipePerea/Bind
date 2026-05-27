@@ -70,7 +70,8 @@ def event_assistant_chat(request, pk):
             get_event_assistant_response, deduct_credits,
             get_credits_reset_info, BYNIX_DAILY_CREDITS,
         )
-        result    = get_event_assistant_response(query, event_context, history=history)
+        user_name = request.user.get_full_name() or request.user.username
+        result    = get_event_assistant_response(query, event_context, history=history, user_name=user_name)
         remaining = deduct_credits(request.user.pk)
         usage_pct = round((1 - remaining / BYNIX_DAILY_CREDITS) * 100)
 
