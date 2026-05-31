@@ -120,6 +120,28 @@ class Event(models.Model):
         help_text='PDF o imagen adjunta al email de invitación.'
     )
 
+    @property
+    def is_overdue(self):
+        """True si end_date ya pasó y el status no refleja eso todavía."""
+        from django.utils import timezone
+        return (
+            self.end_date is not None
+            and self.status in ('active', 'draft')
+            and self.end_date < timezone.now()
+        )
+
+    @property
+    def display_status(self):
+        """Status para mostrar en UI — 'overdue' si venció sin cerrarse."""
+        return 'overdue' if self.is_overdue else self.status
+
+    @property
+    def display_status_label(self):
+        """Etiqueta legible para el status visual."""
+        if self.is_overdue:
+            return 'Por cerrar'
+        return self.get_status_display()
+
     def __str__(self):
         return self.name
 

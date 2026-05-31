@@ -70,7 +70,7 @@
               {{ event.name }}
             </p>
             <p class="text-xs text-gray-400 mt-0.5">
-              {{ event.get_status_display }}
+              {{ event.display_status_label }}
               {% if event.start_date %} · {{ event.start_date|date:"d M Y" }}{% endif %}
               {% if event.location %} · {{ event.location }}{% endif %}
             </p>

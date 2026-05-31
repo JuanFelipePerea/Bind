@@ -325,6 +325,9 @@ def _detect_file_meta(uploaded_file):
     ext = ext.lstrip('.').lower()
     file_type = _EXT_TYPE.get(ext, 'other')
     name = stem.replace('_', ' ').replace('-', ' ').strip() or original
+    if not name:
+        import uuid
+        name = f"archivo-{uuid.uuid4().hex[:8]}"
 
     pages = None
     try:

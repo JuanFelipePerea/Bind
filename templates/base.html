@@ -15,43 +15,9 @@
     })();
   </script>
 
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   {% load static %}
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          /* ── Design Tokens ─────────────────────────────────────────────
-             inter   → fuente base (más neutral/profesional que Poppins)
-             sidebar → fondo del sidebar (zinc-950, siempre oscuro)
-             brand   → color de acción principal (#14b8a6, teal-500)
-          ────────────────────────────────────────────────────────────── */
-          fontFamily: { inter: ['Inter', 'sans-serif'] },
-          colors: {
-            sidebar: '#09090b',   /* zinc-950 — True dark, estilo Linear/Vercel */
-            brand:   '#14b8a6',   /* teal-500 — color de acción unificado        */
-          },
-          animation: {
-            'blob':       'blob 7s infinite',
-            'fade-in-up': 'fadeInUp 0.5s ease-out',
-            'fade-in':    'fadeIn 0.5s ease-out',
-          },
-          keyframes: {
-            blob: {
-              '0%':   { transform: 'translate(0px, 0px) scale(1)' },
-              '33%':  { transform: 'translate(30px, -50px) scale(1.1)' },
-              '66%':  { transform: 'translate(-20px, 20px) scale(0.9)' },
-              '100%': { transform: 'translate(0px, 0px) scale(1)' },
-            },
-            fadeInUp: { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
-            fadeIn:   { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-          }
-        }
-      }
-    }
-  </script>
+  <link href="{% static 'css/tailwind.css' %}" rel="stylesheet">
   <!-- Inter: más neutral y profesional; reemplaza Poppins en el app-shell -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 

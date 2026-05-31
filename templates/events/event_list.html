@@ -90,16 +90,18 @@
 
           <!-- Badge de estado -->
           <span class="text-xs font-semibold px-2.5 py-1 rounded-md border
-            {% if event.status == 'active' %}
+            {% if event.display_status == 'overdue' %}
+              bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/60
+            {% elif event.display_status == 'active' %}
               bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800/60
-            {% elif event.status == 'draft' %}
+            {% elif event.display_status == 'draft' %}
               bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700
-            {% elif event.status == 'completed' %}
+            {% elif event.display_status == 'completed' %}
               bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800/60
             {% else %}
               bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800/60
             {% endif %}">
-            {{ event.get_status_display }}
+            {{ event.display_status_label }}
           </span>
 
           <!-- Health score -->
