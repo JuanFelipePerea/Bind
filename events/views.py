@@ -1385,6 +1385,35 @@ def momento_delete(request, event_pk, pk):
 
 
 @login_required
+def event_close(request, pk):
+    """
+    GET  → página de confirmación antes de cerrar.
+    POST → marca el evento como 'completed' y redirige al dashboard.
+    """
+    event = get_object_or_404(Event, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        event.status = 'completed'
+        event.save()
+        messages.success(request, f'Proyecto "{event.name}" cerrado correctamente.')
+        return redirect('events:dashboard')
+    return render(request, 'events/event_confirm_close.html', {'event': event})
+
+
+@login_required
+def tasks_complete_all(request, pk):
+    """POST → marca todas las tareas pendientes/en progreso del evento como 'done'."""
+    from modules.models import Task
+    event = get_object_or_404(Event, pk=pk, owner=request.user)
+    if request.method != 'POST':
+        return redirect('events:event_detail', pk=pk)
+    updated = Task.objects.filter(
+        event=event, status__in=['pending', 'in_progress']
+    ).update(status='done')
+    messages.success(request, f'{updated} tarea{"s" if updated != 1 else ""} marcada{"s" if updated != 1 else ""} como completada{"s" if updated != 1 else ""}.')
+    return redirect('events:event_detail', pk=pk)
+
+
+@login_required
 def momentos_json(request, event_pk):
     """
     Feed de Momentos de un evento.

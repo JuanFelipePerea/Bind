@@ -97,8 +97,8 @@
     <div class="flex items-end gap-3 rounded-2xl px-4 py-3" style="background:rgba(255,255,255,.05);border:1px solid rgba(124,58,237,.25);">
       <textarea id="bynix-input" rows="1"
                 placeholder="Pregunta algo, pide un análisis, o crea un evento..."
-                class="flex-1 bg-transparent text-white text-sm leading-relaxed"
-                style="min-height:24px;max-height:120px;overflow-y:auto;"
+                class="flex-1 text-white text-sm leading-relaxed"
+                style="min-height:24px;max-height:120px;overflow-y:auto;background:transparent;color:#fff;-webkit-text-fill-color:#fff;"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();bynixSend();}"></textarea>
       <button onclick="bynixSend()" id="bynix-send-btn"
               class="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all"
@@ -194,8 +194,27 @@ async function bynixSend() {
 
       // Acción NAVIGATE_EVENT
       if (data.action && data.action.type === 'NAVIGATE_EVENT') {
-        appendMsg('→ Navega a: ' + (data.action.event_name || ''), false);
-        setTimeout(() => { window.location.href = '/events/' + data.action.event_id + '/'; }, 1500);
+        const nDiv = document.createElement('div');
+        nDiv.className = 'bynix-msg-ai rounded-xl px-4 py-3 max-w-2xl';
+        nDiv.innerHTML = `<p class="text-xs mb-2" style="color:rgba(255,255,255,.5);">Ir a proyecto:</p>
+          <a href="/events/${data.action.event_id}/"
+             style="display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:10px;background:rgba(20,184,166,.15);border:1px solid rgba(20,184,166,.3);color:#5eead4;font-weight:700;font-size:13px;text-decoration:none;">
+            → ${esc(data.action.event_name || 'Ver evento')}
+          </a>`;
+        content.insertBefore(nDiv, response);
+      }
+
+      // Acción CLOSE_EVENT — botón de confirmación real
+      if (data.action && data.action.type === 'CLOSE_EVENT') {
+        const cDiv = document.createElement('div');
+        cDiv.className = 'bynix-msg-ai rounded-xl px-4 py-3 max-w-2xl';
+        cDiv.innerHTML = `<p class="text-xs mb-2" style="color:rgba(255,255,255,.5);">Cierre de proyecto pendiente de confirmación:</p>
+          <p class="text-sm font-semibold text-white mb-3">${esc(data.action.event_name || '')}</p>
+          <a href="/events/${data.action.event_id}/close/"
+             style="display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:10px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);color:#fcd34d;font-weight:700;font-size:13px;text-decoration:none;">
+            Confirmar cierre →
+          </a>`;
+        content.insertBefore(cDiv, response);
       }
     }
   } catch (err) {
