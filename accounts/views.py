@@ -138,7 +138,7 @@ def login_2fa_verify_view(request):
 
 def logout_view(request):
     logout(request)
-    return redirect('accounts:login')
+    return redirect('accounts:index')
 
 
 def _username_from_email(email):

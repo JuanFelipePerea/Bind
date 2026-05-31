@@ -34,26 +34,38 @@
       background: linear-gradient(270deg, rgba(20,184,166,0.05) 0%, transparent 100%);
     }
 
-    /* Auth input — siempre sobre fondo blanco */
+    /* Auth input — fondo blanco con borde visible */
     .auth-input {
       width: 100%;
       padding: 0.75rem 1rem 0.75rem 2.75rem;
-      background: #f4f4f5;
-      border: 1.5px solid #e4e4e7;
+      background: #ffffff;
+      border: 1.5px solid #d4d4d8;
       border-radius: 0.75rem;
       color: #09090b;
       font-size: 0.875rem;
       font-family: 'Inter', sans-serif;
       outline: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     }
     .auth-input::placeholder { color: #a1a1aa; }
-    .auth-input:hover:not(:focus) { border-color: #d4d4d8; background: #f0f0f1; }
+    .auth-input:hover:not(:focus) { border-color: #a1a1aa; }
     .auth-input:focus {
       border-color: #14b8a6;
       background: #f0fdfb;
-      box-shadow: 0 0 0 3px rgba(20,184,166,0.12);
+      box-shadow: 0 0 0 3px rgba(20,184,166,0.14), 0 1px 3px rgba(0,0,0,0.05);
     }
+    /* CTA — gradiente negro→teal al hover */
+    .btn-primary {
+      background: #09090b;
+      transition: background 0.25s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #09090b 0%, #0f766e 100%);
+      box-shadow: 0 4px 16px rgba(20,184,166,0.25);
+      transform: translateY(-1px);
+    }
+    .btn-primary:active { transform: translateY(0); }
   </style>
 </head>
 
@@ -130,17 +142,32 @@
   </div>
 
   <!-- ═══════════════ PANEL DERECHO — Formulario ═══════════════ -->
-  <div class="flex-1 flex flex-col justify-center items-center px-6 py-10 sm:px-10 relative bg-white min-h-screen">
+  <div class="flex-1 flex flex-col min-h-screen relative" style="background:#fafafa;">
 
-    <!-- Logo móvil (visible solo sin panel izquierdo) -->
-    <div class="lg:hidden mb-10 flex items-center gap-2 fade-right">
-      <div class="w-8 h-8 rounded-xl overflow-hidden shadow-sm">
-        <img src="{% static 'img/logo.svg' %}" alt="BIND" class="w-full h-full object-cover">
+    <!-- Barra superior: volver al inicio + toggle tema -->
+    <div class="flex items-center justify-between px-6 sm:px-10 pt-6 shrink-0">
+      <a href="{% url 'accounts:index' %}"
+         class="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 transition-colors group">
+        <svg class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Volver al inicio
+      </a>
+      <!-- Logo móvil (solo sin panel izquierdo) -->
+      <div class="lg:hidden flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg overflow-hidden shadow-sm">
+          <img src="{% static 'img/logo.svg' %}" alt="BIND" class="w-full h-full object-cover">
+        </div>
+        <span class="text-base font-bold tracking-tight text-zinc-900">Bind</span>
       </div>
-      <span class="text-xl font-bold tracking-tight text-zinc-900">Bind</span>
+      <button id="themeToggle" class="p-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 transition-colors" aria-label="Cambiar tema">
+        <svg class="w-4 h-4 text-zinc-600 block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <svg class="w-4 h-4 text-zinc-300 hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a7 7 0 1010.586 10.586z"/></svg>
+      </button>
     </div>
 
-    <!-- Formulario -->
+    <!-- Formulario centrado -->
+    <div class="flex-1 flex flex-col justify-center items-center px-6 sm:px-10 py-8">
     <div class="w-full max-w-[380px] fade-right" style="animation-delay:.08s;">
 
       <!-- Heading -->
@@ -197,8 +224,7 @@
 
         <!-- CTA principal -->
         <button type="submit"
-                class="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all duration-200 shadow-sm hover:shadow-md mt-1"
-                style="background:#09090b;">
+                class="btn-primary w-full py-3 rounded-xl font-semibold text-sm text-white mt-1">
           Iniciar sesión
         </button>
       </form>
@@ -229,10 +255,18 @@
       </p>
 
     </div>
+    </div><!-- /flex-1 centrado -->
 
-    <!-- Theme toggle — esquina inferior derecha -->
-    <button id="themeToggle"
-            class="absolute bottom-6 right-6 p-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 transition-colors"
+    <!-- Footer con link a landing -->
+    <div class="shrink-0 px-6 sm:px-10 pb-6 text-center">
+      <p class="text-xs text-zinc-400">
+        Al ingresar aceptas los
+        <a href="{% url 'accounts:index' %}" class="hover:text-zinc-600 transition-colors underline underline-offset-2">términos de uso</a>
+      </p>
+    </div>
+
+    <!-- Theme toggle removido del body (ahora está en el header) -->
+    <button id="themeToggle" class="hidden"
             aria-label="Cambiar tema">
       <svg class="w-4 h-4 text-zinc-600 block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
       <svg class="w-4 h-4 text-zinc-300 hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a7 7 0 1010.586 10.586z"/></svg>
