@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load engine_tags %}
+{% load bind_tags %}
 {% load static %}
 {% block title %}BIND - Dashboard{% endblock %}
 {% block page_title %}Panel Principal{% endblock %}
@@ -863,7 +864,7 @@
             </div>
             <div class="flex justify-between text-[10px] text-zinc-400 mt-1.5">
               <span>{{ b.usage_percentage }}% usado</span>
-              <span class="{% if b.remaining < 0 %}text-red-500 dark:text-red-400{% else %}text-teal-600 dark:text-teal-400{% endif %} font-semibold">{{ b.remaining|floatformat:0 }} {{ b.currency }}</span>
+              <span class="{% if b.remaining < 0 %}text-red-500 dark:text-red-400{% else %}text-teal-600 dark:text-teal-400{% endif %} font-semibold">{{ b.remaining|currency_format:b.currency }}</span>
             </div>
           </div>
           {% endwith %}

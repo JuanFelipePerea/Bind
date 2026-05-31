@@ -22,6 +22,16 @@
 
 <div class="p-6 md:p-8 animate-fade-in">
 
+  <!-- Buscador de plantillas -->
+  <div class="mb-5 relative max-w-sm">
+    <input id="tpl-search" type="text" placeholder="Buscar plantilla..." autocomplete="off"
+           class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 text-sm outline-none transition-all text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500">
+    <svg class="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    </svg>
+    <span id="tpl-search-count" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400"></span>
+  </div>
+
   <!-- Filtros de categoría -->
   <div class="flex gap-3 mb-8 overflow-x-auto pb-2">
     <a href="?" class="glass px-5 py-2 rounded-full text-sm font-bold text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-white/80 dark:hover:bg-gray-700 whitespace-nowrap transition-colors {% if not request.GET.category %}bg-white/80 dark:bg-gray-700{% endif %}">Todas</a>
@@ -37,10 +47,11 @@
 
     {% for template in templates %}
     {% with cat=template.category %}
-    <div class="glass rounded-2xl p-4 transition-all duration-300 group hover:-translate-y-1 hover:shadow-lg flex flex-col"
+    <div class="glass rounded-2xl p-4 transition-all duration-300 group hover:-translate-y-1 hover:shadow-lg flex flex-col tpl-card"
          data-template-id="{{ template.pk }}"
          data-quick-url="{% url 'events:quick_create_from_template' template.pk %}"
-         data-custom-url="{% url 'events:event_create' %}?template={{ template.pk }}">
+         data-custom-url="{% url 'events:event_create' %}?template={{ template.pk }}"
+         data-search-name="{{ template.name|lower }} {{ template.description|lower }} {{ template.get_category_display|lower }}">
 
       <!-- Encabezado con gradiente — clic abre modal -->
       <button type="button"
@@ -532,6 +543,33 @@ function openWarRoom(templateId) {
 
   openAsideHtml(html, 'Configurar: ' + data.name);
 }
+
+// ── Búsqueda en tiempo real ───────────────────────────────────────────────────
+(function () {
+  const input   = document.getElementById('tpl-search');
+  const counter = document.getElementById('tpl-search-count');
+  if (!input) return;
+
+  input.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    const cards = document.querySelectorAll('.tpl-card');
+    let visible = 0;
+
+    cards.forEach(function (card) {
+      const haystack = card.dataset.searchName || '';
+      const match = !q || haystack.includes(q);
+      card.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+
+    if (q) {
+      counter.textContent = visible + ' resultado' + (visible !== 1 ? 's' : '');
+      counter.classList.remove('hidden');
+    } else {
+      counter.classList.add('hidden');
+    }
+  });
+})();
 
 async function _submitWarRoom(actionUrl, csrf) {
   const excTaskPks    = [];

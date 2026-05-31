@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load bind_tags %}
 {% block title %}BIND - {% if object %}Editar{% else %}Nueva{% endif %} Tarea{% endblock %}
 {% block page_title %}{% if object %}Editar Tarea{% else %}Nueva Tarea{% endif %}{% endblock %}
 
@@ -68,7 +69,7 @@
           <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/40 rounded-lg text-xs">
             <span class="text-gray-700 dark:text-gray-300">{{ item.name }}</span>
             <span class="font-bold text-gray-800 dark:text-white">
-              {{ item.amount|floatformat:0 }} {{ item.budget.currency }}
+              {{ item.amount|currency_format:item.budget.currency }}
             </span>
           </div>
           {% endfor %}
