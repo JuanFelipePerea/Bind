@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}BIND — Bynix{% endblock %}
+{% block page_title %}Bynix{% endblock %}
+
+{% block extra_head %}
+<style>
+  #bynix-content::-webkit-scrollbar { width: 3px; }
+  #bynix-content::-webkit-scrollbar-thumb { background: rgba(124,58,237,.35); border-radius: 9999px; }
+  #bynix-input { scrollbar-width: none; resize: none; }
+  #bynix-input::-webkit-scrollbar { display: none; }
+  #bynix-input::placeholder { color: rgba(255,255,255,.35); }
+  #bynix-input:focus { outline: none; }
+  .bynix-msg-user { background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.25); }
+  .bynix-msg-ai   { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); }
+  @keyframes shimmer { 0%,100%{opacity:.4} 50%{opacity:1} }
+  .bynix-thinking span { animation: shimmer 1.2s ease-in-out infinite; }
+  .bynix-thinking span:nth-child(2) { animation-delay:.2s; }
+  .bynix-thinking span:nth-child(3) { animation-delay:.4s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="h-full flex flex-col" style="background:linear-gradient(160deg,#09090b 0%,#0a0e1a 100%);">
+
+  <!-- Header -->
+  <div class="shrink-0 flex items-center gap-4 px-6 py-4 border-b" style="border-color:rgba(124,58,237,.18);">
+    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.25);">
+      <img src="{% static 'img/logo-ia.png' %}" alt="Bynix" class="w-7 h-7 object-contain">
+    </div>
+    <div>
+      <h2 class="text-base font-bold text-white">Bynix</h2>
+      <p class="text-xs" style="color:rgba(255,255,255,.35);letter-spacing:.12em;text-transform:uppercase;">Director de Operaciones Global</p>
+    </div>
+    <div class="ml-auto flex items-center gap-3">
+      <!-- Créditos -->
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg" style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.18);">
+        <span class="text-xs font-bold" style="color:{% if bynix_credits <= 20 %}#f87171{% elif bynix_credits <= 50 %}#fcd34d{% else %}#5eead4{% endif %};">{{ bynix_credits }}</span>
+        <span class="text-xs" style="color:rgba(255,255,255,.3);">/ {{ bynix_credits_max }} créditos</span>
+      </div>
+      {% if engine_summary.needs_attention %}
+      <span class="text-xs font-bold px-2.5 py-1 rounded-lg" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;">
+        {{ engine_summary.events_at_risk }} en riesgo
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Historial de mensajes -->
+  <div id="bynix-content" class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+    <!-- Saludo inicial si no hay historial -->
+    {% if not history %}
+    <div class="bynix-msg-ai rounded-xl px-4 py-3.5 max-w-2xl">
+      {% if engine_summary.needs_attention %}
+      <p class="text-sm leading-relaxed" style="color:rgba(255,255,255,.85);">
+        Hola, <strong class="text-white">{{ request.user.get_full_name|default:request.user.username }}</strong>.
+        Tengo <strong class="text-red-300">{{ engine_summary.events_at_risk }} evento{{ engine_summary.events_at_risk|pluralize }}</strong>
+        en zona de riesgo y <strong class="text-red-300">{{ engine_summary.critical_count }} alerta{{ engine_summary.critical_count|pluralize }} crítica{{ engine_summary.critical_count|pluralize }}</strong>.
+        Dime por dónde empezamos.
+      </p>
+      {% else %}
+      <p class="text-sm leading-relaxed" style="color:rgba(255,255,255,.75);">
+        Hola, <strong class="text-white">{{ request.user.get_full_name|default:request.user.username }}</strong>.
+        Todo está bajo control por ahora. Pregúntame lo que necesites o pídeme crear un evento.
+      </p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Historial previo -->
+    {% for msg in history %}
+    <div class="{% if msg.role == 'user' %}bynix-msg-user ml-auto{% else %}bynix-msg-ai{% endif %} rounded-xl px-4 py-3 max-w-2xl">
+      <p class="text-sm leading-relaxed {% if msg.role == 'user' %}text-white{% else %}{% endif %}" style="{% if msg.role != 'user' %}color:rgba(255,255,255,.8);{% endif %}">
+        {{ msg.content }}
+      </p>
+    </div>
+    {% endfor %}
+
+    <!-- Área de respuesta dinámica -->
+    <div id="bynix-response" class="hidden bynix-msg-ai rounded-xl px-4 py-3.5 max-w-2xl">
+      <p id="bynix-response-text" class="text-sm leading-relaxed" style="color:rgba(255,255,255,.8);"></p>
+    </div>
+
+    <!-- Skeleton mientras piensa -->
+    <div id="bynix-thinking" class="hidden bynix-msg-ai rounded-xl px-4 py-3.5 max-w-xs">
+      <div class="bynix-thinking flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-violet-400 inline-block"></span>
+        <span class="w-2 h-2 rounded-full bg-violet-400 inline-block"></span>
+        <span class="w-2 h-2 rounded-full bg-violet-400 inline-block"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="shrink-0 px-6 pb-6 pt-3">
+    <div class="flex items-end gap-3 rounded-2xl px-4 py-3" style="background:rgba(255,255,255,.05);border:1px solid rgba(124,58,237,.25);">
+      <textarea id="bynix-input" rows="1"
+                placeholder="Pregunta algo, pide un análisis, o crea un evento..."
+                class="flex-1 bg-transparent text-white text-sm leading-relaxed"
+                style="min-height:24px;max-height:120px;overflow-y:auto;"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();bynixSend();}"></textarea>
+      <button onclick="bynixSend()" id="bynix-send-btn"
+              class="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+              style="background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 2px 12px rgba(124,58,237,.4);">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+      </button>
+    </div>
+    <p class="text-center mt-2 text-[10px]" style="color:rgba(255,255,255,.2);">
+      Cada consulta consume 10 créditos · {{ bynix_credits }} restantes · se reinician {{ bynix_reset_time }}
+    </p>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const BYNIX_URL = "{% url 'events:dashboard_assistant_chat' %}";
+const CSRF      = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+
+const content    = document.getElementById('bynix-content');
+const response   = document.getElementById('bynix-response');
+const respText   = document.getElementById('bynix-response-text');
+const thinking   = document.getElementById('bynix-thinking');
+const input      = document.getElementById('bynix-input');
+const sendBtn    = document.getElementById('bynix-send-btn');
+
+// Auto-resize textarea
+input.addEventListener('input', function () {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+function appendMsg(text, isUser) {
+  const div = document.createElement('div');
+  div.className = (isUser ? 'bynix-msg-user ml-auto' : 'bynix-msg-ai') + ' rounded-xl px-4 py-3 max-w-2xl';
+  const p = document.createElement('p');
+  p.className = 'text-sm leading-relaxed';
+  p.style.color = isUser ? '#fff' : 'rgba(255,255,255,.8)';
+  p.textContent = text;
+  div.appendChild(p);
+  content.insertBefore(div, response);
+  content.scrollTop = content.scrollHeight;
+}
+
+async function bynixSend() {
+  const query = input.value.trim();
+  if (!query) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  sendBtn.disabled = true;
+  appendMsg(query, true);
+
+  thinking.classList.remove('hidden');
+  response.classList.add('hidden');
+  content.scrollTop = content.scrollHeight;
+
+  try {
+    const res  = await fetch(BYNIX_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ query }),
+    });
+    const data = await res.json();
+
+    thinking.classList.add('hidden');
+
+    if (data.error) {
+      appendMsg('Error: ' + data.error, false);
+    } else {
+      appendMsg(data.response || '', false);
+
+      // Acción CREATE_EVENT
+      if (data.action && data.action.type === 'CREATE_EVENT') {
+        const aDiv = document.createElement('div');
+        aDiv.className = 'bynix-msg-ai rounded-xl px-4 py-3 max-w-2xl';
+        aDiv.innerHTML = `<p class="text-xs mb-2" style="color:rgba(255,255,255,.5);">Bynix quiere crear:</p>
+          <p class="text-sm font-semibold text-white mb-3">${esc(data.action.name)}</p>
+          <form method="post" action="{% url 'events:event_api_create' %}">
+            <input type="hidden" name="csrfmiddlewaretoken" value="${CSRF}">
+            <input type="hidden" name="name" value="${esc(data.action.name)}">
+            <input type="hidden" name="description" value="${esc(data.action.description || '')}">
+            ${data.action.start_date ? `<input type="hidden" name="start_date" value="${esc(data.action.start_date)}">` : ''}
+            <button type="submit" style="padding:8px 20px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;">
+              Confirmar y crear
+            </button>
+          </form>`;
+        content.insertBefore(aDiv, response);
+      }
+
+      // Acción NAVIGATE_EVENT
+      if (data.action && data.action.type === 'NAVIGATE_EVENT') {
+        appendMsg('→ Navega a: ' + (data.action.event_name || ''), false);
+        setTimeout(() => { window.location.href = '/events/' + data.action.event_id + '/'; }, 1500);
+      }
+    }
+  } catch (err) {
+    thinking.classList.add('hidden');
+    appendMsg('Error de conexión. Inténtalo de nuevo.', false);
+  }
+
+  sendBtn.disabled = false;
+  content.scrollTop = content.scrollHeight;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+{% endblock %}

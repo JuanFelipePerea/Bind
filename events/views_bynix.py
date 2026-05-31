@@ -9,7 +9,7 @@ import logging
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 
 from events.models import Event, BynixMessage
 from modules.models import Task, Checklist, ChecklistItem
@@ -173,10 +173,29 @@ def bynix_quick_capture(request, pk):
 @login_required
 def dashboard_assistant_chat(request):
     """
-    Endpoint AJAX del Bynix global del Dashboard.
-    No está vinculado a un evento específico — trabaja sobre el estado global del usuario.
-    Soporta acciones: CREATE_EVENT, NAVIGATE_EVENT.
+    GET  → página standalone de Bynix global (acceso desde sidebar).
+    POST → endpoint AJAX del asistente (usado por el panel flotante del dashboard).
     """
+    if request.method == 'GET':
+        from events.engine import run_engine_for_user
+        from events.stats import compute_user_stats
+        try:
+            engine_output = run_engine_for_user(request.user)
+        except Exception:
+            engine_output = {'event_scores': {}, 'event_contexts': {}, 'all_decisions': [],
+                             'dashboard_summary': {'critical_count': 0, 'events_at_risk': 0,
+                                                   'events_on_track': 0, 'needs_attention': False}}
+        stats = compute_user_stats(request.user)
+        history = list(
+            BynixMessage.objects.filter(user=request.user, event=None)
+            .order_by('-created_at')[:20].values('role', 'content')
+        )
+        return render(request, 'events/bynix_page.html', {
+            'engine_summary': engine_output['dashboard_summary'],
+            'history':        list(reversed(history)),
+            'stats':          stats,
+        })
+
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 

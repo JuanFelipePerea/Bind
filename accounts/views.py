@@ -178,8 +178,11 @@ def register_view(request):
             username=username, email=email, password=password1,
         )
         # UserProfile is created automatically by the post_save signal in models.py
-        if user.email:
-            _send_welcome_email(user)
+        try:
+            if user.email:
+                _send_welcome_email(user)
+        except Exception as exc:
+            logger.warning("Welcome email failed for new user %s: %s", user.username, exc)
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         messages.success(request, f'¡Bienvenido a Bind, {user.first_name or user.username}!')
         return redirect('events:dashboard')
@@ -286,9 +289,14 @@ def enable_2fa_send(request):
         return redirect('accounts:profile_edit')
 
     code = _generate_2fa_code()
-    profile.two_factor_secret = code
-    profile.two_factor_sent_at = timezone.now()
-    profile.save()
+    try:
+        profile.two_factor_secret = code
+        profile.two_factor_sent_at = timezone.now()
+        profile.save()
+    except Exception as exc:
+        logger.error("2FA profile save failed for %s: %s", request.user.username, exc)
+        messages.error(request, 'Error al guardar el código. Contacta soporte.')
+        return redirect('accounts:profile')
 
     try:
         send_bind_email(
