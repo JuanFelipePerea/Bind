@@ -166,6 +166,29 @@
 
     </nav>
 
+    <!-- Bynix — acceso rápido desde cualquier página -->
+    {% if user.is_authenticated %}
+    <div class="px-4 pb-2 shrink-0">
+      <a href="{% url 'events:dashboard_assistant_chat' %}"
+         class="flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-150 group relative overflow-hidden
+                {% if request.resolver_match.url_name == 'dashboard_assistant_chat' %}bg-violet-600/20 border border-violet-500/40 text-violet-300{% else %}hover:bg-violet-600/10 border border-transparent hover:border-violet-500/20 text-zinc-400 hover:text-violet-300{% endif %}">
+        <div class="w-5 h-5 flex items-center justify-center shrink-0">
+          {% load static %}
+          <img src="{% static 'img/logo-ia.png' %}" alt="Bynix" class="w-5 h-5 object-contain">
+        </div>
+        <span class="font-medium text-sm flex-1">Bynix</span>
+        {% if bynix_credits is not None %}
+        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md
+          {% if bynix_credits <= 20 %}bg-red-900/30 text-red-400 border border-red-800/30
+          {% elif bynix_credits <= 50 %}bg-amber-900/20 text-amber-400 border border-amber-800/20
+          {% else %}bg-teal-900/20 text-teal-400 border border-teal-800/20{% endif %}">
+          {{ bynix_credits }}
+        </span>
+        {% endif %}
+      </a>
+    </div>
+    {% endif %}
+
     <!-- Footer del sidebar: usuario -->
     <div class="p-4 border-t border-zinc-800/60 space-y-2 shrink-0">
       {% if user.is_authenticated %}

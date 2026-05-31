@@ -877,27 +877,53 @@
         </div>
       </div>
 
-      <!-- Sub-panel 3: Actividad Semanal (120px fijos) -->
-      <div class="shrink-0 h-[140px] overflow-hidden flex flex-col border-zinc-100/60 dark:border-zinc-700/30">
-        <div class="shrink-0 px-4 py-2 border-b border-zinc-100/60 dark:border-zinc-700/30">
-          <h4 class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Actividad semanal</h4>
+      <!-- Sub-panel 3: Bynix sugiere — sugerencias proactivas del motor -->
+      <div class="shrink-0 flex flex-col overflow-hidden" style="min-height:160px;max-height:220px;">
+        <div class="shrink-0 px-4 py-2.5 border-b border-zinc-100/60 dark:border-zinc-700/30 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <img src="{% static 'img/logo-ia.png' %}" alt="Bynix" class="w-4 h-4 object-contain opacity-80">
+            <h4 class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Bynix sugiere</h4>
+          </div>
+          <button onclick="dbBynixToggle()" class="text-[10px] text-teal-500 hover:text-teal-600 font-medium transition-colors">Abrir →</button>
         </div>
-        <div class="flex-1 px-4 pb-5 pt-3 flex items-end justify-between gap-1.5 overflow-hidden">
-          {% for label, count, pct in weekly_activity %}
-          <div class="flex-1 flex flex-col items-center gap-1 h-full justify-end relative">
-            {% if count > 0 %}
-            <span class="absolute -top-3 text-[9px] font-bold text-teal-600 dark:text-teal-400">{{ count }}</span>
-            {% endif %}
-            <div class="w-full rounded-t transition-all duration-500
-              {% if label == today_label %}bg-teal-500 shadow-sm shadow-teal-500/30{% else %}bg-zinc-200 dark:bg-zinc-700/80{% endif %}"
-                 style="height: {{ pct }}%; min-height: 2px;"></div>
-            <span class="text-[8px] {% if label == today_label %}font-bold text-teal-500{% else %}text-zinc-400{% endif %} leading-none">{{ label }}</span>
+        <div class="flex-1 overflow-y-auto scroll-thin px-3 py-2 space-y-1.5">
+          {% if engine_decisions %}
+            {% for decision in engine_decisions|slice:":3" %}
+            <div class="rounded-lg px-3 py-2.5 flex items-start gap-2.5
+              {% if decision.severity == 'critical' %}bg-red-50 dark:bg-red-900/10 border border-red-200/60 dark:border-red-800/30
+              {% elif decision.severity == 'warning' %}bg-amber-50 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-800/30
+              {% else %}bg-teal-50 dark:bg-teal-900/10 border border-teal-200/60 dark:border-teal-800/30{% endif %}">
+              <span class="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0
+                {% if decision.severity == 'critical' %}bg-red-500
+                {% elif decision.severity == 'warning' %}bg-amber-400
+                {% else %}bg-teal-500{% endif %}"></span>
+              <div class="flex-1 min-w-0">
+                <p class="text-[11px] font-semibold leading-snug truncate
+                  {% if decision.severity == 'critical' %}text-red-800 dark:text-red-300
+                  {% elif decision.severity == 'warning' %}text-amber-800 dark:text-amber-300
+                  {% else %}text-teal-800 dark:text-teal-300{% endif %}">{{ decision.title }}</p>
+                <p class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug line-clamp-2">{{ decision.message }}</p>
+              </div>
+              {% if decision.action_url %}
+              <a href="{{ decision.action_url }}"
+                 class="flex-shrink-0 text-[9px] font-bold px-2 py-1 rounded-md transition-colors whitespace-nowrap
+                   {% if decision.severity == 'critical' %}bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50
+                   {% elif decision.severity == 'warning' %}bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50
+                   {% else %}bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/50{% endif %}">
+                {{ decision.action_label }}
+              </a>
+              {% endif %}
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="flex flex-col items-center justify-center h-full py-6 gap-2 text-center">
+            <svg class="w-6 h-6 text-teal-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">Todo bajo control</p>
+            <p class="text-[10px] text-zinc-300 dark:text-zinc-600">Bynix no detecta alertas activas</p>
           </div>
-          {% empty %}
-          <div class="w-full flex items-center justify-center">
-            <p class="text-xs text-zinc-400 dark:text-zinc-500">Sin actividad registrada</p>
-          </div>
-          {% endfor %}
+          {% endif %}
         </div>
       </div>
 
@@ -1049,9 +1075,22 @@
           </li>
         </ul>
       </div>
-      <p class="text-center mt-3" style="font-size:10px;color:rgba(255,255,255,.22);">
-        Cada consulta consume <strong style="color:rgba(255,255,255,.38);">10 créditos</strong>
-      </p>
+      <!-- Créditos Bynix -->
+      <div class="mt-4 rounded-xl px-3.5 py-3" style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.18);">
+        <div class="flex items-center justify-between mb-2">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:rgba(255,255,255,.35);">Créditos de hoy</span>
+          <span style="font-size:11px;font-weight:700;color:{% if bynix_credits <= 20 %}#F87171{% elif bynix_credits <= 50 %}#FCD34D{% else %}#5EEAD4{% endif %};">
+            {{ bynix_credits }}<span style="color:rgba(255,255,255,.25);font-weight:400;"> / {{ bynix_credits_max }}</span>
+          </span>
+        </div>
+        <div style="width:100%;height:4px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;">
+          <div style="height:100%;width:{{ bynix_credits|floatformat:0 }}%;max-width:100%;border-radius:999px;transition:width .5s ease;
+            background:{% if bynix_credits <= 20 %}#EF4444{% elif bynix_credits <= 50 %}#F59E0B{% else %}linear-gradient(90deg,#7C3AED,#14B8A6){% endif %};"></div>
+        </div>
+        <p style="font-size:9px;color:rgba(255,255,255,.22);margin-top:6px;text-align:right;">
+          Se reinician {{ bynix_reset_time }}
+        </p>
+      </div>
     </div>
 
     <div id="db-bynix-response-area" class="hidden">
