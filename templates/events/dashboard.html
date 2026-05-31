@@ -496,6 +496,71 @@
     </div>
   </div>
 
+  <!-- ══════════════════ BYNIX CENTRO DE CONTROL ══════════════════ -->
+  {% if engine_decisions %}
+  <div class="shrink-0 px-5 pb-3">
+    <div class="rounded-2xl border shadow-md overflow-hidden
+      {% if engine_decisions.0.severity == 'critical' %}bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/40
+      {% elif engine_decisions.0.severity == 'warning' %}bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40
+      {% else %}bg-violet-50 dark:bg-violet-950/20 border-violet-200 dark:border-violet-800/40{% endif %}">
+      <div class="flex items-center gap-4 px-5 py-3.5">
+        <!-- Avatar Bynix -->
+        <div class="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center
+          {% if engine_decisions.0.severity == 'critical' %}bg-red-100 dark:bg-red-900/30
+          {% elif engine_decisions.0.severity == 'warning' %}bg-amber-100 dark:bg-amber-900/30
+          {% else %}bg-violet-100 dark:bg-violet-900/30{% endif %}">
+          <img src="{% static 'img/logo-ia.png' %}" alt="Bynix" class="w-6 h-6 object-contain">
+        </div>
+        <!-- Label + mensaje -->
+        <div class="flex-1 min-w-0">
+          <p class="text-[10px] font-bold uppercase tracking-wider mb-0.5
+            {% if engine_decisions.0.severity == 'critical' %}text-red-500 dark:text-red-400
+            {% elif engine_decisions.0.severity == 'warning' %}text-amber-600 dark:text-amber-400
+            {% else %}text-violet-600 dark:text-violet-400{% endif %}">
+            Bynix — Centro de Control
+          </p>
+          <p class="text-sm font-medium text-zinc-800 dark:text-zinc-100 leading-snug truncate">
+            {{ engine_decisions.0.title }}
+            <span class="font-normal text-zinc-500 dark:text-zinc-400 ml-1">· {{ engine_decisions.0.message|truncatechars:80 }}</span>
+          </p>
+        </div>
+        <!-- Acciones -->
+        <div class="flex items-center gap-2 shrink-0">
+          {% if engine_decisions.0.action_url %}
+          <a href="{{ engine_decisions.0.action_url }}"
+             class="text-xs font-bold px-3.5 py-1.5 rounded-lg transition-colors whitespace-nowrap
+               {% if engine_decisions.0.severity == 'critical' %}bg-red-600 hover:bg-red-700 text-white
+               {% elif engine_decisions.0.severity == 'warning' %}bg-amber-500 hover:bg-amber-600 text-white
+               {% else %}bg-violet-600 hover:bg-violet-700 text-white{% endif %}">
+            {{ engine_decisions.0.action_label }}
+          </a>
+          {% endif %}
+          <a href="{% url 'events:dashboard_assistant_chat' %}"
+             class="text-xs font-medium px-3.5 py-1.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors whitespace-nowrap shadow-sm">
+            Abrir Bynix →
+          </a>
+        </div>
+      </div>
+      {% if engine_decisions|length > 1 %}
+      <div class="flex gap-3 px-5 pb-3 overflow-x-auto scrollbar-hide">
+        {% for decision in engine_decisions|slice:"1:4" %}
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-black/20 border border-white/80 dark:border-white/10 shrink-0 text-[11px]">
+          <span class="w-1.5 h-1.5 rounded-full shrink-0
+            {% if decision.severity == 'critical' %}bg-red-500
+            {% elif decision.severity == 'warning' %}bg-amber-400
+            {% else %}bg-teal-500{% endif %}"></span>
+          <span class="text-zinc-700 dark:text-zinc-300 font-medium truncate max-w-[200px]">{{ decision.title }}</span>
+          {% if decision.action_url %}
+          <a href="{{ decision.action_url }}" class="text-teal-600 dark:text-teal-400 font-bold hover:underline shrink-0">→</a>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ══════════════════ GRID 12 COLUMNAS ══════════════════ -->
   <div class="flex-1 grid grid-cols-12 overflow-hidden min-h-0">
 
@@ -803,13 +868,66 @@
       </div>
     </div>
 
-    <!-- ─── COL 3 (span-4): AGENDA Y CONTEXTO ─── -->
+    <!-- ─── COL 3 (span-4): BYNIX + AGENDA ─── -->
     <div class="col-span-4 flex flex-col overflow-hidden">
 
-      <!-- Sub-panel 1: Próximos Eventos (flex-1 con scroll) -->
+      <!-- Sub-panel 1: Bynix sugiere (PRIMERO — diferenciador del proyecto) -->
+      <div class="shrink-0 flex flex-col overflow-hidden border-b border-zinc-200/60 dark:border-zinc-700/30" style="min-height:168px;max-height:230px;">
+        <div class="shrink-0 px-4 py-2.5 border-b border-violet-100 dark:border-violet-900/30 flex items-center justify-between" style="background:rgba(124,58,237,.04);">
+          <div class="flex items-center gap-2">
+            <img src="{% static 'img/logo-ia.png' %}" alt="Bynix" class="w-4 h-4 object-contain">
+            <h4 class="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest">Bynix sugiere</h4>
+          </div>
+          <a href="{% url 'events:dashboard_assistant_chat' %}" class="text-[10px] text-violet-500 hover:text-violet-600 dark:text-violet-400 font-medium transition-colors">Abrir →</a>
+        </div>
+        <div class="flex-1 overflow-y-auto scroll-thin px-3 py-2 space-y-1.5">
+          {% if engine_decisions %}
+            {% for decision in engine_decisions|slice:":3" %}
+            <div class="rounded-lg px-3 py-2.5 flex items-start gap-2.5
+              {% if decision.severity == 'critical' %}bg-red-50 dark:bg-red-900/10 border border-red-200/60 dark:border-red-800/30
+              {% elif decision.severity == 'warning' %}bg-amber-50 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-800/30
+              {% else %}bg-teal-50 dark:bg-teal-900/10 border border-teal-200/60 dark:border-teal-800/30{% endif %}">
+              <span class="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0
+                {% if decision.severity == 'critical' %}bg-red-500
+                {% elif decision.severity == 'warning' %}bg-amber-400
+                {% else %}bg-teal-500{% endif %}"></span>
+              <div class="flex-1 min-w-0">
+                <p class="text-[11px] font-semibold leading-snug truncate
+                  {% if decision.severity == 'critical' %}text-red-800 dark:text-red-300
+                  {% elif decision.severity == 'warning' %}text-amber-800 dark:text-amber-300
+                  {% else %}text-teal-800 dark:text-teal-300{% endif %}">{{ decision.title }}</p>
+                <p class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug line-clamp-2">{{ decision.message }}</p>
+              </div>
+              {% if decision.action_url %}
+              <a href="{{ decision.action_url }}"
+                 class="flex-shrink-0 text-[9px] font-bold px-2 py-1 rounded-md transition-colors whitespace-nowrap
+                   {% if decision.severity == 'critical' %}bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200
+                   {% elif decision.severity == 'warning' %}bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200
+                   {% else %}bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 hover:bg-teal-200{% endif %}">
+                {{ decision.action_label }}
+              </a>
+              {% endif %}
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="flex flex-col items-center justify-center h-full py-6 gap-2 text-center">
+            <svg class="w-6 h-6 text-violet-300 dark:text-violet-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">Todo bajo control</p>
+            <p class="text-[10px] text-zinc-300 dark:text-zinc-600">Sin alertas activas</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Sub-panel 2: Próximos Eventos (flex-1 con scroll) -->
       <div class="flex-1 flex flex-col min-h-0 border-b border-zinc-200/60 dark:border-zinc-700/30 overflow-hidden">
         <div class="shrink-0 px-4 py-3 border-b border-zinc-100/60 dark:border-zinc-700/30 flex items-center justify-between">
-          <h4 class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Próximos eventos</h4>
+          <div class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <h4 class="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Próximos</h4>
+          </div>
           <a href="{% url 'events:event_list' %}" class="text-[10px] text-teal-500 hover:text-teal-600 font-medium">Ver todos →</a>
         </div>
         <div class="flex-1 overflow-y-auto scroll-thin p-3 space-y-2">
@@ -840,10 +958,11 @@
         </div>
       </div>
 
-      <!-- Sub-panel 2: Presupuestos (flex-1 con scroll) -->
+      <!-- Sub-panel 3: Presupuestos (flex-1 con scroll) -->
       <div class="flex-1 flex flex-col min-h-0 border-b border-zinc-200/60 dark:border-zinc-700/30 overflow-hidden">
-        <div class="shrink-0 px-4 py-3 border-b border-zinc-100/60 dark:border-zinc-700/30">
-          <h4 class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Presupuestos</h4>
+        <div class="shrink-0 px-4 py-3 border-b border-zinc-100/60 dark:border-zinc-700/30 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <h4 class="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Presupuestos</h4>
         </div>
         <div class="flex-1 overflow-y-auto scroll-thin p-3 space-y-2">
           {% if budget_events %}
@@ -878,55 +997,6 @@
         </div>
       </div>
 
-      <!-- Sub-panel 3: Bynix sugiere — sugerencias proactivas del motor -->
-      <div class="shrink-0 flex flex-col overflow-hidden" style="min-height:160px;max-height:220px;">
-        <div class="shrink-0 px-4 py-2.5 border-b border-zinc-100/60 dark:border-zinc-700/30 flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <img src="{% static 'img/logo-ia.png' %}" alt="Bynix" class="w-4 h-4 object-contain opacity-80">
-            <h4 class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Bynix sugiere</h4>
-          </div>
-          <button onclick="dbBynixToggle()" class="text-[10px] text-teal-500 hover:text-teal-600 font-medium transition-colors">Abrir →</button>
-        </div>
-        <div class="flex-1 overflow-y-auto scroll-thin px-3 py-2 space-y-1.5">
-          {% if engine_decisions %}
-            {% for decision in engine_decisions|slice:":3" %}
-            <div class="rounded-lg px-3 py-2.5 flex items-start gap-2.5
-              {% if decision.severity == 'critical' %}bg-red-50 dark:bg-red-900/10 border border-red-200/60 dark:border-red-800/30
-              {% elif decision.severity == 'warning' %}bg-amber-50 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-800/30
-              {% else %}bg-teal-50 dark:bg-teal-900/10 border border-teal-200/60 dark:border-teal-800/30{% endif %}">
-              <span class="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0
-                {% if decision.severity == 'critical' %}bg-red-500
-                {% elif decision.severity == 'warning' %}bg-amber-400
-                {% else %}bg-teal-500{% endif %}"></span>
-              <div class="flex-1 min-w-0">
-                <p class="text-[11px] font-semibold leading-snug truncate
-                  {% if decision.severity == 'critical' %}text-red-800 dark:text-red-300
-                  {% elif decision.severity == 'warning' %}text-amber-800 dark:text-amber-300
-                  {% else %}text-teal-800 dark:text-teal-300{% endif %}">{{ decision.title }}</p>
-                <p class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug line-clamp-2">{{ decision.message }}</p>
-              </div>
-              {% if decision.action_url %}
-              <a href="{{ decision.action_url }}"
-                 class="flex-shrink-0 text-[9px] font-bold px-2 py-1 rounded-md transition-colors whitespace-nowrap
-                   {% if decision.severity == 'critical' %}bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50
-                   {% elif decision.severity == 'warning' %}bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50
-                   {% else %}bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/50{% endif %}">
-                {{ decision.action_label }}
-              </a>
-              {% endif %}
-            </div>
-            {% endfor %}
-          {% else %}
-          <div class="flex flex-col items-center justify-center h-full py-6 gap-2 text-center">
-            <svg class="w-6 h-6 text-teal-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <p class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">Todo bajo control</p>
-            <p class="text-[10px] text-zinc-300 dark:text-zinc-600">Bynix no detecta alertas activas</p>
-          </div>
-          {% endif %}
-        </div>
-      </div>
 
     </div>
     <!-- ─── FIN COL 3 ─── -->
