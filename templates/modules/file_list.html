@@ -19,13 +19,13 @@
 
   {% if files %}
 
-  <!-- Conteo al tope -->
   <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
     {{ files|length }} archivo{{ files|length|pluralize }}
   </p>
 
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {% for file in files %}
+    {% with file_url=file.file.url|default:file.file_path %}
     <div class="glass p-4 rounded-2xl border border-transparent hover:border-teal-500/40 flex items-start gap-4 transition-all duration-200 hover:shadow-lg">
 
       <!-- Icono por tipo -->
@@ -44,22 +44,27 @@
         </svg>
       </div>
 
-      <!-- Nombre + tipo + link -->
+      <!-- Nombre + tipo + acciones -->
       <div class="min-w-0 flex-1">
         <p class="font-semibold text-gray-800 dark:text-white text-sm leading-snug truncate">{{ file.name }}</p>
-        <p class="text-xs text-gray-400 mt-0.5 mb-2">{{ file.get_file_type_display }}</p>
-        {% if file.file %}
-        <a href="{{ file.file.url }}" target="_blank"
-           class="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-          Abrir archivo
-        </a>
-        {% elif file.file_path %}
-        <a href="{{ file.file_path }}" target="_blank"
-           class="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-          Abrir archivo
-        </a>
+        <p class="text-xs text-gray-400 mt-0.5 mb-3">{{ file.get_file_type_display }}</p>
+
+        {% if file_url %}
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- Previsualizar -->
+          <button
+            onclick="openPreview('{{ file_url }}', '{{ file.file_type }}', '{{ file.name|escapejs }}')"
+            class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-600 dark:text-violet-400 hover:underline">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            Previsualizar
+          </button>
+          <!-- Abrir -->
+          <a href="{{ file_url }}" target="_blank"
+             class="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            Abrir
+          </a>
+        </div>
         {% endif %}
       </div>
 
@@ -73,6 +78,7 @@
         </form>
       </div>
     </div>
+    {% endwith %}
     {% endfor %}
   </div>
 
@@ -89,4 +95,144 @@
   {% endif %}
 
 </div>
+
+<!-- ===================== MODAL PREVISUALIZACIÓN ===================== -->
+<div id="preview-modal"
+     class="fixed inset-0 z-50 items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+     style="display:none"
+     onclick="if(event.target===this) closePreview()">
+
+  <div class="relative w-full max-w-5xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+       style="height: 90vh;">
+
+    <!-- Header del modal -->
+    <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <!-- Icono dinámico -->
+        <div id="preview-icon" class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-gray-100 dark:bg-gray-800">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <p id="preview-title" class="font-semibold text-gray-800 dark:text-white text-sm truncate"></p>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+        <a id="preview-open-link" href="#" target="_blank"
+           class="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline px-2 py-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          Abrir
+        </a>
+        <button onclick="closePreview()"
+                class="text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Cuerpo: iframe / img / mensaje -->
+    <div id="preview-body" class="flex-1 overflow-hidden relative bg-gray-50 dark:bg-gray-950">
+
+      <!-- Spinner mientras carga -->
+      <div id="preview-spinner" class="absolute inset-0 flex items-center justify-center">
+        <div class="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+
+      <!-- iframe para PDF y docs -->
+      <iframe id="preview-iframe"
+              src=""
+              class="w-full h-full hidden border-0"
+              onload="document.getElementById('preview-spinner').style.display='none'; this.classList.remove('hidden')">
+      </iframe>
+
+      <!-- img para imágenes -->
+      <img id="preview-img"
+           src=""
+           alt=""
+           class="hidden max-w-full max-h-full mx-auto my-auto absolute inset-0 m-auto object-contain p-4"
+           onload="document.getElementById('preview-spinner').style.display='none'; this.classList.remove('hidden')">
+
+      <!-- Mensaje para tipos no soportados -->
+      <div id="preview-unsupported" class="absolute inset-0 flex-col items-center justify-center gap-4 p-8 text-center" style="display:none">
+        <div class="w-16 h-16 rounded-2xl bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
+          <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div>
+          <p class="font-semibold text-gray-700 dark:text-gray-300 text-sm mb-1">No se puede previsualizar este tipo de archivo</p>
+          <p class="text-xs text-gray-400 mb-4">Puedes descargarlo o abrirlo en una nueva pestaña</p>
+          <a id="preview-download-link" href="#" target="_blank"
+             class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Abrir archivo
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function openPreview(url, fileType, fileName) {
+  const modal      = document.getElementById('preview-modal');
+  const iframe     = document.getElementById('preview-iframe');
+  const img        = document.getElementById('preview-img');
+  const unsupported= document.getElementById('preview-unsupported');
+  const spinner    = document.getElementById('preview-spinner');
+  const title      = document.getElementById('preview-title');
+  const openLink   = document.getElementById('preview-open-link');
+  const dlLink     = document.getElementById('preview-download-link');
+
+  // Reset estado
+  iframe.classList.add('hidden');
+  iframe.src = '';
+  img.classList.add('hidden');
+  img.src = '';
+  unsupported.style.display = 'none';
+  spinner.style.display = 'flex';
+
+  title.textContent = fileName;
+  openLink.href     = url;
+  dlLink.href       = url;
+
+  const docTypes = ['document', 'spreadsheet'];
+
+  if (fileType === 'image') {
+    spinner.style.display = 'flex';
+    img.src = url;
+    img.classList.remove('hidden');
+
+  } else if (fileType === 'pdf') {
+    // Browser renderiza PDF directo — no necesitamos Google
+    iframe.src = url;
+    iframe.classList.remove('hidden');
+
+  } else if (docTypes.includes(fileType)) {
+    // Google Docs Viewer para DOCX / XLSX / PPTX
+    const viewerUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(url) + '&embedded=true';
+    iframe.src = viewerUrl;
+    iframe.classList.remove('hidden');
+
+  } else {
+    spinner.style.display = 'none';
+    unsupported.style.display = 'flex';
+  }
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closePreview() {
+  const modal  = document.getElementById('preview-modal');
+  const iframe = document.getElementById('preview-iframe');
+  const img    = document.getElementById('preview-img');
+
+  modal.style.display = 'none';
+  iframe.src = '';
+  img.src    = '';
+  document.body.style.overflow = '';
+}
+
+// Esc para cerrar
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closePreview();
+});
+</script>
 {% endblock %}
