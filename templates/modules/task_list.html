@@ -58,13 +58,31 @@
     <div class="space-y-2">
       {% for suggestion in priority_suggestions %}
       <div class="flex items-center gap-3 p-2.5 bg-white/40 dark:bg-gray-700/30 rounded-lg border-l-2
-        {% if suggestion.task.priority == 'high' %}border-red-400{% elif suggestion.task.priority == 'medium' %}border-yellow-400{% else %}border-green-400{% endif %}">
+        {% if suggestion.task.priority == 'high' %}border-rose-300/70{% elif suggestion.task.priority == 'medium' %}border-amber-300/70{% else %}border-emerald-300/70{% endif %}">
         <span class="text-xs font-bold text-gray-400 w-4 text-center flex-shrink-0">{{ forloop.counter }}</span>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-gray-800 dark:text-white truncate">{{ suggestion.task.title }}</p>
           <p class="text-xs text-gray-400 mt-0.5">{{ suggestion.reason }}</p>
         </div>
-        <a href="{% url 'modules:task_edit' event.pk suggestion.task.pk %}" class="text-xs text-teal-500 hover:underline flex-shrink-0">Editar</a>
+        <!-- Acciones rápidas en sugerencias -->
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <form method="post" action="{% url 'modules:task_toggle_done' suggestion.task.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}{% if request.GET.status %}?status={{ request.GET.status }}{% endif %}">
+            <button type="submit" title="{% if suggestion.task.status == 'done' %}Desmarcar{% else %}Marcar hecha{% endif %}"
+                    class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
+                    {% if suggestion.task.status == 'done' %}bg-teal-500 border-teal-500{% else %}border-gray-300 dark:border-gray-600 hover:border-teal-400{% endif %}">
+              {% if suggestion.task.status == 'done' %}
+              <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              {% endif %}
+            </button>
+          </form>
+          <a href="{% url 'modules:task_edit' event.pk suggestion.task.pk %}" class="text-xs text-teal-500 hover:text-teal-600 font-medium transition-colors">Editar</a>
+          <a href="{% url 'modules:task_delete' event.pk suggestion.task.pk %}"
+             class="p-1 rounded text-gray-300 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </a>
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -75,9 +93,9 @@
   <div class="space-y-3">
     {% for task in tasks %}
     <div class="glass rounded-xl border-l-4 transition-all duration-200 hover:shadow-md
-      {% if task.priority == 'high' %}border-l-red-500{% elif task.priority == 'medium' %}border-l-yellow-500{% else %}border-l-green-500{% endif %}
-      {% if task.status == 'done' %}opacity-50{% endif %}
-      {% if task.status != 'done' and task.due_date and task.due_date < today %}bg-red-500/5 border border-red-400/20{% else %}border border-transparent{% endif %}">
+      {% if task.priority == 'high' %}border-l-rose-300/80{% elif task.priority == 'medium' %}border-l-amber-300/70{% else %}border-l-emerald-300/60{% endif %}
+      {% if task.status == 'done' %}opacity-40{% endif %}
+      {% if task.status != 'done' and task.due_date and task.due_date < today %}bg-rose-50/40 dark:bg-rose-900/5 border border-rose-200/40 dark:border-rose-800/20{% else %}border border-transparent{% endif %}">
 
       <div class="flex items-center gap-3 p-4">
         <!-- Checkbox funcional -->
@@ -100,7 +118,7 @@
             {{ task.title }}
           </span>
           {% if task.due_date %}
-          <p class="text-xs mt-0.5 {% if task.status != 'done' and task.due_date < today %}text-red-500 font-bold{% else %}text-gray-400{% endif %}">
+          <p class="text-xs mt-0.5 {% if task.status != 'done' and task.due_date < today %}text-rose-400 font-medium{% else %}text-gray-400{% endif %}">
             {% if task.status != 'done' and task.due_date < today %}
               Vencida {{ task.due_date|date:"d M" }}
             {% else %}
@@ -112,22 +130,38 @@
 
         <!-- Badges y acciones -->
         <div class="flex items-center gap-2 flex-shrink-0">
-          <span class="px-2 py-0.5 rounded text-xs font-bold
-            {% if task.priority == 'high' %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300
-            {% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300
-            {% else %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300{% endif %}">
+          <!-- Badge prioridad — tono suavizado -->
+          <span class="px-2 py-0.5 rounded text-xs font-semibold
+            {% if task.priority == 'high' %}bg-rose-50 text-rose-500 dark:bg-rose-900/20 dark:text-rose-400
+            {% elif task.priority == 'medium' %}bg-amber-50 text-amber-500 dark:bg-amber-900/20 dark:text-amber-400
+            {% else %}bg-emerald-50 text-emerald-500 dark:bg-emerald-900/20 dark:text-emerald-400{% endif %}">
             {{ task.get_priority_display }}
           </span>
+          <!-- Badge estado -->
           <span class="px-2 py-0.5 rounded text-xs font-medium hidden sm:inline
-            {% if task.status == 'done' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300
-            {% elif task.status == 'in_progress' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300
-            {% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% endif %}">
+            {% if task.status == 'done' %}bg-teal-50 text-teal-600 dark:bg-teal-900/20 dark:text-teal-400
+            {% elif task.status == 'in_progress' %}bg-blue-50 text-blue-500 dark:bg-blue-900/20 dark:text-blue-400
+            {% else %}bg-zinc-100 text-zinc-500 dark:bg-zinc-700/60 dark:text-zinc-400{% endif %}">
             {{ task.get_status_display }}
           </span>
-          <a href="{% url 'modules:task_edit' event.pk task.pk %}" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors" title="Editar">
+          <!-- Acción rápida: En progreso (solo para pendientes) -->
+          {% if task.status == 'pending' %}
+          <form method="post" action="{% url 'modules:task_set_status' task.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="in_progress">
+            <input type="hidden" name="next" value="{{ request.path }}{% if request.GET.status %}?status={{ request.GET.status }}{% endif %}">
+            <button type="submit" title="Marcar en progreso"
+                    class="px-2 py-0.5 rounded text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-400 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors hidden sm:block whitespace-nowrap">
+              → Progreso
+            </button>
+          </form>
+          {% endif %}
+          <!-- Editar -->
+          <a href="{% url 'modules:task_edit' event.pk task.pk %}" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Editar">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
           </a>
-          <a href="{% url 'modules:task_delete' event.pk task.pk %}" class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar">
+          <!-- Eliminar -->
+          <a href="{% url 'modules:task_delete' event.pk task.pk %}" class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-400 transition-colors" title="Eliminar">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
           </a>
         </div>

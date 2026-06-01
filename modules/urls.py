@@ -32,6 +32,7 @@ urlpatterns = [
     path('events/<int:event_pk>/files/<int:pk>/delete/', views.file_delete, name='file_delete'),
     # Task quick actions
     path('tasks/<int:pk>/toggle-done/', views.task_toggle_done, name='task_toggle_done'),
+    path('tasks/<int:pk>/set-status/',  views.task_set_status,  name='task_set_status'),
     path('export/tasks/csv/', views.export_tasks_csv, name='export_tasks_csv'),
 
     # Presupuesto

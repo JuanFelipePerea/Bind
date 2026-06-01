@@ -498,13 +498,28 @@ def task_toggle_done(request, pk):
     if request.method != 'POST':
         return HttpResponseForbidden('POST required')
     task = get_object_or_404(Task, pk=pk, event__owner=request.user)
-    # done → pending; cualquier otro estado → done
     task.status = 'pending' if task.status == 'done' else 'done'
     task.save()
     next_val = request.POST.get('next', '')
     if next_val and next_val.startswith('/') and not next_val.startswith('//'):
         return redirect(next_val)
     return redirect('modules:task_overview')
+
+
+@login_required
+def task_set_status(request, pk):
+    """Cambia el status de una tarea a cualquier valor válido vía POST {status}."""
+    if request.method != 'POST':
+        return HttpResponseForbidden('POST required')
+    task = get_object_or_404(Task, pk=pk, event__owner=request.user)
+    new_status = request.POST.get('status', '')
+    if new_status in ('pending', 'in_progress', 'done'):
+        task.status = new_status
+        task.save()
+    next_val = request.POST.get('next', '')
+    if next_val and next_val.startswith('/') and not next_val.startswith('//'):
+        return redirect(next_val)
+    return redirect('modules:task_list', event_pk=task.event_id)
 
 
 # ─────────────────────────────────────────────

@@ -1088,6 +1088,18 @@
                   color:rgba(255,255,255,.32);margin-top:4px;">Director de Operaciones</p>
       </div>
     </div>
+    <!-- Pantalla completa -->
+    <a href="{% url 'events:dashboard_assistant_chat' %}"
+       class="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
+       title="Abrir Bynix en pantalla completa"
+       style="color:rgba(255,255,255,.35);"
+       onmouseover="this.style.background='rgba(255,255,255,.06)';this.style.color='rgba(255,255,255,.7)';"
+       onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,.35)';">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+      </svg>
+    </a>
+    <!-- Cerrar panel -->
     <button onclick="dbBynixClose()" class="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
             style="color:rgba(255,255,255,.35);"
             onmouseover="this.style.background='rgba(255,255,255,.06)';this.style.color='rgba(255,255,255,.7)';"
