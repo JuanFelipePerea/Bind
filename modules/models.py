@@ -3,6 +3,7 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MaxValueValidator, MinValueValidator
+from cloudinary_storage.storage import RawMediaCloudinaryStorage
 from events.models import Event
 
 # ─── Monedas del mundo (ISO 4217) ─────────────────────────────────────────────
@@ -336,6 +337,7 @@ class File(models.Model):
         upload_to='event_files/%Y/%m/',
         blank=True,
         null=True,
+        storage=RawMediaCloudinaryStorage(),
         verbose_name='Archivo',
     )
     file_path = models.CharField(max_length=500, blank=True)  # legado

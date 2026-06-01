@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from cloudinary_storage.storage import RawMediaCloudinaryStorage
 
 
 class EventTemplate(models.Model):
@@ -116,6 +117,7 @@ class Event(models.Model):
     )
     invitation_file = models.FileField(
         upload_to='invitations/', blank=True, null=True,
+        storage=RawMediaCloudinaryStorage(),
         verbose_name='Archivo de invitación',
         help_text='PDF o imagen adjunta al email de invitación.'
     )
