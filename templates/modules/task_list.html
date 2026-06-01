@@ -58,7 +58,7 @@
     <div class="space-y-2">
       {% for suggestion in priority_suggestions %}
       <div class="flex items-center gap-3 p-2.5 bg-white/40 dark:bg-gray-700/30 rounded-lg border-l-2
-        {% if suggestion.task.priority == 'high' %}border-rose-300/70{% elif suggestion.task.priority == 'medium' %}border-amber-300/70{% else %}border-emerald-300/70{% endif %}">
+        {% if suggestion.task.priority == 'high' %}border-rose-300/70 dark:border-rose-500/55{% elif suggestion.task.priority == 'medium' %}border-amber-300/70 dark:border-amber-500/50{% else %}border-emerald-300/70 dark:border-emerald-500/45{% endif %}">
         <span class="text-xs font-bold text-gray-400 w-4 text-center flex-shrink-0">{{ forloop.counter }}</span>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-gray-800 dark:text-white truncate">{{ suggestion.task.title }}</p>
@@ -93,9 +93,9 @@
   <div class="space-y-3">
     {% for task in tasks %}
     <div class="glass rounded-xl border-l-4 transition-all duration-200 hover:shadow-md
-      {% if task.priority == 'high' %}border-l-rose-300/80{% elif task.priority == 'medium' %}border-l-amber-300/70{% else %}border-l-emerald-300/60{% endif %}
+      {% if task.priority == 'high' %}border-l-rose-300/80 dark:border-l-rose-500/60{% elif task.priority == 'medium' %}border-l-amber-300/70 dark:border-l-amber-500/55{% else %}border-l-emerald-300/60 dark:border-l-emerald-500/50{% endif %}
       {% if task.status == 'done' %}opacity-40{% endif %}
-      {% if task.status != 'done' and task.due_date and task.due_date < today %}bg-rose-50/40 dark:bg-rose-900/5 border border-rose-200/40 dark:border-rose-800/20{% else %}border border-transparent{% endif %}">
+      {% if task.status != 'done' and task.due_date and task.due_date < today %}bg-rose-50/40 dark:bg-rose-900/10 border border-rose-200/40 dark:border-rose-800/30{% else %}border border-transparent{% endif %}">
 
       <div class="flex items-center gap-3 p-4">
         <!-- Checkbox funcional -->

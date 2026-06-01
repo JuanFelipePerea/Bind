@@ -5,6 +5,38 @@
 
 {% block extra_head %}
 <style>
+  /* ── Topbar override: forzar tema oscuro para la experiencia Bynix ── */
+  /* En light mode el header de base.html es blanco — jarring con el fondo dark de Bynix */
+  main > header {
+    background: rgba(9,9,11,.97) !important;
+    border-bottom-color: rgba(124,58,237,.2) !important;
+    backdrop-filter: blur(12px) !important;
+  }
+  main > header h2 {
+    color: rgba(255,255,255,.9) !important;
+  }
+  /* Search input → dark glass */
+  main > header input[type="text"] {
+    background: rgba(255,255,255,.05) !important;
+    border-color: rgba(255,255,255,.1) !important;
+    color: rgba(255,255,255,.8) !important;
+  }
+  main > header input[type="text"]::placeholder {
+    color: rgba(255,255,255,.28) !important;
+  }
+  /* Iconos y botones del topbar */
+  main > header svg {
+    color: rgba(255,255,255,.45) !important;
+  }
+  main > header button {
+    background: rgba(255,255,255,.05) !important;
+    border-color: rgba(255,255,255,.08) !important;
+  }
+  main > header button:hover {
+    background: rgba(255,255,255,.1) !important;
+  }
+
+  /* ── Bynix chat styles ── */
   #bynix-content::-webkit-scrollbar { width: 3px; }
   #bynix-content::-webkit-scrollbar-thumb { background: rgba(124,58,237,.35); border-radius: 9999px; }
   #bynix-input { scrollbar-width: none; resize: none; }
