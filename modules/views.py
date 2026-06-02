@@ -20,6 +20,17 @@ from .forms import TaskForm, AttendeeForm, ChecklistForm, FileForm
 logger = logging.getLogger(__name__)
 
 
+def _get_event_for_user(event_pk, user):
+    """Devuelve el evento si el usuario es owner o colaborador aceptado. Lanza Http404 si no."""
+    from django.http import Http404
+    from events.models import EventCollaborator
+    event = get_object_or_404(Event, pk=event_pk)
+    if event.owner == user:
+        return event
+    if EventCollaborator.objects.filter(event=event, user=user, accepted=True).exists():
+        return event
+    raise Http404()
+
 
 # ─────────────────────────────────────────────
 #  TAREAS
@@ -27,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def task_list(request, event_pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     tasks = event.tasks.all().order_by('-created_at')
 
     # Filtro por estado
@@ -57,7 +68,7 @@ def task_list(request, event_pk):
 
 @login_required
 def task_create(request, event_pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
 
     if request.method == 'POST':
         title       = request.POST.get('title', '').strip()
@@ -95,7 +106,7 @@ def task_create(request, event_pk):
 
 @login_required
 def task_edit(request, event_pk, pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     task  = get_object_or_404(Task, pk=pk, event=event)
 
     if request.method == 'POST':
@@ -147,7 +158,7 @@ def task_edit(request, event_pk, pk):
 
 @login_required
 def task_delete(request, event_pk, pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     task  = get_object_or_404(Task, pk=pk, event=event)
 
     if request.method == 'POST':
@@ -168,7 +179,7 @@ def task_delete(request, event_pk, pk):
 @login_required
 def attendee_list(request, event_pk):
     from accounts.models import EmailTemplate
-    event     = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event     = _get_event_for_user(event_pk, request.user)
     attendees = event.attendees.all().order_by('name')
     # Cargar plantilla de invitación guardada (si existe) para pre-llenar el modal de composición
     invitation_tpl = EmailTemplate.objects.filter(
@@ -184,7 +195,7 @@ def attendee_list(request, event_pk):
 
 @login_required
 def attendee_create(request, event_pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
 
     if request.method == 'POST':
         name   = request.POST.get('name', '').strip()
@@ -203,7 +214,7 @@ def attendee_create(request, event_pk):
 
 @login_required
 def attendee_edit(request, event_pk, pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     attendee = get_object_or_404(Attendee, pk=pk, event=event)
 
     if request.method == 'POST':
@@ -219,7 +230,7 @@ def attendee_edit(request, event_pk, pk):
 
 @login_required
 def attendee_delete(request, event_pk, pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     attendee = get_object_or_404(Attendee, pk=pk, event=event)
 
     if request.method == 'POST':
@@ -240,7 +251,7 @@ def attendee_delete(request, event_pk, pk):
 
 @login_required
 def checklist_list(request, event_pk):
-    event      = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event      = _get_event_for_user(event_pk, request.user)
     checklists = event.checklists.prefetch_related('items').all()
     context    = {'event': event, 'checklists': checklists}
     return render(request, 'modules/checklist_list.html', context)
@@ -248,7 +259,7 @@ def checklist_list(request, event_pk):
 
 @login_required
 def checklist_create(request, event_pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
 
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
@@ -349,14 +360,14 @@ def _detect_file_meta(uploaded_file):
 
 @login_required
 def file_list(request, event_pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     files = event.files.all().order_by('-uploaded_at')
     return render(request, 'modules/file_list.html', {'event': event, 'files': files})
 
 
 @login_required
 def file_create(request, event_pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
 
     if request.method == 'POST':
         form = FileForm(request.POST, request.FILES)
@@ -397,7 +408,7 @@ def file_create(request, event_pk):
 
 @login_required
 def file_delete(request, event_pk, pk):
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     file = get_object_or_404(File, pk=pk, event=event)
 
     if request.method == 'POST':
@@ -529,7 +540,7 @@ def task_set_status(request, pk):
 @login_required
 def budget_detail(request, event_pk):
     """Muestra el presupuesto del evento, creándolo si no existe."""
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     budget, _ = Budget.objects.get_or_create(
         event=event,
         defaults={'total_budget': 0, 'currency': 'COP'},
@@ -567,7 +578,7 @@ def budget_detail(request, event_pk):
 @login_required
 def budget_update(request, event_pk):
     """Actualiza total_budget y currency del presupuesto."""
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     budget, _ = Budget.objects.get_or_create(event=event, defaults={'total_budget': 0})
 
     if request.method == 'POST':
@@ -664,7 +675,7 @@ def budget_item_create(request, event_pk):
     Acepta ?task=pk para preseleccionar related_task, y ?next=url para redirigir
     de vuelta a la página de edición de tarea después de crear el ítem.
     """
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     budget, _ = Budget.objects.get_or_create(event=event, defaults={'total_budget': 0})
 
     # Tarea prefill desde query param (viene de task_edit)
@@ -742,7 +753,7 @@ def budget_item_create(request, event_pk):
 @login_required
 def budget_item_delete(request, event_pk, pk):
     """Elimina un BudgetItem."""
-    event = get_object_or_404(Event, pk=event_pk, owner=request.user)
+    event = _get_event_for_user(event_pk, request.user)
     item = get_object_or_404(BudgetItem, pk=pk, budget__event=event)
 
     if request.method == 'POST':
