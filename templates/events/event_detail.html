@@ -123,6 +123,10 @@
     font-size: 12px; font-weight: 600; pointer-events: none;
     white-space: nowrap; transition: opacity .45s ease;
   }
+
+  /* ── Collapse de módulos ─────────────────────────────────────────────── */
+  .gs-col-btn { transition: transform .22s ease; flex-shrink: 0; }
+  .gs-col-btn.gs-collapsed { transform: rotate(-90deg); }
 </style>
 
 {% if event.location and google_maps_api_key %}
@@ -347,9 +351,14 @@
         <div class="gs-module-card bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
           <div class="flex items-center justify-between mb-2 flex-shrink-0">
             <h3 class="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Descripción</h3>
-            <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
-            </span>
+            <div class="flex items-center gap-1">
+              <button type="button" id="gs-col-btn-description" onclick="bindCollapseToggle('description')" class="gs-col-btn p-1 rounded-lg text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Colapsar">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
+              </span>
+            </div>
           </div>
           <div class="gs-module-body">
             <p class="text-zinc-600 dark:text-zinc-300 text-sm leading-relaxed">{{ event.description }}</p>
@@ -371,6 +380,9 @@
             </h3>
             <div class="flex items-center gap-2">
               <a href="{% url 'modules:task_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
+              <button type="button" id="gs-col-btn-tasks" onclick="bindCollapseToggle('tasks')" class="gs-col-btn p-1 rounded-lg text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Colapsar">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
               <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
               </span>
@@ -412,6 +424,9 @@
             <h3 class="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Asistentes</h3>
             <div class="flex items-center gap-2">
               <a href="{% url 'modules:attendee_list' event.pk %}" class="text-xs text-teal-500 hover:underline font-semibold">Ver todos →</a>
+              <button type="button" id="gs-col-btn-attendees" onclick="bindCollapseToggle('attendees')" class="gs-col-btn p-1 rounded-lg text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Colapsar">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
               <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
               </span>
@@ -458,6 +473,9 @@
                 Nueva
               </button>
               <a href="{% url 'modules:checklist_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todas →</a>
+              <button type="button" id="gs-col-btn-checklist" onclick="bindCollapseToggle('checklist')" class="gs-col-btn p-1 rounded-lg text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Colapsar">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
               <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
               </span>
@@ -494,6 +512,9 @@
             <h3 class="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Presupuesto</h3>
             <div class="flex items-center gap-2">
               <a href="{% url 'modules:budget_detail' event.pk %}" class="text-xs text-teal-500 hover:underline font-semibold">Ver detalle →</a>
+              <button type="button" id="gs-col-btn-budget" onclick="bindCollapseToggle('budget')" class="gs-col-btn p-1 rounded-lg text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Colapsar">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
               <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
               </span>
@@ -523,9 +544,14 @@
           {% else %}
           <div class="flex justify-between items-center mb-2 flex-shrink-0">
             <h3 class="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Presupuesto</h3>
-            <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
-            </span>
+            <div class="flex items-center gap-1">
+              <button type="button" id="gs-col-btn-budget-empty" onclick="bindCollapseToggle('budget')" class="gs-col-btn p-1 rounded-lg text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Colapsar">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
+              </span>
+            </div>
           </div>
           <div class="gs-module-body">
             <p class="text-xs text-zinc-400 mb-2">Sin presupuesto definido</p>
@@ -548,6 +574,9 @@
             </h3>
             <div class="flex items-center gap-2">
               <a href="{% url 'modules:file_list' event.pk %}" class="text-xs text-teal-500 font-semibold hover:underline">Ver todos →</a>
+              <button type="button" id="gs-col-btn-files" onclick="bindCollapseToggle('files')" class="gs-col-btn p-1 rounded-lg text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Colapsar">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
               <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
               </span>
@@ -597,6 +626,9 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
                 Nuevo momento
+              </button>
+              <button type="button" id="gs-col-btn-momentos" onclick="bindCollapseToggle('momentos')" class="gs-col-btn p-1 rounded-lg text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Colapsar">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
               </button>
               <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
@@ -727,9 +759,14 @@
               </svg>
               Ubicación
             </h3>
-            <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
-            </span>
+            <div class="flex items-center gap-1">
+              <button type="button" id="gs-col-btn-location_map" onclick="bindCollapseToggle('location_map')" class="gs-col-btn p-1 rounded-lg text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Colapsar">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <span class="gs-drag-handle p-1 rounded-lg cursor-grab text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors" title="Mover módulo">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3.5" r="1.3"/><circle cx="11" cy="3.5" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="12.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/></svg>
+              </span>
+            </div>
           </div>
           <p class="px-4 pb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 truncate flex-shrink-0">{{ event.location }}</p>
           <div id="event-map" class="w-full" style="flex:1;min-height:180px;"></div>
@@ -2182,6 +2219,57 @@
   /* Exponer al scope global para los onclick del HTML */
   window.collabInvite  = collabInvite;
   window.collabRemove  = collabRemove;
+}());
+</script>
+
+<!-- ══ MÓDULOS COLAPSABLES ════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  var EVENT_PK   = '{{ event.pk }}';
+  var STORE_KEY  = 'bind_col_' + EVENT_PK;
+
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
+    catch (_) { return {}; }
+  }
+  function saveState(state) {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  }
+
+  function applyCollapse(moduleId, collapsed) {
+    var sel = '.grid-stack-item[gs-id="' + moduleId + '"]';
+    var item = document.querySelector(sel);
+    if (!item) return;
+    var card = item.querySelector('.gs-module-card');
+    if (!card) return;
+
+    // El primer hijo es el header — todo lo demás se oculta
+    Array.from(card.children).slice(1).forEach(function (child) {
+      child.style.display = collapsed ? 'none' : '';
+    });
+
+    // Botones de colapso (pueden ser dos si el módulo tiene branch if/else en template)
+    ['gs-col-btn-' + moduleId, 'gs-col-btn-' + moduleId + '-empty'].forEach(function (id) {
+      var btn = document.getElementById(id);
+      if (btn) btn.classList.toggle('gs-collapsed', collapsed);
+    });
+  }
+
+  window.bindCollapseToggle = function (moduleId) {
+    var state = loadState();
+    state[moduleId] = !state[moduleId];
+    saveState(state);
+    applyCollapse(moduleId, state[moduleId]);
+  };
+
+  // Aplica el estado guardado al cargar la página
+  document.addEventListener('DOMContentLoaded', function () {
+    var state = loadState();
+    Object.keys(state).forEach(function (mid) {
+      if (state[mid]) applyCollapse(mid, true);
+    });
+  });
 }());
 </script>
 {% endblock %}

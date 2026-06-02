@@ -70,7 +70,7 @@ def _analyze_event(event, today):
     # Evento inminente (<=3 días) con tareas de alta prioridad pendientes
     if days_until is not None and 0 <= days_until <= 3 and task_high_pending > 0:
         key = f"critical-imminent-hp-{event.pk}"
-        EventAlert.objects.get_or_create(
+        EventAlert.objects.update_or_create(
             alert_key=key,
             defaults={
                 'event': event,
@@ -83,13 +83,15 @@ def _analyze_event(event, today):
                 ),
                 'action_url': reverse('modules:task_list', kwargs={'event_pk': event.pk}),
                 'action_label': 'Ver tareas',
+                'is_dismissed': False,
+                'is_read': False,
             },
         )
 
     # Evento activo (<=7 días) con menos del 50% de progreso
     if days_until is not None and 0 <= days_until <= 7 and task_total > 0 and progress_pct < 50:
         key = f"critical-low-progress-{event.pk}"
-        EventAlert.objects.get_or_create(
+        EventAlert.objects.update_or_create(
             alert_key=key,
             defaults={
                 'event': event,
@@ -102,6 +104,8 @@ def _analyze_event(event, today):
                 ),
                 'action_url': reverse('modules:task_list', kwargs={'event_pk': event.pk}),
                 'action_label': 'Ver tareas',
+                'is_dismissed': False,
+                'is_read': False,
             },
         )
 
@@ -118,7 +122,7 @@ def _analyze_event(event, today):
             and days_until is not None
             and 0 <= days_until <= 30):
         key = f"stalled-{event.pk}-w{week_number}"
-        EventAlert.objects.get_or_create(
+        EventAlert.objects.update_or_create(
             alert_key=key,
             defaults={
                 'event': event,
@@ -131,13 +135,15 @@ def _analyze_event(event, today):
                 ),
                 'action_url': reverse('modules:task_list', kwargs={'event_pk': event.pk}),
                 'action_label': 'Retomar',
+                'is_dismissed': False,
+                'is_read': False,
             },
         )
 
     # Evento con 3+ tareas vencidas
     if task_overdue >= 3:
         key = f"overdue-tasks-{event.pk}"
-        EventAlert.objects.get_or_create(
+        EventAlert.objects.update_or_create(
             alert_key=key,
             defaults={
                 'event': event,
@@ -150,13 +156,15 @@ def _analyze_event(event, today):
                 ),
                 'action_url': reverse('modules:task_list', kwargs={'event_pk': event.pk}),
                 'action_label': 'Revisar tareas',
+                'is_dismissed': False,
+                'is_read': False,
             },
         )
 
     # Evento inminente (<=7 días) con asistentes pendientes
     if days_until is not None and 0 <= days_until <= 7 and attendee_pending > 0:
         key = f"pending-attendees-{event.pk}"
-        EventAlert.objects.get_or_create(
+        EventAlert.objects.update_or_create(
             alert_key=key,
             defaults={
                 'event': event,
@@ -169,6 +177,8 @@ def _analyze_event(event, today):
                 ),
                 'action_url': reverse('modules:attendee_list', kwargs={'event_pk': event.pk}),
                 'action_label': 'Ver asistentes',
+                'is_dismissed': False,
+                'is_read': False,
             },
         )
 
@@ -177,7 +187,7 @@ def _analyze_event(event, today):
     # Evento sin fecha de inicio con más de 5 tareas
     if not event.start_date and task_total > 5:
         key = f"no-date-{event.pk}"
-        EventAlert.objects.get_or_create(
+        EventAlert.objects.update_or_create(
             alert_key=key,
             defaults={
                 'event': event,
@@ -190,13 +200,15 @@ def _analyze_event(event, today):
                 ),
                 'action_url': reverse('events:event_edit', kwargs={'pk': event.pk}),
                 'action_label': 'Definir fecha',
+                'is_dismissed': False,
+                'is_read': False,
             },
         )
 
     # Evento activo sin ninguna tarea creada
     if event.status == 'active' and task_total == 0:
         key = f"no-tasks-{event.pk}"
-        EventAlert.objects.get_or_create(
+        EventAlert.objects.update_or_create(
             alert_key=key,
             defaults={
                 'event': event,
@@ -209,6 +221,8 @@ def _analyze_event(event, today):
                 ),
                 'action_url': reverse('modules:task_create', kwargs={'event_pk': event.pk}),
                 'action_label': 'Agregar tarea',
+                'is_dismissed': False,
+                'is_read': False,
             },
         )
 
@@ -231,7 +245,7 @@ def _analyze_budget(event, task_total):
         # Presupuesto superado (>= 100%) → critical
         if usage >= 100:
             key = f"budget-critical-{event.pk}"
-            EventAlert.objects.get_or_create(
+            EventAlert.objects.update_or_create(
                 alert_key=key,
                 defaults={
                     'event': event,
@@ -245,12 +259,14 @@ def _analyze_budget(event, task_total):
                     ),
                     'action_url': _reverse('modules:budget_detail', kwargs={'event_pk': event.pk}),
                     'action_label': 'Ver presupuesto',
+                    'is_dismissed': False,
+                    'is_read': False,
                 },
             )
         # Presupuesto casi agotado (>= 80%) → warning
         elif usage >= 80:
             key = f"budget-warning-{event.pk}"
-            EventAlert.objects.get_or_create(
+            EventAlert.objects.update_or_create(
                 alert_key=key,
                 defaults={
                     'event': event,
@@ -263,13 +279,15 @@ def _analyze_budget(event, task_total):
                     ),
                     'action_url': _reverse('modules:budget_detail', kwargs={'event_pk': event.pk}),
                     'action_label': 'Ver presupuesto',
+                    'is_dismissed': False,
+                    'is_read': False,
                 },
             )
     else:
         # Sin presupuesto y con más de 3 tareas → info (sugiere crear uno)
         if task_total > 3:
             key = f"budget-suggest-{event.pk}"
-            EventAlert.objects.get_or_create(
+            EventAlert.objects.update_or_create(
                 alert_key=key,
                 defaults={
                     'event': event,
@@ -283,5 +301,7 @@ def _analyze_budget(event, task_total):
                     ),
                     'action_url': _reverse('modules:budget_detail', kwargs={'event_pk': event.pk}),
                     'action_label': 'Crear presupuesto',
+                    'is_dismissed': False,
+                    'is_read': False,
                 },
             )
