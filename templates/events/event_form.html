@@ -97,6 +97,17 @@
         </div>
         <div class="px-5 py-2.5 bg-zinc-50 dark:bg-zinc-800/60 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <span id="bannerStats" class="text-xs text-zinc-500 dark:text-zinc-400"></span>
+          <button type="button" id="editOverridesBtn" onclick="openEditOverridesModal()"
+            class="hidden items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg
+                   bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700
+                   text-zinc-600 dark:text-zinc-300
+                   hover:bg-zinc-50 dark:hover:bg-zinc-700 hover:border-teal-400 dark:hover:border-teal-600
+                   transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/40">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            Editar antes de aplicar
+          </button>
           <div id="bannerModules" class="flex flex-wrap gap-1.5 ml-auto"></div>
         </div>
       </div>
@@ -175,6 +186,51 @@
         </div>
       </div>
 
+      <!-- Modal: Editar parámetros antes de aplicar -->
+      <div id="editOverridesModal"
+        class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.55);">
+        <div class="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto border border-zinc-200 dark:border-zinc-700">
+          <div class="px-6 py-5 flex items-start gap-4 border-b border-zinc-100 dark:border-zinc-800">
+            <div class="flex-1 min-w-0">
+              <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-0.5">Solo para este evento</p>
+              <h2 class="text-xl font-bold text-zinc-900 dark:text-zinc-50 leading-tight">Editar antes de aplicar</h2>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Ajusta los valores para este evento. La plantilla original no se modifica.</p>
+            </div>
+            <button type="button" onclick="closeEditOverridesModal()"
+              class="ml-2 flex-shrink-0 w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-500/40">
+              <svg class="w-4 h-4 text-zinc-500 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="px-6 pb-2 pt-5 space-y-5">
+            <div id="overridesTasksSection" class="hidden">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">Días antes del evento</h3>
+              <div id="overridesTasksList" class="space-y-2"></div>
+            </div>
+            <div id="overridesBudgetSection" class="hidden">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">Montos de presupuesto</h3>
+              <div id="overridesBudgetList" class="space-y-2"></div>
+            </div>
+            <p id="overridesEmpty" class="hidden text-sm text-zinc-400 dark:text-zinc-500 text-center py-4">No hay parámetros editables para los ítems incluidos.</p>
+          </div>
+          <div class="px-6 py-4 border-t border-zinc-100 dark:border-zinc-800 flex gap-3">
+            <button type="button" onclick="confirmEditOverrides()"
+              class="flex-1 bg-teal-500 hover:bg-teal-600 active:bg-teal-700 text-white py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all duration-150 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900">
+              Confirmar cambios
+            </button>
+            <button type="button" onclick="closeEditOverridesModal()"
+              class="px-5 py-2.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700
+                     hover:bg-zinc-50 dark:hover:bg-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600
+                     transition-all duration-150 font-medium text-sm text-zinc-600 dark:text-zinc-300
+                     focus:outline-none focus:ring-2 focus:ring-zinc-500/40">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+
       {% endif %}
 
       {% if not object %}
@@ -184,7 +240,7 @@
         <p class="text-xs text-zinc-400 dark:text-zinc-500 mb-3">Activa solo los módulos que necesitas. Al seleccionar una plantilla se preconfiguran automáticamente.</p>
         <div class="grid grid-cols-2 md:grid-cols-5 gap-2.5" id="moduleCards">
 
-          <label class="cursor-pointer select-none">
+          <label class="cursor-pointer select-none relative">
             <input type="checkbox" name="modules" value="tasks" class="sr-only peer" checked>
             <div class="p-3 rounded-xl border-2 border-zinc-200 dark:border-zinc-700
                         peer-checked:border-teal-500 peer-checked:bg-teal-50/60 dark:peer-checked:bg-teal-900/15
@@ -199,7 +255,7 @@
             </div>
           </label>
 
-          <label class="cursor-pointer select-none">
+          <label class="cursor-pointer select-none relative">
             <input type="checkbox" name="modules" value="attendees" class="sr-only peer" checked>
             <div class="p-3 rounded-xl border-2 border-zinc-200 dark:border-zinc-700
                         peer-checked:border-teal-500 peer-checked:bg-teal-50/60 dark:peer-checked:bg-teal-900/15
@@ -214,7 +270,7 @@
             </div>
           </label>
 
-          <label class="cursor-pointer select-none">
+          <label class="cursor-pointer select-none relative">
             <input type="checkbox" name="modules" value="checklist" class="sr-only peer" checked>
             <div class="p-3 rounded-xl border-2 border-zinc-200 dark:border-zinc-700
                         peer-checked:border-teal-500 peer-checked:bg-teal-50/60 dark:peer-checked:bg-teal-900/15
@@ -229,7 +285,7 @@
             </div>
           </label>
 
-          <label class="cursor-pointer select-none">
+          <label class="cursor-pointer select-none relative">
             <input type="checkbox" name="modules" value="files" class="sr-only peer" checked>
             <div class="p-3 rounded-xl border-2 border-zinc-200 dark:border-zinc-700
                         peer-checked:border-teal-500 peer-checked:bg-teal-50/60 dark:peer-checked:bg-teal-900/15
@@ -244,7 +300,7 @@
             </div>
           </label>
 
-          <label class="cursor-pointer select-none">
+          <label class="cursor-pointer select-none relative">
             <input type="checkbox" name="modules" value="momentos" class="sr-only peer">
             <div class="p-3 rounded-xl border-2 border-zinc-200 dark:border-zinc-700
                         peer-checked:border-teal-500 peer-checked:bg-teal-50/60 dark:peer-checked:bg-teal-900/15
@@ -458,6 +514,8 @@ let startManual = false;
 let endManual   = false;
 let descManual  = false;
 let panelOpen   = true;
+let taskDayOverrides    = {};
+let budgetItemOverrides = {};
 
 startInput?.addEventListener('input', () => { startManual = true; });
 endInput?.addEventListener('input',   () => { endManual   = true; });
@@ -502,7 +560,7 @@ function syncCustomization() {
   const global_budget = isFinite(_gv) ? _gv : null;
 
   const input = document.getElementById('templateCustomization');
-  if (input) input.value = JSON.stringify({ excluded_task_pks, excluded_checklist_items, excluded_budget_item_pks, global_budget });
+  if (input) input.value = JSON.stringify({ excluded_task_pks, excluded_checklist_items, excluded_budget_item_pks, global_budget, task_day_overrides: taskDayOverrides, budget_item_overrides: budgetItemOverrides });
 }
 
 function renderCustomPanel(templateId) {
@@ -694,7 +752,12 @@ function updateTemplateBanner(templateId) {
   const banner = document.getElementById('selectedTemplateBanner');
   if (!banner) return;
   const data = TEMPLATE_DATA[templateId];
-  if (!data) { banner.classList.add('hidden'); return; }
+  if (!data) {
+    banner.classList.add('hidden');
+    const _eb = document.getElementById('editOverridesBtn');
+    if (_eb) { _eb.classList.add('hidden'); _eb.classList.remove('flex'); }
+    return;
+  }
 
   const hdr = document.getElementById('bannerHeader');
   if (hdr) hdr.style.background = CATEGORY_GRADIENTS[data.category] || CATEGORY_GRADIENTS.business;
@@ -726,6 +789,8 @@ function updateTemplateBanner(templateId) {
   }
 
   banner.classList.remove('hidden');
+  const _eb = document.getElementById('editOverridesBtn');
+  if (_eb) { _eb.classList.remove('hidden'); _eb.classList.add('flex'); }
 }
 
 const ALL_MODULES = ['tasks', 'attendees', 'checklist', 'files', 'momentos'];
@@ -741,6 +806,8 @@ function syncModuleCards(templateId) {
 // Escuchar cambios en radios de plantilla
 document.querySelectorAll('input[name="template_id"]').forEach(radio => {
   radio.addEventListener('change', () => {
+    taskDayOverrides = {};
+    budgetItemOverrides = {};
     applyTemplateDefaults(radio.value);
     syncModuleCards(radio.value);
     renderCustomPanel(radio.value);
@@ -852,6 +919,106 @@ function closeTemplatePreview() {
 
 document.getElementById('templatePreviewModal')?.addEventListener('click', function(e) {
   if (e.target === this) closeTemplatePreview();
+});
+
+function openEditOverridesModal() {
+  const checkedRadio = document.querySelector('input[name="template_id"]:checked');
+  if (!checkedRadio || !checkedRadio.value) return;
+  const data = TEMPLATE_DATA[checkedRadio.value];
+  if (!data) return;
+
+  const excludedTaskPks = new Set(
+    [...document.querySelectorAll('.task-cb:not(:checked)')].map(cb => Number(cb.dataset.pk))
+  );
+  const excludedBudgetPks = new Set(
+    [...document.querySelectorAll('.budget-cb:not(:checked)')].map(cb => Number(cb.dataset.pk))
+  );
+
+  const tasksSection = document.getElementById('overridesTasksSection');
+  const tasksList    = document.getElementById('overridesTasksList');
+  const includedTasks = (data.tasks || []).filter(t => !excludedTaskPks.has(t.pk) && t.days_before_event != null);
+  if (includedTasks.length > 0) {
+    tasksList.innerHTML = includedTasks.map(t => {
+      const val = taskDayOverrides[t.pk] ?? t.days_before_event;
+      return `
+        <div class="flex items-center gap-3 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 rounded-lg">
+          <span class="flex-1 text-sm text-zinc-800 dark:text-zinc-100 min-w-0 truncate">${escHtml(t.title)}</span>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <input type="number" min="0"
+              data-override-task-pk="${t.pk}"
+              value="${val}"
+              class="w-20 px-3 py-1.5 rounded-lg text-sm bg-white dark:bg-zinc-800
+                     border border-zinc-200 dark:border-zinc-700
+                     focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20
+                     outline-none transition-all text-zinc-900 dark:text-zinc-100">
+            <span class="text-xs text-zinc-400 flex-shrink-0">días</span>
+          </div>
+        </div>`;
+    }).join('');
+    tasksSection.classList.remove('hidden');
+  } else {
+    tasksSection.classList.add('hidden');
+  }
+
+  const budgetSection = document.getElementById('overridesBudgetSection');
+  const budgetList    = document.getElementById('overridesBudgetList');
+  const includedBudget = (data.budgetItems || []).filter(bi => !excludedBudgetPks.has(bi.pk));
+  if (includedBudget.length > 0) {
+    budgetList.innerHTML = includedBudget.map(bi => {
+      const val = budgetItemOverrides[bi.pk] ?? bi.amount;
+      return `
+        <div class="flex items-center gap-3 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 rounded-lg">
+          <span class="flex-1 text-sm text-zinc-800 dark:text-zinc-100 min-w-0 truncate">${escHtml(bi.name)}</span>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <span class="text-xs font-bold text-zinc-400 flex-shrink-0">$</span>
+            <input type="number" min="0"
+              data-override-budget-pk="${bi.pk}"
+              value="${val}"
+              class="w-28 px-3 py-1.5 rounded-lg text-sm bg-white dark:bg-zinc-800
+                     border border-zinc-200 dark:border-zinc-700
+                     focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20
+                     outline-none transition-all text-zinc-900 dark:text-zinc-100">
+          </div>
+        </div>`;
+    }).join('');
+    budgetSection.classList.remove('hidden');
+  } else {
+    budgetSection.classList.add('hidden');
+  }
+
+  const hasContent = includedTasks.length > 0 || includedBudget.length > 0;
+  document.getElementById('overridesEmpty').classList.toggle('hidden', hasContent);
+
+  const modal = document.getElementById('editOverridesModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeEditOverridesModal() {
+  const modal = document.getElementById('editOverridesModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+function confirmEditOverrides() {
+  document.querySelectorAll('[data-override-task-pk]').forEach(inp => {
+    const pk  = Number(inp.dataset.overrideTaskPk);
+    const val = parseInt(inp.value, 10);
+    if (!isNaN(val) && val >= 0) taskDayOverrides[pk] = val;
+    else delete taskDayOverrides[pk];
+  });
+  document.querySelectorAll('[data-override-budget-pk]').forEach(inp => {
+    const pk  = Number(inp.dataset.overrideBudgetPk);
+    const val = parseFloat(inp.value);
+    if (!isNaN(val) && val >= 0) budgetItemOverrides[pk] = val;
+    else delete budgetItemOverrides[pk];
+  });
+  closeEditOverridesModal();
+  syncCustomization();
+}
+
+document.getElementById('editOverridesModal')?.addEventListener('click', function(e) {
+  if (e.target === this) closeEditOverridesModal();
 });
 </script>
 {% endif %}

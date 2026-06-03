@@ -81,6 +81,7 @@ def apply_template_to_event(event, template, owner=None, allowed_modules=None, c
     excluded_tasks_by_title = set(customization.get('excluded_tasks') or [])
     excluded_cl_items = customization.get('excluded_checklist_items') or {}
     excluded_budget_pks = set(int(pk) for pk in (customization.get('excluded_budget_item_pks') or []))
+    task_day_overrides = {int(k): int(v) for k, v in (customization.get('task_day_overrides') or {}).items()}
 
     # 1. Activar módulos
     for tm in template.modules.all():
@@ -120,9 +121,10 @@ def apply_template_to_event(event, template, owner=None, allowed_modules=None, c
             if template_task.title in existing_titles:
                 continue
 
+            days = task_day_overrides.get(template_task.pk, template_task.days_before_event)
             due_date = None
-            if _event_start and template_task.days_before_event is not None:
-                due_date = _event_start - timedelta(days=template_task.days_before_event)
+            if _event_start and days is not None:
+                due_date = _event_start - timedelta(days=days)
 
             assigned_to = owner if (owner and template_task.priority == 'high') else None
 
