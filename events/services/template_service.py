@@ -163,6 +163,14 @@ def apply_template_to_event(event, template, owner=None, allowed_modules=None, c
             defaults={'total_budget': 0, 'currency': 'COP'},
         )
 
+        global_budget = customization.get('global_budget')
+        if global_budget is not None:
+            try:
+                budget.total_budget = float(global_budget)
+                budget.save(update_fields=['total_budget'])
+            except (ValueError, TypeError):
+                pass
+
         # Overrides de monto: {str(pk): float(amount)}
         budget_item_overrides = {
             str(k): float(v)
