@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.mail import send_mail
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 from django.conf import settings
 from events.email_utils import send_bind_email
 from django.http import JsonResponse
@@ -210,7 +212,20 @@ def profile_edit_view(request):
         # Datos del User de Django
         request.user.first_name = request.POST.get('first_name', '').strip()
         request.user.last_name  = request.POST.get('last_name', '').strip()
-        request.user.email      = request.POST.get('email', '').strip()
+        raw_email = request.POST.get('email', '').strip()
+
+        if not raw_email:
+            messages.error(request, 'El email es obligatorio.')
+            return render(request, 'accounts/profile_edit.html', {'profile': profile})
+        try:
+            validate_email(raw_email)
+        except ValidationError:
+            messages.error(
+                request,
+                'El email no tiene un formato válido (ej: nombre@dominio.com).'
+            )
+            return render(request, 'accounts/profile_edit.html', {'profile': profile})
+        request.user.email = raw_email
 
         # Datos del UserProfile
         raw_phone = request.POST.get('phone', '').strip()
