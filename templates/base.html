@@ -54,6 +54,10 @@
     /* ── Global Aside Panel — estilos extraídos de inline styles ─────── */
     .bind-aside {
       background: linear-gradient(160deg, #09090b 0%, #0a0e1a 100%);
+      box-shadow: none;
+      transition: box-shadow 0.32s cubic-bezier(.16,1,.3,1);
+    }
+    .bind-aside.is-open {
       box-shadow: -20px 0 60px rgba(0,0,0,0.65);
     }
     .bind-aside-edge {
@@ -584,6 +588,7 @@
       requestAnimationFrame(function () {
         bd.style.opacity = '1';
         panel.style.transform = 'translateX(0)';
+        panel.classList.add('is-open');
       });
       document.body.style.overflow = 'hidden';
       var form = document.querySelector('#asideBody form');
@@ -604,6 +609,7 @@
       bd.style.opacity = '0';
       bd.style.pointerEvents = 'none';
       panel.style.transform = 'translateX(100%)';
+      panel.classList.remove('is-open');
       document.body.style.overflow = '';
     };
 
