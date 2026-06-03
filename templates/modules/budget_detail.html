@@ -24,9 +24,15 @@
       {% if message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300
       {% elif message.tags == 'success' %}bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700 text-teal-700 dark:text-teal-300
       {% else %}bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300{% endif %}">
-      <span class="text-lg leading-none mt-0.5">
-        {% if message.tags == 'error' %}🚫{% elif message.tags == 'success' %}✅{% else %}ℹ️{% endif %}
-      </span>
+      <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {% if message.tags == 'error' %}
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        {% elif message.tags == 'success' %}
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        {% else %}
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        {% endif %}
+      </svg>
       <span>{{ message }}</span>
     </div>
     {% endfor %}
@@ -125,10 +131,12 @@
             <div id="conversion-preview"
                  class="hidden bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border border-teal-200 dark:border-teal-700 rounded-xl p-3">
               <div class="flex items-center gap-2 mb-2">
-                <span class="text-lg">💱</span>
+                <svg class="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
                 <p class="text-xs font-bold text-teal-700 dark:text-teal-300">Conversión automática al guardar</p>
               </div>
-              <div id="conversion-loading" class="hidden flex items-center gap-2 text-xs text-gray-500">
+              <div id="conversion-loading" class="flex items-center gap-2 text-xs text-gray-500" style="display:none">
                 <svg class="w-3 h-3 animate-spin text-teal-500" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -390,7 +398,10 @@
 
       {# Mensaje "sin resultados" (oculto por defecto) #}
       <div id="no-results" class="hidden py-12 text-center text-gray-400 text-sm">
-        <div class="text-3xl mb-2">🔍</div>No se encontraron monedas
+        <svg class="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        No se encontraron monedas
       </div>
 
       {% for code, label in currency_choices %}
@@ -499,7 +510,7 @@ function selectCurrency(code, name) {
 
   const submitBtn = document.getElementById('budget-submit-btn');
   if (code !== CURRENT_FROM) {
-    submitBtn.textContent = `💱 Convertir a ${code} y guardar`;
+    submitBtn.textContent = `Convertir a ${code} y guardar`;
     submitBtn.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)';
     cachedRate = null;
     fetchAndUpdateAmount(CURRENT_FROM, code);
@@ -523,7 +534,7 @@ function fetchAndUpdateAmount(fromCur, toCur) {
   const result      = document.getElementById('conversion-result');
 
   preview.classList.remove('hidden');
-  loading.classList.remove('hidden');
+  loading.style.display = 'flex';
   result.style.opacity = '0.4';
   amountInput.style.opacity = '0.5';
 
@@ -532,12 +543,12 @@ function fetchAndUpdateAmount(fromCur, toCur) {
     fetch(`${CONVERT_URL}?from=${fromCur}&to=${toCur}&amount=${amt}`)
       .then(r => r.json())
       .then(data => {
-        loading.classList.add('hidden');
+        loading.style.display = 'none';
         result.style.opacity = '1';
         amountInput.style.opacity = '1';
 
         if (data.error) {
-          document.getElementById('conversion-text').textContent = '⚠️ No se pudo convertir';
+          document.getElementById('conversion-text').textContent = 'No se pudo convertir';
           document.getElementById('conversion-rate').textContent = data.error;
           return;
         }
@@ -557,10 +568,10 @@ function fetchAndUpdateAmount(fromCur, toCur) {
           `1 ${fromCur} = ${fmt(data.rate)} ${toCur}  ·  open.er-api.com`;
       })
       .catch(() => {
-        loading.classList.add('hidden');
+        loading.style.display = 'none';
         result.style.opacity = '1';
         amountInput.style.opacity = '1';
-        document.getElementById('conversion-text').textContent = '⚠️ Sin conexión';
+        document.getElementById('conversion-text').textContent = 'Sin conexión de red';
         document.getElementById('conversion-rate').textContent = 'El monto no fue modificado';
       });
   }, 400);
@@ -584,10 +595,10 @@ function validateBudgetAmount(input) {
   const btn  = document.getElementById('budget-submit-btn');
   const val  = parseFloat(input.value);
   if (isNaN(val) || val < 0) {
-    warn.textContent = '⚠️ Ingresa un número válido y positivo.';
+    warn.textContent = 'Ingresa un número válido y positivo.';
     warn.classList.remove('hidden'); btn.disabled = true;
   } else if (val > BUDGET_MAX) {
-    warn.textContent = `⚠️ Máximo permitido: ${BUDGET_MAX.toLocaleString()}. Revisa el valor.`;
+    warn.textContent = `Máximo permitido: ${BUDGET_MAX.toLocaleString()}. Revisa el valor.`;
     warn.classList.remove('hidden'); btn.disabled = true;
   } else {
     warn.classList.add('hidden'); btn.disabled = false;
@@ -598,7 +609,7 @@ function validateItemAmount(input) {
   const warn = document.getElementById('item-amount-warn');
   const val  = parseFloat(input.value);
   if (val > ITEM_MAX) {
-    warn.textContent = `⚠️ Máximo por ítem: ${ITEM_MAX.toLocaleString()}.`;
+    warn.textContent = `Máximo por ítem: ${ITEM_MAX.toLocaleString()}.`;
     warn.classList.remove('hidden');
     input.setCustomValidity('Monto demasiado alto');
   } else {

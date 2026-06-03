@@ -34,7 +34,7 @@
       background: linear-gradient(270deg, rgba(20,184,166,0.05) 0%, transparent 100%);
     }
 
-    /* Auth input — fondo blanco con borde visible */
+    /* Auth input — light mode */
     .auth-input {
       width: 100%;
       padding: 0.75rem 1rem 0.75rem 2.75rem;
@@ -46,7 +46,7 @@
       font-family: 'Inter', sans-serif;
       outline: none;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     }
     .auth-input::placeholder { color: #a1a1aa; }
     .auth-input:hover:not(:focus) { border-color: #a1a1aa; }
@@ -55,21 +55,43 @@
       background: #f0fdfb;
       box-shadow: 0 0 0 3px rgba(20,184,166,0.14), 0 1px 3px rgba(0,0,0,0.05);
     }
-    /* CTA — gradiente negro→teal al hover */
+    /* Auth input — dark mode */
+    .dark .auth-input {
+      background: #18181b;
+      border-color: #3f3f46;
+      color: #f4f4f5;
+      box-shadow: none;
+    }
+    .dark .auth-input::placeholder { color: #52525b; }
+    .dark .auth-input:hover:not(:focus) { border-color: #71717a; }
+    .dark .auth-input:focus {
+      border-color: #14b8a6;
+      background: #0a1a18;
+      box-shadow: 0 0 0 3px rgba(20,184,166,0.18), 0 1px 3px rgba(0,0,0,0.3);
+    }
+    /* CTA — sweep de gradiente de izquierda a derecha al hover */
     .btn-primary {
-      background: #09090b;
-      transition: background 0.25s ease, box-shadow 0.2s ease, transform 0.15s ease;
+      background-color: #09090b;
+      background-image: linear-gradient(90deg, #0f766e 0%, #115e59 100%);
+      background-size: 0% 100%;
+      background-repeat: no-repeat;
+      background-position: left center;
+      transition: background-size 0.38s ease, box-shadow 0.22s ease, transform 0.15s ease;
     }
     .btn-primary:hover {
-      background: linear-gradient(135deg, #09090b 0%, #0f766e 100%);
-      box-shadow: 0 4px 16px rgba(20,184,166,0.25);
+      background-size: 100% 100%;
+      box-shadow: 0 4px 18px rgba(20,184,166,0.30);
       transform: translateY(-1px);
     }
-    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:active {
+      background-color: #0f766e;
+      background-size: 100% 100%;
+      transform: translateY(0);
+    }
   </style>
 </head>
 
-<body class="bg-white font-inter min-h-screen flex">
+<body class="bg-white dark:bg-zinc-950 font-inter min-h-screen flex">
 
   <!-- ═══════════════ PANEL IZQUIERDO — Marca y pitch ═══════════════ -->
   <div class="hidden lg:flex lg:w-[44%] xl:w-[42%] flex-col justify-between p-10 xl:p-12 relative overflow-hidden shrink-0"
@@ -142,12 +164,12 @@
   </div>
 
   <!-- ═══════════════ PANEL DERECHO — Formulario ═══════════════ -->
-  <div class="flex-1 flex flex-col min-h-screen relative" style="background:#fafafa;">
+  <div class="flex-1 flex flex-col min-h-screen relative bg-zinc-50 dark:bg-zinc-900">
 
     <!-- Barra superior: volver al inicio + toggle tema -->
     <div class="flex items-center justify-between px-6 sm:px-10 pt-6 shrink-0">
       <a href="{% url 'accounts:index' %}"
-         class="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 transition-colors group">
+         class="inline-flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors group">
         <svg class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
@@ -158,9 +180,9 @@
         <div class="w-7 h-7 rounded-lg overflow-hidden shadow-sm">
           <img src="{% static 'img/logo.svg' %}" alt="BIND" class="w-full h-full object-cover">
         </div>
-        <span class="text-base font-bold tracking-tight text-zinc-900">Bind</span>
+        <span class="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Bind</span>
       </div>
-      <button id="themeToggle" class="p-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 transition-colors" aria-label="Cambiar tema">
+      <button id="themeToggle" class="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 transition-colors" aria-label="Cambiar tema">
         <svg class="w-4 h-4 text-zinc-600 block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         <svg class="w-4 h-4 text-zinc-300 hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a7 7 0 1010.586 10.586z"/></svg>
       </button>
@@ -172,8 +194,8 @@
 
       <!-- Heading -->
       <div class="mb-8">
-        <h2 class="text-3xl font-bold text-zinc-900 tracking-tight mb-1.5">Bienvenido de nuevo</h2>
-        <p class="text-zinc-500 text-sm">Ingresa tus credenciales para continuar</p>
+        <h2 class="text-3xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight mb-1.5">Bienvenido de nuevo</h2>
+        <p class="text-zinc-500 dark:text-zinc-400 text-sm">Ingresa tus credenciales para continuar</p>
       </div>
 
       <!-- Alertas de Django -->
@@ -231,14 +253,14 @@
 
       <!-- Divisor -->
       <div class="flex items-center gap-3 my-5">
-        <div class="flex-1 h-px bg-zinc-200"></div>
-        <span class="text-zinc-400 text-xs font-medium">o continúa con</span>
-        <div class="flex-1 h-px bg-zinc-200"></div>
+        <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-700"></div>
+        <span class="text-zinc-400 dark:text-zinc-500 text-xs font-medium">o continúa con</span>
+        <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-700"></div>
       </div>
 
       <!-- Google -->
       <a href="/auth/google/login/"
-         class="flex items-center justify-center gap-3 w-full bg-white hover:bg-zinc-50 text-zinc-700 font-medium py-3 px-4 rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all duration-200 text-sm">
+         class="flex items-center justify-center gap-3 w-full bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-medium py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md transition-all duration-200 text-sm">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4 shrink-0">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -249,9 +271,9 @@
       </a>
 
       <!-- Link a registro -->
-      <p class="text-center mt-7 text-sm text-zinc-500">
+      <p class="text-center mt-7 text-sm text-zinc-500 dark:text-zinc-400">
         ¿No tienes cuenta?
-        <a href="{% url 'accounts:register' %}" class="font-semibold text-zinc-900 hover:text-teal-600 transition-colors ml-1">Crear cuenta →</a>
+        <a href="{% url 'accounts:register' %}" class="font-semibold text-zinc-900 dark:text-zinc-100 hover:text-teal-600 dark:hover:text-teal-400 transition-colors ml-1">Crear cuenta →</a>
       </p>
 
     </div>
@@ -261,7 +283,7 @@
     <div class="shrink-0 px-6 sm:px-10 pb-6 text-center">
       <p class="text-xs text-zinc-400">
         Al ingresar aceptas los
-        <a href="{% url 'accounts:index' %}" class="hover:text-zinc-600 transition-colors underline underline-offset-2">términos de uso</a>
+        <a href="{% url 'accounts:index' %}" class="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors underline underline-offset-2">términos de uso</a>
       </p>
     </div>
 

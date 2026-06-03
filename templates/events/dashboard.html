@@ -513,15 +513,17 @@
         </div>
         <!-- Label + mensaje -->
         <div class="flex-1 min-w-0">
-          <p class="text-[10px] font-bold uppercase tracking-wider mb-0.5
+          <p class="text-[10px] font-bold uppercase tracking-widest mb-1
             {% if engine_decisions.0.severity == 'critical' %}text-red-500 dark:text-red-400
             {% elif engine_decisions.0.severity == 'warning' %}text-amber-600 dark:text-amber-400
             {% else %}text-violet-600 dark:text-violet-400{% endif %}">
             Bynix — Centro de Control
           </p>
-          <p class="text-sm font-medium text-zinc-800 dark:text-zinc-100 leading-snug truncate">
+          <p class="text-sm font-semibold text-zinc-800 dark:text-zinc-100 leading-snug truncate">
             {{ engine_decisions.0.title }}
-            <span class="font-normal text-zinc-500 dark:text-zinc-400 ml-1">· {{ engine_decisions.0.message|truncatechars:80 }}</span>
+          </p>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-snug truncate mt-0.5">
+            {{ engine_decisions.0.message|truncatechars:95 }}
           </p>
         </div>
         <!-- Acciones -->
