@@ -20,7 +20,7 @@ from django.utils.html import strip_tags
 
 logger = logging.getLogger(__name__)
 
-SITE_URL = getattr(settings, 'SITE_URL', 'https://bind.onrender.com').rstrip('/')
+SITE_URL = (getattr(settings, 'SITE_URL', '') or 'https://bind.onrender.com').rstrip('/')
 
 
 def send_bind_email(
