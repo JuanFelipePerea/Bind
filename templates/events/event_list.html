@@ -247,6 +247,84 @@
   </div>
   {% endif %}
 
+  <!-- ── Proyectos compartidos conmigo ── -->
+  {% if shared_events %}
+  <div class="mt-10 pt-8 border-t-2 border-dashed border-zinc-200 dark:border-zinc-700/60">
+
+    <!-- Encabezado de sección -->
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-violet-500 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-sm font-bold text-zinc-800 dark:text-zinc-100">Compartidos conmigo</h2>
+          <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">Proyectos en los que colaboras</p>
+        </div>
+      </div>
+      <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/40">
+        {{ shared_events|length }} proyecto{{ shared_events|length|pluralize }}
+      </span>
+    </div>
+
+    <!-- Grid de proyectos compartidos -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for ev in shared_events %}
+      <div class="bg-violet-50/50 dark:bg-violet-950/20 rounded-xl p-5 flex flex-col gap-4
+                  border border-violet-200/70 dark:border-violet-800/30 shadow-sm
+                  transition-all duration-200 hover:shadow-md hover:border-violet-400/60 dark:hover:border-violet-600/50
+                  cursor-pointer group"
+           onclick="window.location.href='{% url 'events:event_detail' ev.pk %}'">
+
+        <!-- Propietario -->
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-full bg-violet-200 dark:bg-violet-800/50 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-violet-700 dark:text-violet-300">
+            {{ ev.owner.get_full_name|default:ev.owner.username|first|upper }}
+          </div>
+          <p class="text-xs text-violet-600 dark:text-violet-400 font-medium truncate">
+            {{ ev.owner.get_full_name|default:ev.owner.username }}
+          </p>
+          <!-- Badge estado -->
+          <span class="ml-auto text-[9px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0
+            {% if ev.display_status == 'overdue' %}bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/50
+            {% elif ev.display_status == 'active' %}bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800/50
+            {% elif ev.display_status == 'completed' %}bg-zinc-100 text-zinc-500 border border-zinc-200 dark:bg-zinc-700/50 dark:text-zinc-400 dark:border-zinc-600
+            {% else %}bg-zinc-100 text-zinc-500 border border-zinc-200 dark:bg-zinc-800/40 dark:text-zinc-400 dark:border-zinc-700{% endif %}">
+            {{ ev.display_status_label }}
+          </span>
+        </div>
+
+        <!-- Nombre del evento -->
+        <div class="flex-1">
+          <h3 class="text-sm font-semibold text-zinc-800 dark:text-zinc-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors duration-150 leading-snug">{{ ev.name }}</h3>
+          {% if ev.location %}
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mt-1.5">
+            <svg class="w-3 h-3 flex-shrink-0 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            </svg>
+            {{ ev.location }}
+          </p>
+          {% endif %}
+        </div>
+
+        <!-- Fecha -->
+        {% if ev.start_date %}
+        <p class="text-xs text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
+          <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          {{ ev.start_date|date:"d M Y" }}
+        </p>
+        {% endif %}
+
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Estado vacío global (sin ningún evento) -->
   {% if not events %}
   <div class="text-center py-20">

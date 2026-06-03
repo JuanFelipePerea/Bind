@@ -56,7 +56,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
                   </svg>
                 </div>
-                <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300 truncate">{{ tmpl.name }}</p>
+                <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300 leading-tight line-clamp-2" title="{{ tmpl.name }}">{{ tmpl.name }}</p>
                 <p class="text-[10px] text-zinc-400 uppercase mt-0.5">{{ tmpl.get_category_display }}</p>
               </div>
             </label>

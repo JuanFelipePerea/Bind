@@ -837,21 +837,26 @@
           </div>
         </div>
 
-        <!-- Compartido conmigo -->
+        <!-- Compartido conmigo — sección separada con identidad propia -->
         {% if shared_events %}
-        <div>
+        <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700/50">
           <div class="flex items-center gap-2 mb-3">
-            <svg class="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-            <h4 class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Compartido conmigo</h4>
+            <div class="w-5 h-5 rounded-md bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+              <svg class="w-3 h-3 text-violet-500 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+            </div>
+            <h4 class="text-[10px] font-bold text-violet-500 dark:text-violet-400 uppercase tracking-widest">Compartido conmigo</h4>
           </div>
           <div class="grid grid-cols-2 gap-2">
             {% for ev in shared_events %}
             <a href="{% url 'events:event_detail' ev.pk %}"
-               class="bg-white dark:bg-zinc-900/70 rounded-xl p-3 border border-zinc-100 dark:border-zinc-800 hover:border-teal-500/40 dark:hover:border-teal-500/30 transition-all duration-150 group flex flex-col gap-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500/40">
-              <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-100 truncate group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors leading-snug">{{ ev.name }}</p>
-              <p class="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">{{ ev.owner.get_full_name|default:ev.owner.username }}</p>
+               class="bg-violet-50/40 dark:bg-violet-950/20 rounded-xl p-3 border border-violet-200/60 dark:border-violet-800/30 hover:border-violet-400/60 dark:hover:border-violet-600/50 transition-all duration-150 group flex flex-col gap-1.5 focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+              <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-100 line-clamp-2 leading-snug group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">{{ ev.name }}</p>
+              <p class="text-[10px] text-violet-500/70 dark:text-violet-400/60 truncate flex items-center gap-1">
+                <svg class="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                {{ ev.owner.get_full_name|default:ev.owner.username }}
+              </p>
               <div class="mt-auto pt-1">
                 <span class="inline-block text-[9px] font-semibold px-2 py-0.5 rounded-md
                   {% if ev.display_status == 'overdue' %}bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50

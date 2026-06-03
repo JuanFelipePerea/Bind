@@ -311,12 +311,22 @@ def event_list(request):
     paginator = Paginator(events_list, 9)
     page_obj = paginator.get_page(request.GET.get('page'))
 
+    shared_events = list(
+        Event.objects.filter(
+            collaborators__user=request.user,
+            collaborators__accepted=True,
+        )
+        .select_related('owner')
+        .order_by('-updated_at')
+    )
+
     context = {
         'events':         page_obj,
         'page_obj':       page_obj,
         'status_filter':  status_filter,
         'q':              q,
         'status_choices': Event.STATUS_CHOICES,
+        'shared_events':  shared_events,
     }
     return render(request, 'events/event_list.html', context)
 
