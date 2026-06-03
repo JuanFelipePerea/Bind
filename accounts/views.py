@@ -12,9 +12,12 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 import hmac
+import logging
 import random
 import re
 from datetime import timedelta
+
+logger = logging.getLogger(__name__)
 
 _2FA_CODE_EXPIRY_MINUTES = 5
 

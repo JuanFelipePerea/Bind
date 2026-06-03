@@ -47,14 +47,31 @@ def _credits_set_at_key(user_id: int) -> str:
     return f"bynix_set_at_{user_id}"
 
 
+def _cache_get(key, default=None):
+    """cache.get con fallback silencioso — protege contra tabla de caché inexistente."""
+    try:
+        from django.core.cache import cache
+        return cache.get(key, default)
+    except Exception:
+        return default
+
+
+def _cache_set(key, value, timeout=None):
+    """cache.set con fallback silencioso — protege contra tabla de caché inexistente."""
+    try:
+        from django.core.cache import cache
+        cache.set(key, value, timeout)
+    except Exception:
+        pass
+
+
 def get_user_credits(user_id: int) -> int:
     """Retorna créditos disponibles. Inicializa a 100 si es el primer acceso del día."""
-    from django.core.cache import cache
-    credits = cache.get(_credits_key(user_id))
+    credits = _cache_get(_credits_key(user_id))
     if credits is None:
         credits = BYNIX_DAILY_CREDITS
-        cache.set(_credits_key(user_id), credits, _CREDITS_TTL)
-        cache.set(_credits_set_at_key(user_id), time.time(), _CREDITS_TTL)
+        _cache_set(_credits_key(user_id), credits, _CREDITS_TTL)
+        _cache_set(_credits_set_at_key(user_id), time.time(), _CREDITS_TTL)
     return credits
 
 
@@ -63,13 +80,11 @@ def deduct_credits(user_id: int) -> int:
     Descuenta CREDIT_COST_PER_CALL créditos al usuario.
     Retorna créditos restantes (nunca negativo).
     """
-    from django.core.cache import cache
-    key = _credits_key(user_id)
-    current = cache.get(key)
+    current = _cache_get(_credits_key(user_id))
     if current is None:
         current = BYNIX_DAILY_CREDITS
     new_total = max(0, current - CREDIT_COST_PER_CALL)
-    cache.set(key, new_total, _CREDITS_TTL)
+    _cache_set(_credits_key(user_id), new_total, _CREDITS_TTL)
     return new_total
 
 
@@ -81,8 +96,7 @@ def get_usage_percent(user_id: int) -> int:
 
 def get_credits_reset_info(user_id: int) -> dict:
     """Retorna cuánto tiempo falta para que los créditos se reinicien."""
-    from django.core.cache import cache
-    set_at = cache.get(_credits_set_at_key(user_id))
+    set_at = _cache_get(_credits_set_at_key(user_id))
     if set_at is None:
         return {"seconds_until": 0, "reset_time": "mañana"}
     elapsed = time.time() - set_at
