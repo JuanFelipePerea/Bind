@@ -5,13 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}BIND{% endblock %}</title>
 
-  <!-- Prevenir flash blanco al cargar -->
+  <!-- Prevenir flash blanco al cargar: aplica bg antes de que cargue el CSS -->
   <script>
     (() => {
       const html = document.documentElement;
       const saved = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (saved === 'dark' || (!saved && prefersDark)) html.classList.add('dark');
+      const dark = saved === 'dark' || (!saved && prefersDark);
+      if (dark) {
+        html.classList.add('dark');
+        html.style.background = '#09090b';
+      } else {
+        html.style.background = '#fafafa';
+      }
     })();
   </script>
 

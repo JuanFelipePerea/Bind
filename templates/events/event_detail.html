@@ -341,6 +341,52 @@
     </div>
   </div>
 
+  <!-- ══ BYNIX NEXT ACTION ════════════════════════════════════════════════ -->
+  {% if engine_decisions_top %}
+  {% with d=engine_decisions_top.0 %}
+  <div class="mx-1 mt-4 mb-1 rounded-2xl overflow-hidden"
+       style="border:1px solid rgba({% if d.severity == 'critical' %}239,68,68{% elif d.severity == 'warning' %}245,158,11{% else %}20,184,166{% endif %},.28);
+              background:rgba({% if d.severity == 'critical' %}239,68,68{% elif d.severity == 'warning' %}245,158,11{% else %}20,184,166{% endif %},.05);">
+    <div class="flex items-stretch">
+      <!-- Barra lateral de color -->
+      <div class="w-1 flex-shrink-0"
+           style="background:{% if d.severity == 'critical' %}#EF4444{% elif d.severity == 'warning' %}#F59E0B{% else %}#14B8A6{% endif %};"></div>
+      <div class="flex-1 px-4 py-3.5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div class="flex items-start gap-2.5 flex-1 min-w-0">
+            <span class="flex-shrink-0 mt-0.5 text-xs font-bold tracking-wider uppercase"
+                  style="color:{% if d.severity == 'critical' %}#EF4444{% elif d.severity == 'warning' %}#F59E0B{% else %}#14B8A6{% endif %};">
+              {% if d.severity == 'critical' %}● Crítico{% elif d.severity == 'warning' %}● Atención{% else %}✦ Sugerencia{% endif %}
+            </span>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-widest mb-1"
+                 style="color:rgba(255,255,255,.32);">Bynix recomienda</p>
+              <p class="text-sm leading-snug text-gray-800 dark:text-white/88 font-medium">{{ d.message }}</p>
+              {% if engine_decisions_top|length > 1 %}
+              <p class="text-xs mt-1.5" style="color:rgba(128,128,128,.7);">
+                + {{ engine_decisions_top|length|add:"-1" }} {% if engine_decisions_top|length > 2 %}recomendaciones más{% else %}recomendación más{% endif %}
+              </p>
+              {% endif %}
+            </div>
+          </div>
+          {% if d.action_url %}
+          <a href="{{ d.action_url }}"
+             class="flex-shrink-0 self-center text-xs font-bold px-3.5 py-2 rounded-xl transition-all"
+             style="background:rgba({% if d.severity == 'critical' %}239,68,68{% elif d.severity == 'warning' %}245,158,11{% else %}20,184,166{% endif %},.15);
+                    border:1px solid rgba({% if d.severity == 'critical' %}239,68,68{% elif d.severity == 'warning' %}245,158,11{% else %}20,184,166{% endif %},.35);
+                    color:{% if d.severity == 'critical' %}#FCA5A5{% elif d.severity == 'warning' %}#FCD34D{% else %}#5EEAD4{% endif %};"
+             onmouseover="this.style.opacity='.78'"
+             onmouseout="this.style.opacity='1'">
+            {{ d.action_label }} →
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+  {% endif %}
+
   <!-- ══ GRIDSTACK — LIENZO MODULAR ══════════════════════════════════════ -->
   <div class="grid-stack mt-4" id="event-grid">
 
@@ -965,6 +1011,8 @@
   #bynix-input::-webkit-scrollbar { display: none; }
   #bynix-input::placeholder { color: rgba(255,255,255,.28); }
   #bynix-input:focus { outline: none; border-color: rgba(124,58,237,.6) !important; }
+  .bynix-chip { cursor: pointer; }
+  .bynix-chip:active { transform: scale(0.98); }
 </style>
 
 <div id="bynix-backdrop" class="fixed inset-0 z-40"
@@ -1024,7 +1072,36 @@
         Analizo el estado de tu evento en tiempo real y puedo ejecutar acciones en tu nombre.
       </p>
       {% endif %}
-      <div class="rounded-xl overflow-hidden text-xs"
+
+      {% if engine_decisions_top %}
+      <!-- Chips de acción generados desde las decisiones del Engine -->
+      <div class="flex flex-col gap-2 mb-4">
+        {% for d in engine_decisions_top %}
+        <button class="bynix-chip w-full text-left text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2.5"
+                style="background:rgba({% if d.severity == 'critical' %}239,68,68{% elif d.severity == 'warning' %}245,158,11{% else %}124,58,237{% endif %},.08);
+                       border:1px solid rgba({% if d.severity == 'critical' %}239,68,68{% elif d.severity == 'warning' %}245,158,11{% else %}124,58,237{% endif %},.22);
+                       color:rgba(255,255,255,.75);"
+                data-bg-off="rgba({% if d.severity == 'critical' %}239,68,68{% elif d.severity == 'warning' %}245,158,11{% else %}124,58,237{% endif %},.08)"
+                data-bg-on="rgba({% if d.severity == 'critical' %}239,68,68{% elif d.severity == 'warning' %}245,158,11{% else %}124,58,237{% endif %},.18)"
+                data-query="{% if d.action_label == 'Ver tareas' or d.action_label == 'Revisar tareas' %}Cuales son las tareas mas urgentes y que debo hacer primero?{% elif d.action_label == 'Retomar' %}Por donde retomo el progreso del evento? Dame un plan de accion.{% elif d.action_label == 'Ver asistentes' %}Que informacion falta de los asistentes y como lo resolvemos?{% elif d.action_label == 'Definir fecha' %}Que riesgos tiene el evento al no tener fecha definida?{% else %}Cual es el paso mas importante que debo tomar ahora mismo?{% endif %}"
+                onclick="bynixQuickSend(this.dataset.query)">
+          <span style="color:{% if d.severity == 'critical' %}#FCA5A5{% elif d.severity == 'warning' %}#FCD34D{% else %}#A78BFA{% endif %};flex-shrink:0;font-size:10px;">{% if d.severity == 'critical' %}●{% elif d.severity == 'warning' %}◆{% else %}✦{% endif %}</span>
+          <span class="leading-snug">{{ d.message|truncatechars:72 }}</span>
+        </button>
+        {% endfor %}
+        <button class="bynix-chip w-full text-left text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2.5"
+                style="background:rgba(124,58,237,.05);border:1px solid rgba(124,58,237,.15);color:rgba(255,255,255,.45);"
+                data-bg-off="rgba(124,58,237,.05)"
+                data-bg-on="rgba(124,58,237,.14)"
+                data-query="Dame el diagnostico completo del evento: salud, tareas, asistentes, presupuesto y que riesgos hay para la fecha."
+                onclick="bynixQuickSend(this.dataset.query)">
+          <span style="color:rgba(167,139,250,.5);flex-shrink:0;font-size:10px;">✦</span>
+          <span>Diagnostico completo del evento</span>
+        </button>
+      </div>
+      {% else %}
+      <!-- Fallback estático cuando el Engine no detecta problemas -->
+      <div class="rounded-xl overflow-hidden text-xs mb-4"
            style="border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);">
         <div class="px-3.5 py-2.5" style="border-bottom:1px solid rgba(255,255,255,.06);">
           <p style="font-weight:700;text-transform:uppercase;letter-spacing:.18em;font-size:9px;
@@ -1050,7 +1127,8 @@
           </li>
         </ul>
       </div>
-      <p class="text-center mt-3" style="font-size:10px;color:rgba(255,255,255,.22);">
+      {% endif %}
+      <p class="text-center mt-1" style="font-size:10px;color:rgba(255,255,255,.22);">
         Cada consulta consume <strong style="color:rgba(255,255,255,.38);">10 créditos</strong>
       </p>
     </div>
@@ -1371,6 +1449,23 @@
       }
     }
   };
+
+  window.bynixQuickSend = function (text) {
+    const inp = $('bynix-input');
+    if (!inp) return;
+    inp.value = text;
+    window.bynixSend();
+  };
+
+  // Hover dinámico para los chips de acción (lee data-bg-on / data-bg-off)
+  document.addEventListener('mouseover', function (e) {
+    const chip = e.target.closest('.bynix-chip');
+    if (chip && chip.dataset.bgOn) chip.style.background = chip.dataset.bgOn;
+  });
+  document.addEventListener('mouseout', function (e) {
+    const chip = e.target.closest('.bynix-chip');
+    if (chip && chip.dataset.bgOff) chip.style.background = chip.dataset.bgOff;
+  });
 
   // Move fixed elements to <body> to escape overflow-hidden on ancestor containers
   ['bynix-backdrop', 'bynix-bubble', 'bynix-panel'].forEach(function(id) {

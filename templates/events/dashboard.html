@@ -1120,6 +1120,50 @@
   <div id="db-bynix-content" class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
 
     <div id="db-bynix-welcome">
+      {% if bynix_opening_message %}
+      <!-- Briefing proactivo generado por IA -->
+      <div class="rounded-xl p-3.5 mb-3"
+           style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.28);">
+        <div class="flex items-start gap-2.5">
+          <span style="color:#7C3AED;flex-shrink:0;margin-top:2px;font-size:13px;">✦</span>
+          <p class="text-sm leading-relaxed" style="color:rgba(255,255,255,.88);">{{ bynix_opening_message }}</p>
+        </div>
+      </div>
+      {% if engine_summary.needs_attention %}
+      <div class="rounded-xl px-3.5 py-2.5 mb-3"
+           style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);">
+        <p class="text-xs leading-relaxed" style="color:rgba(255,255,255,.72);">
+          ⚠ <strong>{{ engine_summary.events_at_risk }} evento{{ engine_summary.events_at_risk|pluralize }}</strong>
+          en riesgo · <strong>{{ engine_summary.critical_count }} alerta{{ engine_summary.critical_count|pluralize }} crítica{{ engine_summary.critical_count|pluralize }}</strong>
+        </p>
+      </div>
+      {% endif %}
+      <div class="flex flex-wrap gap-1.5 mb-4">
+        {% if engine_summary.needs_attention %}
+        <button onclick="dbBynixQuickSend('¿Qué evento necesita mi atención inmediata y por qué?')"
+                class="text-xs px-3 py-1.5 rounded-full transition-all"
+                style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:rgba(255,255,255,.75);"
+                onmouseover="this.style.background='rgba(239,68,68,.22)'"
+                onmouseout="this.style.background='rgba(239,68,68,.1)'">¿Cuál está en riesgo?</button>
+        <button onclick="dbBynixQuickSend('Dame un plan de acción para hoy con base en las alertas activas')"
+                class="text-xs px-3 py-1.5 rounded-full transition-all"
+                style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);color:rgba(255,255,255,.75);"
+                onmouseover="this.style.background='rgba(124,58,237,.22)'"
+                onmouseout="this.style.background='rgba(124,58,237,.1)'">Plan de hoy</button>
+        {% else %}
+        <button onclick="dbBynixQuickSend('¿Cuál es mi próximo paso más importante para esta semana?')"
+                class="text-xs px-3 py-1.5 rounded-full transition-all"
+                style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);color:rgba(255,255,255,.75);"
+                onmouseover="this.style.background='rgba(124,58,237,.22)'"
+                onmouseout="this.style.background='rgba(124,58,237,.1)'">¿Qué hago hoy?</button>
+        <button onclick="dbBynixQuickSend('¿Qué evento tiene mejor progreso y cuál necesita más trabajo?')"
+                class="text-xs px-3 py-1.5 rounded-full transition-all"
+                style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);color:rgba(255,255,255,.75);"
+                onmouseover="this.style.background='rgba(124,58,237,.22)'"
+                onmouseout="this.style.background='rgba(124,58,237,.1)'">Estado general</button>
+        {% endif %}
+      </div>
+      {% else %}
       {% if engine_summary.needs_attention %}
       <div class="rounded-xl p-3.5 mb-4"
            style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);">
@@ -1138,7 +1182,6 @@
         Tengo visibilidad sobre todos tus eventos. Pregúntame lo que necesites o pídeme crear un evento nuevo.
       </p>
       {% endif %}
-
       <div class="rounded-xl overflow-hidden text-xs"
            style="border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);">
         <div class="px-3.5 py-2.5" style="border-bottom:1px solid rgba(255,255,255,.06);">
@@ -1165,6 +1208,7 @@
           </li>
         </ul>
       </div>
+      {% endif %}
       <!-- Créditos Bynix -->
       <div class="mt-4 rounded-xl px-3.5 py-3" style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.18);">
         <div class="flex items-center justify-between mb-2">
@@ -1410,6 +1454,14 @@
   }
   window.dbBynixSend = dbBynixSend;
 
+  function dbBynixQuickSend(text) {
+    const input = document.getElementById('db-bynix-input');
+    if (!input) return;
+    input.value = text;
+    dbBynixSend();
+  }
+  window.dbBynixQuickSend = dbBynixQuickSend;
+
   // Enter para enviar, Shift+Enter para nueva línea
   document.addEventListener('DOMContentLoaded', () => {
     const inp = document.getElementById('db-bynix-input');
@@ -1446,6 +1498,74 @@
 
   updateCountdowns();
   setInterval(updateCountdowns, 30000);
+})();
+</script>
+
+<script>
+// ── Centro de Notificaciones: marcar tarea hecha sin recarga ──────────────────
+(function () {
+  'use strict';
+
+  const taskWrap = document.querySelector('.task-module-wrap');
+  if (!taskWrap) return;
+
+  taskWrap.addEventListener('submit', function (e) {
+    const form = e.target;
+    const action = form.getAttribute('action') || '';
+    if (!action.includes('task_toggle_done')) return;
+    e.preventDefault();
+
+    const card = form.closest('[data-time-state]');
+    const btn  = form.querySelector('button[type="submit"]');
+    if (!card || !btn) return;
+
+    // ── Visual feedback: button goes teal+checkmark ──────────────────────
+    btn.disabled = true;
+    btn.style.background    = 'rgba(20,184,166,.22)';
+    btn.style.borderColor   = 'rgba(20,184,166,.6)';
+    btn.style.color         = '#5eead4';
+    btn.innerHTML = '<svg style="width:10px;height:10px;display:inline;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>&nbsp;Hecha';
+
+    const fd = new FormData(form);
+    fetch(action, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      body: fd,
+    })
+    .then(function (r) { return r.json(); })
+    .then(function () {
+      // ── Collapse animation ────────────────────────────────────────────
+      const h = card.offsetHeight;
+      card.style.transition  = 'transform 0.22s ease, opacity 0.22s ease';
+      card.style.transform   = 'translateX(-10px) scale(0.95)';
+      card.style.opacity     = '0';
+      card.style.overflow    = 'hidden';
+
+      setTimeout(function () {
+        card.style.transition  = 'max-height 0.26s ease, margin-bottom 0.26s ease';
+        card.style.maxHeight   = h + 'px';
+        // Force reflow so the transition from h→0 plays
+        void card.offsetHeight;
+        card.style.maxHeight   = '0';
+        card.style.marginBottom = '0';
+        setTimeout(function () {
+          card.remove();
+          // Decrement count badge
+          const badge = document.querySelector('.task-count-badge');
+          if (badge) {
+            const n = parseInt(badge.textContent.trim(), 10) - 1;
+            if (n <= 0) badge.style.opacity = '0';
+            else badge.textContent = n;
+          }
+        }, 280);
+      }, 220);
+    })
+    .catch(function () {
+      // Network failure: fall back to normal form submit
+      btn.disabled = false;
+      form.submit();
+    });
+  });
 })();
 </script>
 {% endblock %}
