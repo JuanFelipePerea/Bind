@@ -81,9 +81,10 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <div class="grid grid-cols-1 {% if can_edit %}lg:grid-cols-3{% endif %} gap-8">
 
-    {# ── Columna izquierda: formularios ───────────────────────────────── #}
+    {# ── Columna izquierda: formularios (solo editores/owners) ───────── #}
+    {% if can_edit %}
     <div class="space-y-6">
 
       {# Editar presupuesto total #}
@@ -215,9 +216,10 @@
       </div>
 
     </div>
+    {% endif %}
 
     {# ── Columna derecha: tablas de ítems ─────────────────────────────── #}
-    <div class="lg:col-span-2 space-y-6">
+    <div class="{% if can_edit %}lg:col-span-2{% endif %} space-y-6">
 
       {# Gastos #}
       <div class="glass p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
@@ -256,12 +258,16 @@
                 <td class="py-2 text-center">
                   <span class="w-2 h-2 rounded-full inline-block {% if item.paid %}bg-green-500{% else %}bg-gray-300{% endif %}"></span>
                 </td>
+                {% if can_edit %}
                 <td class="py-2 text-right">
                   <form method="post" action="{% url 'modules:budget_item_delete' event.pk item.pk %}" class="inline">
                     {% csrf_token %}
                     <button type="submit" class="text-red-400 hover:text-red-600 transition-colors text-xs">✕</button>
                   </form>
                 </td>
+                {% else %}
+                <td></td>
+                {% endif %}
               </tr>
               {% endfor %}
             </tbody>
@@ -309,12 +315,16 @@
                 <td class="py-2 text-center">
                   <span class="w-2 h-2 rounded-full inline-block {% if item.paid %}bg-green-500{% else %}bg-gray-300{% endif %}"></span>
                 </td>
+                {% if can_edit %}
                 <td class="py-2 text-right">
                   <form method="post" action="{% url 'modules:budget_item_delete' event.pk item.pk %}" class="inline">
                     {% csrf_token %}
                     <button type="submit" class="text-red-400 hover:text-red-600 transition-colors text-xs">✕</button>
                   </form>
                 </td>
+                {% else %}
+                <td></td>
+                {% endif %}
               </tr>
               {% endfor %}
             </tbody>

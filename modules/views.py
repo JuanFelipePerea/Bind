@@ -20,16 +20,32 @@ from .forms import TaskForm, AttendeeForm, ChecklistForm, FileForm
 logger = logging.getLogger(__name__)
 
 
-def _get_event_for_user(event_pk, user):
-    """Devuelve el evento si el usuario es owner o colaborador aceptado. Lanza Http404 si no."""
+def _get_event_for_user(event_pk, user, require_editor=False):
+    """Devuelve el evento si el usuario es owner o colaborador aceptado. Lanza Http404 si no.
+    Si require_editor=True, lanza PermissionDenied para colaboradores viewer."""
+    from django.core.exceptions import PermissionDenied
     from django.http import Http404
     from events.models import EventCollaborator
     event = get_object_or_404(Event, pk=event_pk)
     if event.owner == user:
         return event
-    if EventCollaborator.objects.filter(event=event, user=user, accepted=True).exists():
-        return event
-    raise Http404()
+    try:
+        collab = EventCollaborator.objects.get(event=event, user=user, accepted=True)
+    except EventCollaborator.DoesNotExist:
+        raise Http404()
+    if require_editor and collab.role != 'editor':
+        raise PermissionDenied
+    return event
+
+
+def _can_edit_event(event, user):
+    """True si el usuario es owner o colaborador editor del evento."""
+    from events.models import EventCollaborator
+    if event.owner == user:
+        return True
+    return EventCollaborator.objects.filter(
+        event=event, user=user, accepted=True, role='editor'
+    ).exists()
 
 
 # ─────────────────────────────────────────────
@@ -62,13 +78,14 @@ def task_list(request, event_pk):
         'status_choices':      Task.STATUS_CHOICES,
         'priority_suggestions': priority_suggestions,
         'today':               tz.now().date(),
+        'can_edit':            _can_edit_event(event, request.user),
     }
     return render(request, 'modules/task_list.html', context)
 
 
 @login_required
 def task_create(request, event_pk):
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
 
     if request.method == 'POST':
         title       = request.POST.get('title', '').strip()
@@ -106,7 +123,7 @@ def task_create(request, event_pk):
 
 @login_required
 def task_edit(request, event_pk, pk):
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
     task  = get_object_or_404(Task, pk=pk, event=event)
 
     if request.method == 'POST':
@@ -158,7 +175,7 @@ def task_edit(request, event_pk, pk):
 
 @login_required
 def task_delete(request, event_pk, pk):
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
     task  = get_object_or_404(Task, pk=pk, event=event)
 
     if request.method == 'POST':
@@ -189,13 +206,14 @@ def attendee_list(request, event_pk):
         'event': event,
         'attendees': attendees,
         'invitation_tpl': invitation_tpl,
+        'can_edit': _can_edit_event(event, request.user),
     }
     return render(request, 'modules/attendee_list.html', context)
 
 
 @login_required
 def attendee_create(request, event_pk):
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
 
     if request.method == 'POST':
         name   = request.POST.get('name', '').strip()
@@ -214,7 +232,7 @@ def attendee_create(request, event_pk):
 
 @login_required
 def attendee_edit(request, event_pk, pk):
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
     attendee = get_object_or_404(Attendee, pk=pk, event=event)
 
     if request.method == 'POST':
@@ -230,7 +248,7 @@ def attendee_edit(request, event_pk, pk):
 
 @login_required
 def attendee_delete(request, event_pk, pk):
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
     attendee = get_object_or_404(Attendee, pk=pk, event=event)
 
     if request.method == 'POST':
@@ -253,13 +271,18 @@ def attendee_delete(request, event_pk, pk):
 def checklist_list(request, event_pk):
     event      = _get_event_for_user(event_pk, request.user)
     checklists = event.checklists.prefetch_related('items').all()
-    context    = {'event': event, 'checklists': checklists}
+    context    = {
+        'event': event,
+        'checklists': checklists,
+        'can_edit': _can_edit_event(event, request.user),
+        'is_owner': event.owner == request.user,
+    }
     return render(request, 'modules/checklist_list.html', context)
 
 
 @login_required
 def checklist_create(request, event_pk):
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
 
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
@@ -275,7 +298,8 @@ def checklist_create(request, event_pk):
 
 @login_required
 def checklist_item_create(request, pk):
-    checklist = get_object_or_404(Checklist, pk=pk, event__owner=request.user)
+    checklist = get_object_or_404(Checklist, pk=pk)
+    _get_event_for_user(checklist.event_id, request.user, require_editor=True)
 
     if request.method == 'POST':
         text = request.POST.get('text', '').strip()
@@ -290,7 +314,8 @@ def checklist_item_create(request, pk):
 @login_required
 def checklist_item_toggle(request, pk):
     """Marca/desmarca un ítem. Se llama con POST desde un formulario."""
-    item = get_object_or_404(ChecklistItem, pk=pk, checklist__event__owner=request.user)
+    item = get_object_or_404(ChecklistItem, pk=pk)
+    _get_event_for_user(item.checklist.event_id, request.user, require_editor=True)
     if request.method == 'POST':
         item.is_checked = not item.is_checked
         item.save()
@@ -362,12 +387,12 @@ def _detect_file_meta(uploaded_file):
 def file_list(request, event_pk):
     event = _get_event_for_user(event_pk, request.user)
     files = event.files.all().order_by('-uploaded_at')
-    return render(request, 'modules/file_list.html', {'event': event, 'files': files})
+    return render(request, 'modules/file_list.html', {'event': event, 'files': files, 'can_edit': _can_edit_event(event, request.user)})
 
 
 @login_required
 def file_create(request, event_pk):
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
 
     if request.method == 'POST':
         form = FileForm(request.POST, request.FILES)
@@ -408,7 +433,7 @@ def file_create(request, event_pk):
 
 @login_required
 def file_delete(request, event_pk, pk):
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
     file = get_object_or_404(File, pk=pk, event=event)
 
     if request.method == 'POST':
@@ -439,7 +464,13 @@ def task_overview(request):
     priority_filter = request.GET.get('priority', '').strip()
     q               = request.GET.get('q', '').strip()
 
-    base_qs = Task.objects.filter(event__owner=user).select_related('event')
+    from events.models import EventCollaborator as _EC
+    _collab_event_ids = _EC.objects.filter(
+        user=user, accepted=True
+    ).values_list('event_id', flat=True)
+    base_qs = Task.objects.filter(
+        Q(event__owner=user) | Q(event_id__in=_collab_event_ids)
+    ).select_related('event').distinct()
 
     # Estadísticas sobre el total sin filtros
     total      = base_qs.count()
@@ -508,9 +539,12 @@ def task_overview(request):
 def task_toggle_done(request, pk):
     if request.method != 'POST':
         return HttpResponseForbidden('POST required')
-    task = get_object_or_404(Task, pk=pk, event__owner=request.user)
+    task = get_object_or_404(Task, pk=pk)
+    _get_event_for_user(task.event_id, request.user, require_editor=True)
     task.status = 'pending' if task.status == 'done' else 'done'
     task.save()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'status': task.status, 'task_id': task.pk})
     next_val = request.POST.get('next', '')
     if next_val and next_val.startswith('/') and not next_val.startswith('//'):
         return redirect(next_val)
@@ -522,7 +556,8 @@ def task_set_status(request, pk):
     """Cambia el status de una tarea a cualquier valor válido vía POST {status}."""
     if request.method != 'POST':
         return HttpResponseForbidden('POST required')
-    task = get_object_or_404(Task, pk=pk, event__owner=request.user)
+    task = get_object_or_404(Task, pk=pk)
+    _get_event_for_user(task.event_id, request.user, require_editor=True)
     new_status = request.POST.get('status', '')
     if new_status in ('pending', 'in_progress', 'done'):
         task.status = new_status
@@ -571,6 +606,7 @@ def budget_detail(request, event_pk):
         'currency_choices': CURRENCY_CHOICES,
         'budget_max': BUDGET_MAX_AMOUNT,
         'item_max': ITEM_MAX_AMOUNT,
+        'can_edit': _can_edit_event(event, request.user),
     }
     return render(request, 'modules/budget_detail.html', context)
 
@@ -578,7 +614,7 @@ def budget_detail(request, event_pk):
 @login_required
 def budget_update(request, event_pk):
     """Actualiza total_budget y currency del presupuesto."""
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
     budget, _ = Budget.objects.get_or_create(event=event, defaults={'total_budget': 0})
 
     if request.method == 'POST':
@@ -675,7 +711,7 @@ def budget_item_create(request, event_pk):
     Acepta ?task=pk para preseleccionar related_task, y ?next=url para redirigir
     de vuelta a la página de edición de tarea después de crear el ítem.
     """
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
     budget, _ = Budget.objects.get_or_create(event=event, defaults={'total_budget': 0})
 
     # Tarea prefill desde query param (viene de task_edit)
@@ -753,7 +789,7 @@ def budget_item_create(request, event_pk):
 @login_required
 def budget_item_delete(request, event_pk, pk):
     """Elimina un BudgetItem."""
-    event = _get_event_for_user(event_pk, request.user)
+    event = _get_event_for_user(event_pk, request.user, require_editor=True)
     item = get_object_or_404(BudgetItem, pk=pk, budget__event=event)
 
     if request.method == 'POST':

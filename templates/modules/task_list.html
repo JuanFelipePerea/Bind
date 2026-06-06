@@ -10,10 +10,12 @@
   </svg>
   Exportar CSV
 </a>
+{% if can_edit %}
 <a href="{% url 'modules:task_create' event.pk %}" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all flex items-center gap-2 group">
   <svg class="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
   Nueva tarea
 </a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -65,6 +67,7 @@
           <p class="text-xs text-gray-400 mt-0.5">{{ suggestion.reason }}</p>
         </div>
         <!-- Acciones rápidas en sugerencias -->
+        {% if can_edit %}
         <div class="flex items-center gap-1.5 flex-shrink-0">
           <form method="post" action="{% url 'modules:task_toggle_done' suggestion.task.pk %}">
             {% csrf_token %}
@@ -83,6 +86,7 @@
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
           </a>
         </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -99,6 +103,7 @@
 
       <div class="flex items-center gap-3 p-4">
         <!-- Checkbox funcional -->
+        {% if can_edit %}
         <form method="post" action="{% url 'modules:task_toggle_done' task.pk %}" class="flex-shrink-0">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.path }}{% if request.GET.status %}?status={{ request.GET.status }}{% endif %}">
@@ -111,6 +116,14 @@
             {% endif %}
           </button>
         </form>
+        {% else %}
+        <div class="flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center
+          {% if task.status == 'done' %}bg-teal-500 border-teal-500{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+          {% if task.status == 'done' %}
+          <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+          {% endif %}
+        </div>
+        {% endif %}
 
         <!-- Título y fecha -->
         <div class="flex-1 min-w-0">
@@ -144,6 +157,7 @@
             {% else %}bg-zinc-100 text-zinc-500 dark:bg-zinc-700/60 dark:text-zinc-400{% endif %}">
             {{ task.get_status_display }}
           </span>
+          {% if can_edit %}
           <!-- Acción rápida: En progreso (solo para pendientes) -->
           {% if task.status == 'pending' %}
           <form method="post" action="{% url 'modules:task_set_status' task.pk %}">
@@ -164,6 +178,7 @@
           <a href="{% url 'modules:task_delete' event.pk task.pk %}" class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-400 transition-colors" title="Eliminar">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
           </a>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -171,13 +186,76 @@
     <div class="glass rounded-2xl p-12 text-center border-2 border-dashed border-gray-200 dark:border-gray-700">
       <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
       <p class="text-gray-500 dark:text-gray-400 font-medium mb-4 text-sm">Sin tareas aún</p>
+      {% if can_edit %}
       <a href="{% url 'modules:task_create' event.pk %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors text-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Crear primera tarea
       </a>
+      {% endif %}
     </div>
     {% endfor %}
   </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  'use strict';
+
+  // Intercept ALL task_toggle_done form submits in this page — no page reload
+  document.addEventListener('submit', function (e) {
+    const form = e.target;
+    const action = form.getAttribute('action') || '';
+    if (!action.includes('task_toggle_done')) return;
+    e.preventDefault();
+
+    const card    = form.closest('.glass.rounded-xl');
+    const btn     = form.querySelector('button[type="submit"]');
+    if (!card || !btn) return;
+
+    const isDone  = card.classList.contains('opacity-40');
+    const titleEl = card.querySelector('.font-medium.text-sm');
+    const statusBadge = card.querySelector('.px-2.py-0\\.5.rounded.text-xs.font-medium.hidden');
+
+    // ── Optimistic UI update ─────────────────────────────────────────────
+    if (!isDone) {
+      // pending → done
+      btn.classList.add('bg-teal-500', 'border-teal-500');
+      btn.classList.remove('border-gray-300', 'dark:border-gray-600', 'hover:border-teal-400');
+      btn.innerHTML = '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+      card.style.transition = 'opacity 0.25s ease';
+      card.classList.add('opacity-40');
+      if (titleEl) {
+        titleEl.classList.add('text-gray-400', 'line-through');
+        titleEl.classList.remove('text-gray-800', 'dark:text-white');
+      }
+    } else {
+      // done → pending
+      btn.classList.remove('bg-teal-500', 'border-teal-500', 'hover:bg-teal-600');
+      btn.classList.add('border-gray-300', 'dark:border-gray-600', 'hover:border-teal-400');
+      btn.innerHTML = '';
+      card.style.transition = 'opacity 0.25s ease';
+      card.classList.remove('opacity-40');
+      if (titleEl) {
+        titleEl.classList.remove('text-gray-400', 'line-through');
+        titleEl.classList.add('text-gray-800', 'dark:text-white');
+      }
+    }
+
+    // ── Fire & forget — revert on error ─────────────────────────────────
+    const fd = new FormData(form);
+    fetch(action, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      body: fd,
+    }).catch(function () {
+      // Network error: revert to previous state by submitting normally
+      card.classList.toggle('opacity-40');
+      form.submit();
+    });
+  });
+})();
+</script>
 {% endblock %}

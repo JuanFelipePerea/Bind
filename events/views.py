@@ -84,6 +84,20 @@ def dashboard(request):
 
     stats = compute_user_stats(request.user)
 
+    bynix_opening_message = None
+    try:
+        from django.core.cache import cache as _djcache
+        from events.services.ai_service import generate_dashboard_narrative
+        _cache_key = f"bynix_narrative_{request.user.pk}"
+        bynix_opening_message = _djcache.get(_cache_key)
+        if not bynix_opening_message:
+            _narrative = generate_dashboard_narrative(stats)
+            bynix_opening_message = _narrative.get('narrative', '') or None
+            if bynix_opening_message:
+                _djcache.set(_cache_key, bynix_opening_message, timeout=3600)
+    except Exception:
+        pass
+
     # Eventos activos con presupuesto definido (para widget de salud presupuestaria)
     from modules.models import Budget
     budget_events = (
@@ -147,6 +161,7 @@ def dashboard(request):
         'show_tour':             show_tour,
         'pending_invitations':   pending_invitations,
         'shared_events':         shared_events,
+        'bynix_opening_message': bynix_opening_message,
     }
     return render(request, 'events/dashboard.html', context)
 
@@ -462,11 +477,17 @@ def event_detail(request, pk):
                 f"«{name}» tiene buena salud ({hs}/100) pero el momentum está {mo}. "
                 f"¿Quieres que revisemos qué está frenando el avance?"
             )
+        else:
+            bynix_greeting = (
+                f"«{name}» está en buen estado (salud {hs}/100). "
+                f"¿Hay algo que quieras revisar antes del evento?"
+            )
 
     context = {
         'event':               event,
         'is_owner':            is_owner,
         'user_role':           user_role,
+        'can_edit':            is_owner or user_role == 'editor',
         'collaborators':       collaborators,
         'active_modules':      list(active_modules),
         'task_progress':       task_progress,
@@ -475,9 +496,10 @@ def event_detail(request, pk):
         'checklists_preview':  checklists_preview,
         'files_preview':       files_preview,
         'attendees_preview':   attendees_preview,
-        'engine_score':        engine_score,
-        'bynix_greeting':      bynix_greeting,
-        'layout_config_json':  json.dumps(event.layout_config or {}, ensure_ascii=False),
+        'engine_score':           engine_score,
+        'engine_decisions_top':   engine_decisions_top,
+        'bynix_greeting':         bynix_greeting,
+        'layout_config_json':     json.dumps(event.layout_config or {}, ensure_ascii=False),
         'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
     }
     return render(request, 'events/event_detail.html', context)
