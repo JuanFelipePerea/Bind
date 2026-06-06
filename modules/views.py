@@ -562,6 +562,8 @@ def task_set_status(request, pk):
     if new_status in ('pending', 'in_progress', 'done'):
         task.status = new_status
         task.save()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'status': task.status, 'task_id': task.pk})
     next_val = request.POST.get('next', '')
     if next_val and next_val.startswith('/') and not next_val.startswith('//'):
         return redirect(next_val)

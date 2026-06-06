@@ -208,7 +208,7 @@
   document.addEventListener('submit', function (e) {
     const form = e.target;
     const action = form.getAttribute('action') || '';
-    if (!action.includes('task_toggle_done')) return;
+    if (!action.includes('toggle-done')) return;
     e.preventDefault();
 
     const card    = form.closest('.glass.rounded-xl');
@@ -253,6 +253,37 @@
     }).catch(function () {
       // Network error: revert to previous state by submitting normally
       card.classList.toggle('opacity-40');
+      form.submit();
+    });
+  });
+
+  // Intercept set-status (→ Progreso) — optimistic, no page reload
+  document.addEventListener('submit', function (e) {
+    const form = e.target;
+    const action = form.getAttribute('action') || '';
+    if (!action.includes('set-status')) return;
+    e.preventDefault();
+
+    const card      = form.closest('.glass.rounded-xl');
+    const newStatus = (form.querySelector('input[name="status"]') || {}).value;
+    if (!card || !newStatus) return;
+
+    // Optimistic: update status badge text + classes
+    const badge = card.querySelector('.px-2.py-0\\.5.rounded.text-xs.font-medium');
+    if (badge && newStatus === 'in_progress') {
+      badge.className = 'px-2 py-0.5 rounded text-xs font-medium hidden sm:inline bg-blue-50 text-blue-500 dark:bg-blue-900/20 dark:text-blue-400';
+      badge.textContent = 'En progreso';
+    }
+    // Hide the "→ Progreso" button — only relevant for pending→in_progress
+    form.style.display = 'none';
+
+    const fd = new FormData(form);
+    fetch(action, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      body: fd,
+    }).catch(function () {
+      form.style.display = '';
       form.submit();
     });
   });

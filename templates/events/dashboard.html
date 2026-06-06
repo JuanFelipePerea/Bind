@@ -1512,7 +1512,7 @@
   taskWrap.addEventListener('submit', function (e) {
     const form = e.target;
     const action = form.getAttribute('action') || '';
-    if (!action.includes('task_toggle_done')) return;
+    if (!action.includes('toggle-done')) return;
     e.preventDefault();
 
     const card = form.closest('[data-time-state]');
