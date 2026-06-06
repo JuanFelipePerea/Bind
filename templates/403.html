@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}BIND — Sin permiso{% endblock %}
+{% block page_title %}Sin permiso{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center p-6">
+  <div class="text-center max-w-sm">
+
+    <div class="w-20 h-20 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 flex items-center justify-center mx-auto mb-6">
+      <svg class="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+      </svg>
+    </div>
+
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Acción no permitida</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Tu rol en este evento es <span class="font-semibold text-gray-700 dark:text-gray-300">Observador</span>.</p>
+    <p class="text-sm text-gray-400 dark:text-gray-500 mb-8">Los observadores solo pueden ver el contenido, no modificarlo.</p>
+
+    <div class="flex gap-3 justify-center">
+      <button onclick="history.back()"
+              class="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl text-sm transition-colors">
+        Volver
+      </button>
+      <a href="{% url 'events:dashboard' %}"
+         class="px-5 py-2.5 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl text-sm transition-colors">
+        Ir al inicio
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

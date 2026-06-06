@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}BIND — Página no encontrada{% endblock %}
+{% block page_title %}No encontrado{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center p-6">
+  <div class="text-center max-w-sm">
+
+    <p class="text-8xl font-black text-gray-100 dark:text-gray-800 select-none mb-2">404</p>
+
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Página no encontrada</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-8">
+      El recurso que buscas no existe o no tienes acceso a él.
+    </p>
+
+    <div class="flex gap-3 justify-center">
+      <button onclick="history.back()"
+              class="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl text-sm transition-colors">
+        Volver
+      </button>
+      <a href="{% url 'events:dashboard' %}"
+         class="px-5 py-2.5 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl text-sm transition-colors">
+        Ir al inicio
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
