@@ -17,9 +17,20 @@
 
   <div class="glass rounded-2xl p-8 shadow-lg">
     <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">{{ accion }} Momento</h2>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
       Evento: <span class="font-medium text-gray-700 dark:text-gray-300">{{ evento.name }}</span>
     </p>
+    {% if evento.start_date %}
+    <div class="flex items-center gap-2 text-xs text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800/40 rounded-lg px-3 py-2 mb-6">
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      <span>
+        Rango válido: <strong>{{ evento.start_date|date:"d M Y, H:i" }}</strong>
+        {% if evento.end_date %} → <strong>{{ evento.end_date|date:"d M Y, H:i" }}</strong>{% endif %}
+      </span>
+    </div>
+    {% else %}
+    <div class="mb-6"></div>
+    {% endif %}
 
     {% if messages %}
     <div class="mb-4 space-y-2">
@@ -75,6 +86,8 @@
           </label>
           <input type="datetime-local" name="hora_inicio" id="id_hora_inicio"
                  value="{{ momento.hora_inicio|date:'Y-m-d\TH:i'|default:'' }}"
+                 {% if evento.start_date %}min="{{ evento.start_date|date:'Y-m-d\TH:i' }}"{% endif %}
+                 {% if evento.end_date %}max="{{ evento.end_date|date:'Y-m-d\TH:i' }}"{% endif %}
                  required
                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600
                         bg-white dark:bg-gray-800 text-gray-900 dark:text-white
@@ -88,6 +101,8 @@
           </label>
           <input type="datetime-local" name="hora_fin" id="id_hora_fin"
                  value="{{ momento.hora_fin|date:'Y-m-d\TH:i'|default:'' }}"
+                 {% if evento.start_date %}min="{{ evento.start_date|date:'Y-m-d\TH:i' }}"{% endif %}
+                 {% if evento.end_date %}max="{{ evento.end_date|date:'Y-m-d\TH:i' }}"{% endif %}
                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600
                         bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                         focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none
@@ -144,30 +159,57 @@
 </div>
 
 <script>
-/* Validación de hora_fin > hora_inicio en el cliente */
 (function () {
   const form       = document.getElementById('momento-form');
   const horaInicio = document.getElementById('id_hora_inicio');
   const horaFin    = document.getElementById('id_hora_fin');
+  const errInicio  = document.getElementById('error-hora_inicio');
   const errFin     = document.getElementById('error-hora_fin');
 
-  function validateTimes() {
-    if (!horaInicio.value || !horaFin.value) { errFin.classList.add('hidden'); return true; }
-    const ok = new Date(horaFin.value) > new Date(horaInicio.value);
-    if (!ok) {
-      errFin.textContent = 'La hora de fin debe ser posterior a la hora de inicio.';
-      errFin.classList.remove('hidden');
-    } else {
-      errFin.classList.add('hidden');
+  // Rango válido del evento (null si no definido)
+  const eventMin = horaInicio.min ? new Date(horaInicio.min) : null;
+  const eventMax = horaInicio.max ? new Date(horaInicio.max) : null;
+
+  function showErr(el, msg) { el.textContent = msg; el.classList.remove('hidden'); }
+  function clearErr(el)     { el.classList.add('hidden'); }
+
+  function validateInicio() {
+    if (!horaInicio.value) return true;
+    const t = new Date(horaInicio.value);
+    if (eventMin && t < eventMin) {
+      showErr(errInicio, `Debe ser a partir de ${horaInicio.min.replace('T',' ')}.`);
+      return false;
     }
-    return ok;
+    if (eventMax && t > eventMax) {
+      showErr(errInicio, `No puede superar el fin del evento (${horaInicio.max.replace('T',' ')}).`);
+      return false;
+    }
+    clearErr(errInicio);
+    return true;
   }
 
-  horaInicio.addEventListener('change', validateTimes);
-  horaFin.addEventListener('change', validateTimes);
+  function validateFin() {
+    if (!horaFin.value) { clearErr(errFin); return true; }
+    const fin   = new Date(horaFin.value);
+    const ini   = horaInicio.value ? new Date(horaInicio.value) : null;
+    if (ini && fin <= ini) {
+      showErr(errFin, 'La hora de fin debe ser posterior a la hora de inicio.');
+      return false;
+    }
+    if (eventMax && fin > eventMax) {
+      showErr(errFin, `No puede superar el fin del evento (${horaFin.max.replace('T',' ')}).`);
+      return false;
+    }
+    clearErr(errFin);
+    return true;
+  }
+
+  horaInicio.addEventListener('change', function () { validateInicio(); validateFin(); });
+  horaFin.addEventListener('change', validateFin);
 
   form.addEventListener('submit', function (e) {
-    if (!validateTimes()) { e.preventDefault(); }
+    const ok = validateInicio() & validateFin();
+    if (!ok) e.preventDefault();
   });
 })();
 </script>

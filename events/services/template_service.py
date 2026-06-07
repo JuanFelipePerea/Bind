@@ -112,19 +112,34 @@ def apply_template_to_event(event, template, owner=None, allowed_modules=None, c
                 _parsed = parse_datetime(str(_event_start))
                 _event_start = _parsed.date() if _parsed else None
 
+        # Filtrar tareas válidas y calcular factor de escala proporcional.
+        # Si el evento está más cerca que el rango máximo del template, todas las
+        # fechas se comprimen proporcionalmente para que ninguna quede en el pasado.
+        valid_tasks = []
         for template_task in tasks_sorted:
-            # Exclusión por PK (preciso) o por título (compatibilidad)
             if template_task.pk in excluded_task_pks:
                 continue
             if template_task.title in excluded_tasks_by_title:
                 continue
             if template_task.title in existing_titles:
                 continue
-
             days = task_day_overrides.get(template_task.pk, template_task.days_before_event)
+            valid_tasks.append((template_task, days))
+
+        _scale = 1.0
+        if _event_start and valid_tasks:
+            from datetime import date as _date_type
+            _today = _date_type.today()
+            _days_until = (_event_start - _today).days
+            _max_days = max((d for _, d in valid_tasks if d is not None), default=None)
+            if _max_days and _max_days > 0 and _days_until > 0 and _days_until < _max_days:
+                _scale = _days_until / _max_days
+
+        for template_task, days in valid_tasks:
             due_date = None
             if _event_start and days is not None:
-                due_date = _event_start - timedelta(days=days)
+                scaled_days = round(days * _scale) if _scale != 1.0 else days
+                due_date = _event_start - timedelta(days=scaled_days)
 
             assigned_to = owner if (owner and template_task.priority == 'high') else None
 
