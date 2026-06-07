@@ -215,17 +215,9 @@ SOCIALACCOUNT_PROVIDERS = {
             'secret': os.environ.get('GOOGLE_CLIENT_SECRET', ''),
             'key': '',
         },
-        # calendar incluido para poder sincronizar eventos desde BIND
-        'SCOPE': [
-            'profile',
-            'email',
-            'https://www.googleapis.com/auth/calendar',
-        ],
-        # offline → Google retorna refresh_token; consent → fuerza pantalla de permisos
-        # para que el refresh_token esté disponible aunque el usuario ya haya aceptado antes
+        'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {
-            'access_type': 'offline',
-            'prompt': 'consent select_account',
+            'access_type': 'online',
         },
     }
 }
