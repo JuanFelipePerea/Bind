@@ -110,3 +110,5 @@ django.log
 *.key
 secret_key.txt
 pip-log.txt
+# Claude Code local commands
+.claude/commands/
