@@ -47,5 +47,6 @@ urlpatterns = [
     path('events/<int:pk>/collaborators/', views_collaborator.list_collaborators, name='list_collaborators'),
     path('events/<int:pk>/collaborators/invite/', views_collaborator.invite_collaborator, name='invite_collaborator'),
     path('events/<int:pk>/collaborators/accept/', views_collaborator.accept_invitation, name='accept_invitation'),
+    path('events/<int:pk>/collaborators/decline/', views_collaborator.decline_invitation, name='decline_invitation'),
     path('events/<int:pk>/collaborators/<int:collab_pk>/remove/', views_collaborator.remove_collaborator, name='remove_collaborator'),
 ]

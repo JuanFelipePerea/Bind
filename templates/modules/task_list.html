@@ -15,6 +15,15 @@
   <svg class="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
   Nueva tarea
 </a>
+{% else %}
+<button type="button" disabled
+        class="px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800/70 text-zinc-400 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-700/60 cursor-not-allowed"
+        title="Sin permisos de edición — Modo Observador">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+  </svg>
+  Nueva tarea
+</button>
 {% endif %}
 {% endblock %}
 
@@ -51,12 +60,17 @@
     </div>
   </div>
 
-  <!-- Orden sugerido — visible permanentemente si existe, no oculto -->
-  {% if priority_suggestions %}
-  <div class="mb-5 glass p-4 rounded-xl border border-teal-500/20">
-    <p class="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest mb-3">
+  <!-- Orden sugerido — colapsable (cerrado por defecto), oculto en filtro 'done' -->
+  {% if priority_suggestions and request.GET.status != 'done' %}
+  <div class="mb-5">
+    <button type="button" onclick="toggleSuggestions()"
+            class="flex items-center gap-2 text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest hover:text-teal-500 dark:hover:text-teal-300 transition-colors w-full text-left">
+      <svg id="suggestions-arrow" class="w-3 h-3 transition-transform duration-200 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+      </svg>
       Orden sugerido · {{ priority_suggestions|length }} tareas
-    </p>
+    </button>
+    <div id="suggestions-panel" class="hidden mt-3 glass p-4 rounded-xl border border-teal-500/20">
     <div class="space-y-2">
       {% for suggestion in priority_suggestions %}
       <div class="flex items-center gap-3 p-2.5 bg-white/40 dark:bg-gray-700/30 rounded-lg border-l-2
@@ -89,6 +103,7 @@
         {% endif %}
       </div>
       {% endfor %}
+    </div>
     </div>
   </div>
   {% endif %}
@@ -210,6 +225,15 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+function toggleSuggestions() {
+  const panel = document.getElementById('suggestions-panel');
+  const arrow = document.getElementById('suggestions-arrow');
+  if (!panel) return;
+  const hidden = panel.classList.toggle('hidden');
+  if (arrow) arrow.style.transform = hidden ? '' : 'rotate(90deg)';
+}
+</script>
 <script>
 (function () {
   'use strict';

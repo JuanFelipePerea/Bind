@@ -79,6 +79,7 @@ def task_list(request, event_pk):
         'priority_suggestions': priority_suggestions,
         'today':               tz.now().date(),
         'can_edit':            _can_edit_event(event, request.user),
+        'is_viewer':           not _can_edit_event(event, request.user),
     }
     return render(request, 'modules/task_list.html', context)
 
@@ -197,7 +198,7 @@ def task_delete(request, event_pk, pk):
 def attendee_list(request, event_pk):
     from accounts.models import EmailTemplate
     event     = _get_event_for_user(event_pk, request.user)
-    attendees = event.attendees.all().order_by('name')
+    attendees = event.attendees.all().select_related('preference').order_by('name')
     # Cargar plantilla de invitación guardada (si existe) para pre-llenar el modal de composición
     invitation_tpl = EmailTemplate.objects.filter(
         user=request.user, email_type='invitation'
@@ -207,6 +208,7 @@ def attendee_list(request, event_pk):
         'attendees': attendees,
         'invitation_tpl': invitation_tpl,
         'can_edit': _can_edit_event(event, request.user),
+        'is_viewer': not _can_edit_event(event, request.user),
     }
     return render(request, 'modules/attendee_list.html', context)
 
@@ -276,6 +278,7 @@ def checklist_list(request, event_pk):
         'checklists': checklists,
         'can_edit': _can_edit_event(event, request.user),
         'is_owner': event.owner == request.user,
+        'is_viewer': not _can_edit_event(event, request.user),
     }
     return render(request, 'modules/checklist_list.html', context)
 
@@ -387,7 +390,8 @@ def _detect_file_meta(uploaded_file):
 def file_list(request, event_pk):
     event = _get_event_for_user(event_pk, request.user)
     files = event.files.all().order_by('-uploaded_at')
-    return render(request, 'modules/file_list.html', {'event': event, 'files': files, 'can_edit': _can_edit_event(event, request.user)})
+    _ce = _can_edit_event(event, request.user)
+    return render(request, 'modules/file_list.html', {'event': event, 'files': files, 'can_edit': _ce, 'is_viewer': not _ce})
 
 
 @login_required
@@ -609,6 +613,7 @@ def budget_detail(request, event_pk):
         'budget_max': BUDGET_MAX_AMOUNT,
         'item_max': ITEM_MAX_AMOUNT,
         'can_edit': _can_edit_event(event, request.user),
+        'is_viewer': not _can_edit_event(event, request.user),
     }
     return render(request, 'modules/budget_detail.html', context)
 

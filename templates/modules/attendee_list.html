@@ -24,6 +24,15 @@
     <svg class="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
     Agregar asistente
   </a>
+  {% else %}
+  <button type="button" disabled
+          class="px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800/70 text-zinc-400 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-700/60 cursor-not-allowed"
+          title="Sin permisos de edición — Modo Observador">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+    </svg>
+    Agregar asistente
+  </button>
   {% endif %}
 </div>
 {% endblock %}
@@ -80,7 +89,8 @@
       </thead>
       <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
         {% for attendee in attendees %}
-        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors">
+        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors cursor-pointer"
+            onclick="toggleDetail({{ attendee.pk }})">
           <td class="px-5 py-3.5">
             <div class="flex items-center gap-3">
               <div class="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
@@ -110,7 +120,7 @@
             {% endif %}
           </td>
           <td class="px-5 py-3.5 text-right">
-            <div class="flex items-center justify-end gap-2">
+            <div class="flex items-center justify-end gap-2" onclick="event.stopPropagation()">
               {% if can_edit %}
               <a href="{% url 'modules:attendee_edit' event.pk attendee.pk %}" class="text-gray-400 hover:text-teal-500 transition-colors p-1" title="Editar">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -121,6 +131,53 @@
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
               </form>
+              {% endif %}
+              <!-- Expand / collapse -->
+              <button type="button" id="expand-btn-{{ attendee.pk }}"
+                      class="text-gray-300 hover:text-teal-500 transition-all p-1 rounded" title="Ver detalles"
+                      style="transition: transform 0.2s;">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <!-- Detail row: invitation, dietary, accessibility, notes -->
+        <tr id="detail-{{ attendee.pk }}" class="hidden">
+          <td colspan="5" class="px-0 py-0">
+            <div class="flex flex-wrap gap-x-8 gap-y-3 px-5 py-4 bg-gray-50/80 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-700/50">
+              <div class="min-w-[160px]">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Invitación</p>
+                <p class="text-xs text-gray-700 dark:text-gray-300">
+                  {% if attendee.invitation_sent_at %}
+                    Enviada el {{ attendee.invitation_sent_at|date:"d M Y · H:i" }}
+                  {% else %}
+                    <span class="text-gray-400 italic">No enviada</span>
+                  {% endif %}
+                </p>
+              </div>
+              <div class="min-w-[120px]">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Alimentación</p>
+                <p class="text-xs text-gray-700 dark:text-gray-300">
+                  {{ attendee.preference.get_dietary_display|default:"—" }}
+                </p>
+              </div>
+              <div class="min-w-[120px]">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Accesibilidad</p>
+                <p class="text-xs">
+                  {% if attendee.preference.accessibility %}
+                    <span class="text-amber-600 dark:text-amber-400 font-semibold">Requiere apoyo</span>
+                  {% else %}
+                    <span class="text-gray-400">Sin necesidades</span>
+                  {% endif %}
+                </p>
+              </div>
+              {% if attendee.preference.notes %}
+              <div class="flex-1 min-w-[180px]">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Notas</p>
+                <p class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{{ attendee.preference.notes }}</p>
+              </div>
               {% endif %}
             </div>
           </td>
@@ -333,6 +390,13 @@
 </div>
 
 <script>
+function toggleDetail(pk) {
+  const row = document.getElementById('detail-' + pk);
+  const btn = document.getElementById('expand-btn-' + pk);
+  if (!row) return;
+  const hidden = row.classList.toggle('hidden');
+  if (btn) btn.style.transform = hidden ? '' : 'rotate(180deg)';
+}
 function openComposeModal() {
   document.getElementById('compose-modal').classList.remove('hidden');
   switchTab('editor');

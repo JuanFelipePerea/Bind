@@ -135,6 +135,26 @@ def accept_invitation(request, pk):
 
 @login_required
 @require_http_methods(['POST'])
+def decline_invitation(request, pk):
+    """El usuario autenticado rechaza su invitación al evento pk (elimina el registro)."""
+    from django.contrib import messages as _msgs
+    event   = get_object_or_404(Event, pk=pk)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    try:
+        collab = EventCollaborator.objects.get(event=event, user=request.user, accepted=False)
+    except EventCollaborator.DoesNotExist:
+        if is_ajax:
+            return JsonResponse({'error': 'Sin invitación pendiente para este evento'}, status=404)
+        return redirect('events:dashboard')
+    collab.delete()
+    if is_ajax:
+        return JsonResponse({'status': 'declined', 'event': event.name})
+    _msgs.info(request, f'Invitación a "{event.name}" rechazada.')
+    return redirect('events:dashboard')
+
+
+@login_required
+@require_http_methods(['POST'])
 def remove_collaborator(request, pk, collab_pk):
     """Elimina un colaborador del evento. Solo el owner puede hacerlo."""
     event  = get_object_or_404(Event, pk=pk, owner=request.user)

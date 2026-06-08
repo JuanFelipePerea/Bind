@@ -2,6 +2,42 @@
 {% block title %}BIND - {{ accion }} Momento{% endblock %}
 {% block page_title %}{{ accion }} Momento{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<style>
+  .flatpickr-calendar {
+    font-family: inherit;
+    border-radius: 0.75rem !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important;
+  }
+  .flatpickr-day.selected, .flatpickr-day.selected:hover {
+    background: #14b8a6 !important; border-color: #14b8a6 !important;
+  }
+  .flatpickr-day.today { border-color: #14b8a6 !important; }
+  .flatpickr-day:hover { background: #f0fdfa !important; color: #134e4a !important; }
+  .dark .flatpickr-calendar {
+    background: #1f2937 !important; border-color: rgba(255,255,255,0.1) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+  }
+  .dark .flatpickr-months .flatpickr-month { background: #111827 !important; }
+  .dark .flatpickr-current-month, .dark .flatpickr-current-month input.cur-year,
+  .dark .flatpickr-current-month .numInputWrapper input { color: #f9fafb !important; }
+  .dark .flatpickr-prev-month svg, .dark .flatpickr-next-month svg { fill: #9ca3af !important; }
+  .dark .flatpickr-weekdays, .dark span.flatpickr-weekday { background: #111827 !important; color: #9ca3af !important; }
+  .dark .flatpickr-day { color: #f9fafb !important; }
+  .dark .flatpickr-day:hover { background: #374151 !important; color: #f9fafb !important; }
+  .dark .flatpickr-day.selected { background: #14b8a6 !important; border-color: #14b8a6 !important; }
+  .dark .flatpickr-day.flatpickr-disabled { color: rgba(255,255,255,0.2) !important; }
+  .dark .flatpickr-time { background: #1f2937 !important; border-color: rgba(255,255,255,0.1) !important; }
+  .dark .flatpickr-time input, .dark .flatpickr-time .flatpickr-am-pm { color: #f9fafb !important; }
+  .dark .numInputWrapper span.arrowUp:after { border-bottom-color: #9ca3af !important; }
+  .dark .numInputWrapper span.arrowDown:after { border-top-color: #9ca3af !important; }
+</style>
+{% endblock %}
+
 {% block topbar_action %}
 <a href="{% url 'events:event_detail' evento.pk %}"
    class="glass px-4 py-2 rounded-xl text-sm font-medium hover:bg-white/80 dark:hover:bg-gray-700 transition-all text-gray-700 dark:text-gray-200 flex items-center gap-2">
@@ -84,29 +120,27 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Hora de inicio <span class="text-red-500">*</span>
           </label>
-          <input type="datetime-local" name="hora_inicio" id="id_hora_inicio"
+          <input type="text" name="hora_inicio" id="id_hora_inicio"
                  value="{{ momento.hora_inicio|date:'Y-m-d\TH:i'|default:'' }}"
-                 {% if evento.start_date %}min="{{ evento.start_date|date:'Y-m-d\TH:i' }}"{% endif %}
-                 {% if evento.end_date %}max="{{ evento.end_date|date:'Y-m-d\TH:i' }}"{% endif %}
                  required
+                 placeholder="Selecciona fecha y hora"
                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600
                         bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                         focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none
-                        transition text-sm">
+                        transition text-sm cursor-pointer">
           <p class="mt-1 text-xs text-red-500 hidden" id="error-hora_inicio"></p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Hora de fin <span class="text-gray-400 font-normal">(opcional)</span>
           </label>
-          <input type="datetime-local" name="hora_fin" id="id_hora_fin"
+          <input type="text" name="hora_fin" id="id_hora_fin"
                  value="{{ momento.hora_fin|date:'Y-m-d\TH:i'|default:'' }}"
-                 {% if evento.start_date %}min="{{ evento.start_date|date:'Y-m-d\TH:i' }}"{% endif %}
-                 {% if evento.end_date %}max="{{ evento.end_date|date:'Y-m-d\TH:i' }}"{% endif %}
+                 placeholder="Selecciona fecha y hora"
                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600
                         bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                         focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none
-                        transition text-sm">
+                        transition text-sm cursor-pointer">
           <p class="mt-1 text-xs text-red-500 hidden" id="error-hora_fin"></p>
         </div>
       </div>
@@ -160,55 +194,94 @@
 
 <script>
 (function () {
-  const form       = document.getElementById('momento-form');
-  const horaInicio = document.getElementById('id_hora_inicio');
-  const horaFin    = document.getElementById('id_hora_fin');
-  const errInicio  = document.getElementById('error-hora_inicio');
-  const errFin     = document.getElementById('error-hora_fin');
+  const form      = document.getElementById('momento-form');
+  const errInicio = document.getElementById('error-hora_inicio');
+  const errFin    = document.getElementById('error-hora_fin');
 
-  // Rango válido del evento (null si no definido)
-  const eventMin = horaInicio.min ? new Date(horaInicio.min) : null;
-  const eventMax = horaInicio.max ? new Date(horaInicio.max) : null;
+  const eventMinStr = '{{ evento.start_date|date:"Y-m-d\TH:i"|default:"" }}';
+  const eventMaxStr = '{{ evento.end_date|date:"Y-m-d\TH:i"|default:"" }}';
+  const eventMin    = eventMinStr ? new Date(eventMinStr) : null;
+  const eventMax    = eventMaxStr ? new Date(eventMaxStr) : null;
 
   function showErr(el, msg) { el.textContent = msg; el.classList.remove('hidden'); }
   function clearErr(el)     { el.classList.add('hidden'); }
 
-  function validateInicio() {
-    if (!horaInicio.value) return true;
-    const t = new Date(horaInicio.value);
-    if (eventMin && t < eventMin) {
-      showErr(errInicio, `Debe ser a partir de ${horaInicio.min.replace('T',' ')}.`);
-      return false;
-    }
-    if (eventMax && t > eventMax) {
-      showErr(errInicio, `No puede superar el fin del evento (${horaInicio.max.replace('T',' ')}).`);
-      return false;
-    }
-    clearErr(errInicio);
-    return true;
-  }
+  const commonOpts = {
+    enableTime:    true,
+    dateFormat:    'Y-m-dTH:i',
+    time_24hr:     true,
+    locale:        flatpickr.l10ns.es,
+    minDate:       eventMinStr || null,
+    maxDate:       eventMaxStr || null,
+    allowInput:    true,
+    disableMobile: true,
+  };
 
-  function validateFin() {
-    if (!horaFin.value) { clearErr(errFin); return true; }
-    const fin   = new Date(horaFin.value);
-    const ini   = horaInicio.value ? new Date(horaInicio.value) : null;
-    if (ini && fin <= ini) {
-      showErr(errFin, 'La hora de fin debe ser posterior a la hora de inicio.');
-      return false;
-    }
-    if (eventMax && fin > eventMax) {
-      showErr(errFin, `No puede superar el fin del evento (${horaFin.max.replace('T',' ')}).`);
-      return false;
-    }
-    clearErr(errFin);
-    return true;
-  }
+  const fpInicio = flatpickr('#id_hora_inicio', {
+    ...commonOpts,
+    onChange: function (selectedDates, dateStr) {
+      if (!dateStr) { clearErr(errInicio); return; }
+      const t = new Date(dateStr);
+      if (eventMin && t < eventMin) {
+        showErr(errInicio, `Debe ser a partir de ${eventMinStr.replace('T', ' ')}.`);
+      } else if (eventMax && t > eventMax) {
+        showErr(errInicio, `No puede superar el fin del evento (${eventMaxStr.replace('T', ' ')}).`);
+      } else {
+        clearErr(errInicio);
+      }
+      fpFin.set('minDate', dateStr);
+      if (fpFin.selectedDates[0]) {
+        if (fpFin.selectedDates[0] <= t) showErr(errFin, 'La hora de fin debe ser posterior a la hora de inicio.');
+        else clearErr(errFin);
+      }
+    },
+  });
 
-  horaInicio.addEventListener('change', function () { validateInicio(); validateFin(); });
-  horaFin.addEventListener('change', validateFin);
+  const fpFin = flatpickr('#id_hora_fin', {
+    ...commonOpts,
+    onChange: function (selectedDates, dateStr) {
+      if (!dateStr) { clearErr(errFin); return; }
+      const fin = new Date(dateStr);
+      const ini = fpInicio.selectedDates[0] || null;
+      if (ini && fin <= ini) {
+        showErr(errFin, 'La hora de fin debe ser posterior a la hora de inicio.');
+      } else if (eventMax && fin > eventMax) {
+        showErr(errFin, `No puede superar el fin del evento (${eventMaxStr.replace('T', ' ')}).`);
+      } else {
+        clearErr(errFin);
+      }
+    },
+  });
 
   form.addEventListener('submit', function (e) {
-    const ok = validateInicio() & validateFin();
+    let ok = true;
+    const inicioStr = document.getElementById('id_hora_inicio').value;
+    const finStr    = document.getElementById('id_hora_fin').value;
+    if (!inicioStr) {
+      showErr(errInicio, 'La hora de inicio es obligatoria.'); ok = false;
+    } else {
+      const t = new Date(inicioStr);
+      if (eventMin && t < eventMin) {
+        showErr(errInicio, `Debe ser a partir de ${eventMinStr.replace('T', ' ')}.`); ok = false;
+      } else if (eventMax && t > eventMax) {
+        showErr(errInicio, `No puede superar el fin del evento (${eventMaxStr.replace('T', ' ')}).`); ok = false;
+      } else {
+        clearErr(errInicio);
+      }
+    }
+    if (finStr) {
+      const ini = inicioStr ? new Date(inicioStr) : null;
+      const fin = new Date(finStr);
+      if (ini && fin <= ini) {
+        showErr(errFin, 'La hora de fin debe ser posterior a la hora de inicio.'); ok = false;
+      } else if (eventMax && fin > eventMax) {
+        showErr(errFin, `No puede superar el fin del evento (${eventMaxStr.replace('T', ' ')}).`); ok = false;
+      } else {
+        clearErr(errFin);
+      }
+    } else {
+      clearErr(errFin);
+    }
     if (!ok) e.preventDefault();
   });
 })();

@@ -488,6 +488,7 @@ def event_detail(request, pk):
         'is_owner':            is_owner,
         'user_role':           user_role,
         'can_edit':            is_owner or user_role == 'editor',
+        'is_viewer':           user_role == 'viewer',
         'collaborators':       collaborators,
         'active_modules':      list(active_modules),
         'task_progress':       task_progress,

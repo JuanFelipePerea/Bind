@@ -521,6 +521,21 @@ startInput?.addEventListener('input', () => { startManual = true; });
 endInput?.addEventListener('input',   () => { endManual   = true; });
 descInput?.addEventListener('input',  () => { descManual  = true; });
 
+startInput?.addEventListener('change', function () {
+  if (!endManual && endInput && startInput.value) {
+    const checked  = document.querySelector('input[name="template_id"]:checked');
+    const cat      = checked?.value ? TEMPLATE_DATA[checked.value]?.category : null;
+    const durationH = CATEGORY_HOURS[cat] || 4;
+    const start = new Date(startInput.value);
+    if (!isNaN(start)) {
+      const end = new Date(start);
+      end.setHours(end.getHours() + durationH);
+      endInput.value = toLocalISO(end);
+      endInput.min   = toLocalISO(start);
+    }
+  }
+});
+
 function escHtml(str) {
   return String(str ?? '')
     .replace(/&/g, '&amp;')
