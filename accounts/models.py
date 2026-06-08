@@ -95,10 +95,10 @@ class EmailTemplate(models.Model):
     ]
 
     DEFAULT_SUBJECTS = {
-        'invitation': '🎟 Invitación: {event}',
-        'welcome':    '¡Bienvenido a BIND! 🎉',
+        'invitation': 'Invitación: {event}',
+        'welcome':    'Bienvenido a BIND',
         'digest':     'Bynix · Tu semana en BIND',
-        'alert':      '⚠️ Atención requerida en BIND',
+        'alert':      'Atención requerida en BIND',
     }
 
     DEFAULT_BODIES = {

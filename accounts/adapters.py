@@ -61,7 +61,7 @@ class BindSocialAccountAdapter(DefaultSocialAccountAdapter):
             name = user.first_name or user.username
             from accounts.models import EmailTemplate
             welcome_tpl = EmailTemplate.objects.filter(user=user, email_type='welcome').first()
-            subject = welcome_tpl.get_subject() if (welcome_tpl and welcome_tpl.custom_subject) else '¡Bienvenido a BIND! 🎉'
+            subject = welcome_tpl.get_subject() if (welcome_tpl and welcome_tpl.custom_subject) else 'Bienvenido a BIND'
             custom_message = welcome_tpl.get_body() if welcome_tpl else ''
             send_bind_email(
                 template_name='bienvenida',

@@ -104,7 +104,7 @@ class Command(BaseCommand):
         if alert_tpl and alert_tpl.custom_subject:
             subject = alert_tpl.get_subject()
         else:
-            subject_prefix = '🚨 Acción urgente' if criticos else '⚠️ Atención requerida'
+            subject_prefix = 'Acción urgente' if criticos else 'Atención requerida'
             subject = f'{subject_prefix} en BIND — {nombre}'
 
         custom_message = alert_tpl.get_body() if alert_tpl else ''

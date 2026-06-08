@@ -6,8 +6,8 @@
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr>
       <td align="center" style="padding-bottom:20px;">
-        <div style="display:inline-block;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);width:72px;height:72px;border-radius:50%;text-align:center;line-height:72px;font-size:32px;">
-          🤖
+        <div style="display:inline-block;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);width:72px;height:72px;border-radius:50%;text-align:center;line-height:72px;font-size:18px;font-weight:900;color:#4f46e5;">
+          Bynix
         </div>
       </td>
     </tr>
@@ -17,7 +17,7 @@
     Resumen Semanal · Bynix AI
   </p>
   <h1 style="margin:0 0 6px;font-size:22px;font-weight:800;color:#0f172a;text-align:center;">
-    Hola {{ nombre }} 👋
+    Hola {{ nombre }},
   </h1>
   <p style="margin:0 0 28px;font-size:15px;color:#64748b;text-align:center;line-height:1.5;">
     {{ resumen }}
@@ -45,7 +45,7 @@
         <p style="margin:0;font-size:13px;color:#94a3b8;">
           Tendencia:
           <strong style="color:{% if tendencia == 'mejorando' %}#14b8a6{% elif tendencia == 'empeorando' %}#ef4444{% else %}#f59e0b{% endif %};">
-            {% if tendencia == 'mejorando' %}📈 Mejorando{% elif tendencia == 'empeorando' %}📉 Empeorando{% else %}➡️ Estable{% endif %}
+            {% if tendencia == 'mejorando' %}Mejorando{% elif tendencia == 'empeorando' %}Empeorando{% else %}Estable{% endif %}
           </strong>
         </p>
       </td>
@@ -72,7 +72,7 @@
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
     <tr>
       <td>
-        <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">⚠️ Puntos de atención</p>
+        <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Puntos de atención</p>
         {% for r in riesgos %}
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;">
           <tr>
@@ -95,7 +95,7 @@
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
     <tr>
       <td>
-        <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">✅ Recomendaciones de Bynix</p>
+        <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Recomendaciones de Bynix</p>
         {% for rec in recomendaciones %}
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;">
           <tr>

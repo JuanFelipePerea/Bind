@@ -66,7 +66,7 @@ def send_invitations(request, event_pk):
             if not custom_message:
                 custom_message = tpl.get_body()
 
-    subject = custom_subject or f"🎟 Invitación: {event.name}"
+    subject = custom_subject or f"Invitación: {event.name}"
 
     now = timezone.now()
     for attendee in to_send:

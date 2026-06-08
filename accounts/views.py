@@ -286,7 +286,7 @@ def _send_welcome_email(user):
     # Usar plantilla personalizada si el usuario ya la configuró (poco probable en bienvenida,
     # pero posible si alguien importó usuarios con plantillas pre-existentes)
     welcome_tpl = EmailTemplate.objects.filter(user=user, email_type='welcome').first()
-    subject = welcome_tpl.get_subject() if (welcome_tpl and welcome_tpl.custom_subject) else '¡Bienvenido a BIND! 🎉'
+    subject = welcome_tpl.get_subject() if (welcome_tpl and welcome_tpl.custom_subject) else 'Bienvenido a BIND'
     custom_message = welcome_tpl.get_body() if welcome_tpl else ''
     send_bind_email(
         template_name='bienvenida',
