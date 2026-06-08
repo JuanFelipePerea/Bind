@@ -1432,6 +1432,36 @@ def event_close(request, pk):
 
 
 @login_required
+def event_set_status(request, pk):
+    """Cambia el status de un evento vía POST {status}. Usado por el kebab menu."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    event = get_object_or_404(Event, pk=pk, owner=request.user)
+    new_status = request.POST.get('status', '')
+    valid = [s[0] for s in Event.STATUS_CHOICES]
+    if new_status not in valid:
+        return JsonResponse({'error': 'Estado inválido'}, status=400)
+
+    previous_status = event.status
+    event.status = new_status
+    event.save(update_fields=['status', 'updated_at'])
+
+    if previous_status != 'completed' and new_status == 'completed':
+        _handle_event_completion(event, request.user)
+        messages.success(request, f'"{event.name}" marcado como completado.')
+    else:
+        messages.success(request, f'Estado de "{event.name}" actualizado a {event.get_status_display()}.')
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': True, 'status': new_status, 'label': event.get_status_display()})
+
+    next_val = request.POST.get('next', '')
+    if next_val and next_val.startswith('/') and not next_val.startswith('//'):
+        return redirect(next_val)
+    return redirect('events:event_detail', pk=pk)
+
+
+@login_required
 def tasks_complete_all(request, pk):
     """POST → marca todas las tareas pendientes/en progreso del evento como 'done'."""
     from modules.models import Task

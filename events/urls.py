@@ -39,6 +39,7 @@ urlpatterns = [
     path('bynix/', views_bynix.dashboard_assistant_chat, name='dashboard_assistant_chat'),
     # Acciones rápidas (usadas por Bynix y CTAs del dashboard)
     path('events/<int:pk>/close/', views.event_close, name='event_close'),
+    path('events/<int:pk>/set-status/', views.event_set_status, name='event_set_status'),
     path('events/<int:pk>/tasks/complete-all/', views.tasks_complete_all, name='tasks_complete_all'),
     # Events API — creación rápida vía IA
     path('events/api/create/', views.event_api_create, name='event_api_create'),

@@ -33,6 +33,11 @@ def send_invitations(request, event_pk):
         .exclude(status='declined')
     )
 
+    # Si el formulario envió IDs específicos, filtrar solo esos
+    attendee_ids = request.POST.getlist('attendee_ids')
+    if attendee_ids:
+        candidates = candidates.filter(pk__in=attendee_ids)
+
     total   = candidates.count()
     to_send = candidates[:MAX_BULK_SEND]
     sent    = 0
