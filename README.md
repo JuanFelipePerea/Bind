@@ -7,6 +7,15 @@ BIND es un sistema web diseñado para planear, gestionar y dar seguimiento a eve
 
 ---
 
+## Links del proyecto
+
+| Recurso | URL |
+|---|---|
+| Repositorio GitHub | https://github.com/JuanFelipePerea/Bind |
+| Aplicación en producción | https://bind-gexm.onrender.com |
+
+---
+
 ## Demo
 
 **URL en producción:** https://bind-gexm.onrender.com
@@ -30,11 +39,12 @@ BIND es un sistema web diseñado para planear, gestionar y dar seguimiento a eve
 |---|---|
 | Backend | Python 3.13 + Django 6.0.1 |
 | Frontend | HTML5 + Tailwind CSS + Flatpickr + FullCalendar |
-| Base de datos | PostgreSQL (Neon) |
-| Almacenamiento | Cloudinary |
-| Despliegue | Render.com (autodeploy desde `main`) |
-| IA | Gemini + Groq (asistente Bynix) |
+| Base de datos | PostgreSQL — [Neon](https://neon.tech) (cloud serverless) |
+| Almacenamiento | [Cloudinary](https://cloudinary.com) (archivos e imágenes) |
+| Despliegue | [Render.com](https://render.com) (autodeploy desde rama `main`) |
+| IA | Google Gemini + Groq (asistente Bynix) |
 | Autenticación | Django Allauth + Google OAuth 2.0 |
+| Email transaccional | Brevo (SMTP) |
 | Idioma / Zona horaria | Español Colombia (`es-co` / `America/Bogota`) |
 | Control de versiones | Git + GitHub |
 
@@ -86,6 +96,7 @@ Bind/
 ### Pasos
 
 **1. Clonar el repositorio**
+
 ```bash
 git clone https://github.com/JuanFelipePerea/Bind.git
 cd Bind
@@ -112,7 +123,7 @@ pip install -r requirements.txt
 
 **4. Configurar variables de entorno**
 
-Crear un archivo `.env` en la raíz con las variables necesarias (ver `.env.example` o solicitar al equipo).
+Crear un archivo `.env` en la raíz con las variables necesarias (anexado en la raiz).
 
 **5. Correr el servidor**
 ```bash
