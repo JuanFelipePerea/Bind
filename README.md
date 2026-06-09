@@ -1,4 +1,4 @@
-# BIND 
+# BIND
 ### Plataforma modular de gestión de eventos
 
 > *"La productividad no se trata de hacer más cosas, sino de hacer las cosas correctas de manera eficiente."*
@@ -7,13 +7,20 @@ BIND es un sistema web diseñado para planear, gestionar y dar seguimiento a eve
 
 ---
 
-## Índice
+## Demo
 
-- [Tecnologías](#tecnologías)
-- [Estructura del proyecto](#estructura-del-proyecto)
-- [Instalación](#instalación)
-- [Módulos del sistema](#módulos-del-sistema)
-- [Equipo](#equipo)
+**URL en producción:** https://bind-gexm.onrender.com
+
+### Cuentas de demostración
+
+| Cuenta | Correo | Contraseña | Rol en evento DEMO |
+|---|---|---|---|
+| Organizador | *(cuenta principal del equipo)* | — | Owner |
+| Editor | SofiaCastillo@gmail.com | `Prueba#0002` | Editor |
+| Observador | MartinGonzalez@gmail.com | `Prueba#0007` | Observador |
+
+> El rol **Editor** puede crear y modificar tareas, checklist, presupuesto y más.  
+> El rol **Observador** tiene acceso de solo lectura con indicadores visuales diferenciados.
 
 ---
 
@@ -21,79 +28,78 @@ BIND es un sistema web diseñado para planear, gestionar y dar seguimiento a eve
 
 | Capa | Tecnología |
 |---|---|
-| Backend | Python 3.x + Django 6.0 |
-| Frontend | HTML5 + TailwindCSS (CDN) + HTMX |
-| Base de datos | SQLite3 (desarrollo) |
-| Control de versiones | Git + GitHub |
+| Backend | Python 3.13 + Django 6.0.1 |
+| Frontend | HTML5 + Tailwind CSS + Flatpickr + FullCalendar |
+| Base de datos | PostgreSQL (Neon) |
+| Almacenamiento | Cloudinary |
+| Despliegue | Render.com (autodeploy desde `main`) |
+| IA | Gemini + Groq (asistente Bynix) |
+| Autenticación | Django Allauth + Google OAuth 2.0 |
 | Idioma / Zona horaria | Español Colombia (`es-co` / `America/Bogota`) |
+| Control de versiones | Git + GitHub |
 
 ---
 
 ## Estructura del proyecto
 
 ```
-BindV1/
+Bind/
 │
-├── BindV1/                  # Configuración principal del proyecto
+├── bind/                        # Configuración principal del proyecto
 │   ├── settings.py
 │   ├── urls.py
 │   └── wsgi.py
 │
-├── accounts/                # Módulo de autenticación y perfiles
+├── accounts/                    # Autenticación, perfiles y 2FA
 │   ├── models.py
 │   ├── views.py
-│   ├── urls.py
-│   └── migrations/
+│   └── urls.py
 │
-├── events/                  # Módulo central de eventos y plantillas
-│   ├── models.py
+├── events/                      # Eventos, plantillas y colaboradores
+│   ├── models.py                # Event, EventTemplate, TemplateTask, Momento, …
 │   ├── views.py
-│   ├── urls.py
-│   └── migrations/
+│   ├── views_collaborator.py
+│   └── management/commands/     # seed_demo, seed_templates, fix_encoding, …
 │
-├── modules/                 # Módulos funcionales (tareas, asistentes, archivos)
-│   ├── models.py
-│   ├── views.py
-│   ├── urls.py
-│   └── migrations/
+├── modules/                     # Módulos funcionales por evento
+│   ├── models.py                # Task, Attendee, Checklist, Budget, File, …
+│   └── views.py
 │
-├── templates/               # Templates HTML (Django Template Language)
-│   ├── accounts/
+├── templates/                   # Templates HTML (Django Template Language)
+│   ├── base.html
 │   ├── events/
-│   └── registration/
+│   └── modules/
 │
-├── static/                  # Archivos estáticos (CSS, JS, imágenes)
-│
-├── manage.py
-└── db.sqlite3               # No incluido en el repo (.gitignore)
+├── static/                      # CSS compilado, JS, imágenes
+├── requirements.txt
+└── manage.py
 ```
 
 ---
 
-## Instalación
+## Instalación local
 
 ### Requisitos previos
-- Python 3.10 o superior
+- Python 3.11 o superior
 - pip
-- Git
 
 ### Pasos
 
 **1. Clonar el repositorio**
 ```bash
-git clone https://github.com/tu-usuario/BindV1.git
-cd BindV1
+git clone https://github.com/JuanFelipePerea/Bind.git
+cd Bind
 ```
 
-**2. Crear y activar el entorno virtual**
+**2. Crear y activar entorno virtual**
 
-En Windows:
+Windows:
 ```bash
 python -m venv venv
 venv\Scripts\activate
 ```
 
-En Mac / Linux:
+Mac / Linux:
 ```bash
 python -m venv venv
 source venv/bin/activate
@@ -101,25 +107,19 @@ source venv/bin/activate
 
 **3. Instalar dependencias**
 ```bash
-pip install django
+pip install -r requirements.txt
 ```
 
-**4. Aplicar migraciones (crea la base de datos vacía)**
-```bash
-python manage.py migrate
-```
+**4. Configurar variables de entorno**
 
-**5. Crear superusuario (opcional, para acceder al admin)**
-```bash
-python manage.py createsuperuser
-```
+Crear un archivo `.env` en la raíz con las variables necesarias (ver `.env.example` o solicitar al equipo).
 
-**6. Correr el servidor**
+**5. Correr el servidor**
 ```bash
 python manage.py runserver
 ```
 
-**7. Abrir en el navegador**
+**6. Abrir en el navegador**
 ```
 http://127.0.0.1:8000/
 ```
@@ -128,26 +128,20 @@ http://127.0.0.1:8000/
 
 ## Módulos del sistema
 
-### Módulos implementados
-
-| Módulo | Descripción | Estado |
-|---|---|---|
-| **Events** | Creación y gestión de eventos | Activo |
-| **Tasks** | Tareas y checklists por evento | Activo |
-| **Attendees** | Control de asistentes e invitados | Activo |
-| **Files** | Subida y gestión de archivos por evento | Activo |
-| **Budget** | Presupuesto e ítems financieros por evento | Activo |
-| **Templates** | Plantillas reutilizables de eventos | Activo |
-| **Calendar** | Vista de calendario de eventos | Activo |
-| **Reports** | Reportes y estadísticas de eventos | Activo |
-| **Accounts** | Autenticación, perfiles y roles | Activo |
-
-### Módulos en desarrollo
-
-| Módulo | Derivado de | Estado |
-|---|---|---|
-| Surveys | Events | En desarrollo |
-| ApiKeys | Accounts | En desarrollo |
+| Módulo | Descripción |
+|---|---|
+| **Eventos** | Creación, edición y seguimiento de eventos con plantillas reutilizables |
+| **Tareas** | Gestión de tareas por evento con prioridades, estados y orden sugerido por IA |
+| **Asistentes** | Control de invitados, confirmaciones y preferencias dietéticas/accesibilidad |
+| **Checklist** | Listas de verificación por evento con progreso en tiempo real |
+| **Presupuesto** | Control financiero con ítems de gasto/ingreso, moneda y porcentaje de ejecución |
+| **Archivos** | Subida y gestión de documentos adjuntos al evento (Cloudinary) |
+| **Momentos** | Cronograma visual de hitos del evento integrado con FullCalendar |
+| **Bynix** | Asistente IA conversacional por evento (Gemini + Groq) |
+| **Colaboradores** | Invitación de usuarios con roles Editor / Observador y modo visual diferenciado |
+| **Plantillas** | Plantillas de eventos con tareas, checklist y presupuesto predefinidos |
+| **Alertas** | Sistema de alertas automáticas por retrasos, presupuesto y actividad |
+| **Reportes** | Exportación de reportes por evento |
 
 ---
 
